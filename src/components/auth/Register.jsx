@@ -40,17 +40,18 @@ const Register = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div className="auth-brand">
+          <span className="brand-icon">💧</span>
+          <span className="brand-name">WaterBill</span>
+        </div>
+
         <div className="auth-header">
-          <div className="auth-logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="12" fill="#6C63FF"/>
-              <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" stroke="white" strokeWidth="2"/>
-              <path d="M20 15V25M15 20H25" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            <h1>WaterBill</h1>
-          </div>
           <h2>Create Account</h2>
           <p>Sign up to manage your water bills</p>
+        </div>
+
+        <div className="auth-divider">
+          <span>Or</span>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>

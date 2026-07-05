@@ -53,21 +53,20 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        {/* Header */}
+        <div className="auth-brand">
+          <span className="brand-icon">💧</span>
+          <span className="brand-name">WaterBill</span>
+        </div>
+
         <div className="auth-header">
-          <div className="auth-logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="12" fill="#6C63FF"/>
-              <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" stroke="white" strokeWidth="2"/>
-              <path d="M20 15V25M15 20H25" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            <h1>WaterBill</h1>
-          </div>
           <h2>Hello Again</h2>
           <p>Welcome back, you've been missed</p>
         </div>
 
-        {/* Form */}
+        <div className="auth-divider">
+          <span>Or</span>
+        </div>
+
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
             <label>Email</label>
@@ -92,10 +91,6 @@ const Login = () => {
           </div>
 
           <div className="form-options">
-            <label className="checkbox-label">
-              <input type="checkbox" />
-              <span>Remember me</span>
-            </label>
             <button 
               type="button" 
               className="forgot-link"
@@ -110,7 +105,6 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Footer */}
         <div className="auth-footer">
           <p>
             Don't have an account? <Link to="/register">Sign Up</Link>
@@ -118,7 +112,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Reset Password Modal */}
       {showReset && (
         <div className="modal-overlay">
           <div className="modal-content">
