@@ -25,7 +25,7 @@ const Navbar = () => {
       <div className="nav-container">
         <Link to="/" className="nav-brand">
           <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="10" fill="#6C63FF"/>
+            <rect width="40" height="40" rx="10" fill="#14652B"/>
             <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" stroke="white" strokeWidth="2"/>
             <path d="M20 15V25M15 20H25" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
@@ -35,10 +35,9 @@ const Navbar = () => {
         <div className="nav-menu">
           {user ? (
             <>
-              <Link to="/dashboard" className="nav-link">Dashboard</Link>
-              <Link to="/bills" className="nav-link">My Bills</Link>
+              
               <div className="nav-user">
-                <span className="user-name">{userData?.displayName || user.email}</span>
+                <span className="user-name">WELCOME, {userData?.displayName || user.email}</span>
                 <button onClick={handleLogout} className="logout-btn">
                   Logout
                 </button>

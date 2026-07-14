@@ -1,120 +1,124 @@
 /* src/components/common/Navbar.css */
 .navbar {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(17, 82, 37, 0.822);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1435px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 72px;
+  height: 68px;
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
-  color: white;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
 }
 
 .nav-brand span {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.nav-brand svg rect {
+  fill: #14652B;
 }
 
 .nav-menu {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .nav-link {
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 10px 18px;
-  border-radius: 10px;
+  padding: 8px 16px;
+  border-radius: 8px;
   transition: all 0.3s;
-  position: relative;
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .nav-link.register-link {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #1a1a2e;
-  font-weight: 700;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  background: #ffffff;
+  color: #14652B;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .nav-link.register-link:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
 }
 
 .nav-user {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .user-name {
-  color: white;
+  color: #ffffff;
   font-weight: 600;
   font-size: 14px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .logout-btn {
-  background: rgba(239, 68, 68, 0.2);
-  backdrop-filter: blur(10px);
-  color: #fecaca;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .logout-btn:hover {
-  background: rgba(239, 68, 68, 0.4);
-  border-color: #ef4444;
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 @media (max-width: 768px) {
+  .navbar {
+    padding: 0 16px;
+  }
+  
   .nav-container {
     flex-direction: column;
     height: auto;
     padding: 12px 0;
+    gap: 8px;
   }
   
   .nav-menu {
     flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
   }
   
   .nav-user {

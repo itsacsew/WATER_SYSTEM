@@ -59,17 +59,17 @@ const Login = () => {
         </div>
 
         <div className="auth-header">
-          <h2>Hello Again</h2>
-          <p>Welcome back, you've been missed</p>
+          <h2>Welcome Back</h2>
+          <p>Sign in to manage your water bills</p>
         </div>
 
         <div className="auth-divider">
-          <span>Or</span>
+          <span>Secure Login</span>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               {...register('email')}
               type="email"
@@ -84,7 +84,7 @@ const Login = () => {
             <input
               {...register('password')}
               type="password"
-              placeholder="Your password"
+              placeholder="Enter your password"
               className={errors.password ? 'error' : ''}
             />
             {errors.password && <span className="error-message">{errors.password.message}</span>}
@@ -101,13 +101,13 @@ const Login = () => {
           </div>
 
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <div className="auth-footer">
           <p>
-            Don't have an account? <Link to="/register">Sign Up</Link>
+            Don't have an account? <Link to="/register">Create Account</Link>
           </p>
         </div>
       </div>

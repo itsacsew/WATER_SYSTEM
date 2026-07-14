@@ -9,6 +9,7 @@ import Register from './components/auth/Register';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import BillHistory from './pages/BillHistory';
+import Navbar from './components/common/Navbar';
 import './App.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="App">
+          <Navbar />
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -44,24 +46,24 @@ function App() {
             toastOptions={{
               duration: 4000,
               style: {
-                background: 'rgba(15, 14, 26, 0.9)',
-                backdropFilter: 'blur(20px)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: '#ffffff',
+                color: '#1a1a2e',
+                border: '1px solid #14652B',
                 borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
               },
               success: {
                 duration: 3000,
                 iconTheme: {
-                  primary: '#34d399',
-                  secondary: '#fff',
+                  primary: '#14652B',
+                  secondary: '#ffffff',
                 },
               },
               error: {
                 duration: 4000,
                 iconTheme: {
-                  primary: '#f87171',
-                  secondary: '#fff',
+                  primary: '#dc2626',
+                  secondary: '#ffffff',
                 },
               },
             }}

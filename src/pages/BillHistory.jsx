@@ -21,24 +21,7 @@ const BillHistory = () => {
     }
   };
 
-  return (
-    <div className="dashboard-page">
-      <div className="dashboard-topbar">
-        <div className="dashboard-user">
-          <div className="user-avatar-3d">
-            {userData?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-          </div>
-          <div className="user-greeting">
-            Hello, <span>{userData?.displayName || 'User'}</span>
-          </div>
-        </div>
-        <button onClick={handleLogout} className="logout-top-btn">
-          Logout
-        </button>
-      </div>
-      <BillDashboard />
-    </div>
-  );
+
 };
 
 export default BillHistory;

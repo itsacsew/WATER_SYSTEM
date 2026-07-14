@@ -29,7 +29,7 @@ const Register = () => {
     setLoading(true);
     const result = await registerUser(data.email, data.password, data.fullName);
     if (result.success) {
-      toast.success('Account created! Welcome!');
+      toast.success('Account created successfully!');
       navigate('/dashboard');
     } else {
       toast.error(result.error);
@@ -51,7 +51,7 @@ const Register = () => {
         </div>
 
         <div className="auth-divider">
-          <span>Or</span>
+          <span>Get Started</span>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
@@ -67,7 +67,7 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               {...register('email')}
               type="email"
@@ -100,13 +100,13 @@ const Register = () => {
           </div>
 
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
         <div className="auth-footer">
           <p>
-            Already have an account? <Link to="/login">Login</Link>
+            Already have an account? <Link to="/login">Sign In</Link>
           </p>
         </div>
       </div>
