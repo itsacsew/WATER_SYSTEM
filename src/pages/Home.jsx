@@ -28,18 +28,18 @@ const Home = () => {
       </div>
 
       <div className="features-section">
-        <div className="feature-3d">
-          <div className="feature-icon-3d">📊</div>
+        <div className="feature-card">
+          <div className="feature-icon">📊</div>
           <h3>Track Bills</h3>
           <p>View all your water bills in one place</p>
         </div>
-        <div className="feature-3d">
-          <div className="feature-icon-3d">💳</div>
+        <div className="feature-card">
+          <div className="feature-icon">💳</div>
           <h3>Manage Payments</h3>
           <p>Mark bills as paid and track spending</p>
         </div>
-        <div className="feature-3d">
-          <div className="feature-icon-3d">📈</div>
+        <div className="feature-card">
+          <div className="feature-icon">📈</div>
           <h3>View Statistics</h3>
           <p>See bill history and payment trends</p>
         </div>

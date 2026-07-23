@@ -24,7 +24,6 @@ const BillDashboard = () => {
   const [showProgress, setShowProgress] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [viewMode, setViewMode] = useState('table');
   const [selectedBill, setSelectedBill] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentCode, setPaymentCode] = useState('');
@@ -96,7 +95,6 @@ const BillDashboard = () => {
       }
       
     } catch (error) {
-      toast.error('Error fetching bills');
       try {
         const backupData = localStorage.getItem('bills_backup');
         if (backupData) {
@@ -258,7 +256,6 @@ const BillDashboard = () => {
     }
   };
 
-  // ========== EXPORT WITH HARDCODED PASSWORD - WHITE BACKGROUND ==========
   const handleExportWithPassword = async () => {
     if (filteredBills.length === 0) {
       toast.error('No bills to export!');
@@ -271,7 +268,6 @@ const BillDashboard = () => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Water Bills');
 
-      // Define columns
       worksheet.columns = [
         { header: 'WSIN', key: 'wsin', width: 15 },
         { header: 'Consumer Name', key: 'consumerName', width: 25 },
@@ -283,18 +279,16 @@ const BillDashboard = () => {
         { header: 'Status', key: 'status', width: 12 }
       ];
 
-      // ========== HEADER ROW - WHITE BACKGROUND WITH BLACK TEXT ==========
       const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FF000000' }, size: 12 };
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
       headerRow.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFFFFFFF' } // WHITE
+        fgColor: { argb: 'FF1e3a5f' }
       };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      // ========== ADD DATA WITH WHITE BACKGROUND ==========
       filteredBills.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
         worksheet.addRow({
@@ -309,48 +303,42 @@ const BillDashboard = () => {
         });
       });
 
-      // ========== STYLE DATA ROWS - WHITE BACKGROUND ==========
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber > 1) {
           row.height = 22;
           row.alignment = { vertical: 'middle' };
-          
-          // ALL ROWS HAVE WHITE BACKGROUND
           row.eachCell((cell) => {
             cell.fill = {
               type: 'pattern',
               pattern: 'solid',
-              fgColor: { argb: 'FFFFFFFF' } // WHITE
+              fgColor: { argb: 'FFFFFFFF' }
             };
-            cell.font = { color: { argb: 'FF000000' }, size: 11 }; // BLACK TEXT
+            cell.font = { color: { argb: 'FF1e3a5f' }, size: 11 };
           });
           
-          // Status color coding - only text color changes
           const statusCell = row.getCell(8);
           const statusValue = statusCell.value?.toString().toLowerCase() || '';
           if (statusValue === 'paid') {
-            statusCell.font = { color: { argb: 'FF008000' }, bold: true }; // Dark Green
+            statusCell.font = { color: { argb: 'FF008000' }, bold: true };
           } else if (statusValue === 'unpaid') {
-            statusCell.font = { color: { argb: 'FFDAA520' }, bold: true }; // Goldenrod
+            statusCell.font = { color: { argb: 'FFDAA520' }, bold: true };
           } else if (statusValue === 'overdue') {
-            statusCell.font = { color: { argb: 'FFFF0000' }, bold: true }; // Red
+            statusCell.font = { color: { argb: 'FFFF0000' }, bold: true };
           }
         }
       });
 
-      // ========== ADD BORDER TO ALL CELLS ==========
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
+            top: { style: 'thin', color: { argb: 'FF1e3a5f' } },
+            left: { style: 'thin', color: { argb: 'FF1e3a5f' } },
+            bottom: { style: 'thin', color: { argb: 'FF1e3a5f' } },
+            right: { style: 'thin', color: { argb: 'FF1e3a5f' } }
           };
         });
       });
 
-      // ========== PROTECT THE WORKSHEET WITH PASSWORD ==========
       await worksheet.protect(EXCEL_PASSWORD, {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -367,14 +355,12 @@ const BillDashboard = () => {
         pivotTables: false
       });
 
-      // Lock all cells
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.protection = { locked: true };
         });
       });
 
-      // ========== GENERATE EXCEL FILE ==========
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -625,9 +611,9 @@ const BillDashboard = () => {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      paid: { label: 'Paid', class: 'status-paid-3d' },
-      unpaid: { label: 'Unpaid', class: 'status-unpaid-3d' },
-      overdue: { label: 'Overdue', class: 'status-overdue-3d' }
+      paid: { label: 'Paid', class: 'status-paid' },
+      unpaid: { label: 'Unpaid', class: 'status-unpaid' },
+      overdue: { label: 'Overdue', class: 'status-overdue' }
     };
     return statusMap[status] || statusMap.unpaid;
   };
@@ -636,7 +622,7 @@ const BillDashboard = () => {
     return (
       <div className="loading-spinner">
         <div className="spinner-3d"></div>
-        <p style={{ color: 'rgba(255,255,255,0.4)', marginTop: '16px' }}>Loading your bills...</p>
+        <p style={{ color: '#718096', marginTop: '16px' }}>Loading your bills...</p>
       </div>
     );
   }
@@ -710,36 +696,34 @@ const BillDashboard = () => {
               <button className="close-btn-3d" onClick={() => setShowPayModal(false)}>×</button>
             </div>
             <div>
-              
-              
               <div style={{ 
-                background: 'rgba(255,255,255,0.03)', 
+                background: 'rgba(30, 58, 95, 0.04)', 
                 padding: '16px', 
                 borderRadius: '12px',
                 marginBottom: '20px'
               }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div>
-                    <p style={{ color: '#14652B', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Bill Number</p>
-                    <p style={{ color: '#14652B', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
+                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Bill Number</p>
+                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{  color: '#14652B', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Consumer</p>
-                    <p style={{ color: '#14652B', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
+                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Consumer</p>
+                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#14652B', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0'  }}>Amount</p>
-                    <p style={{ color: '#14652B', fontWeight: '600', fontSize:'18px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
+                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Amount</p>
+                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#14652B', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Due Date</p>
-                    <p style={{color: '#14652B', fontWeight: '600', fontSize:'20px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
+                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Due Date</p>
+                    <p style={{color: '#1e3a5f', fontWeight: '600', fontSize:'20px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
                   </div>
                 </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label style={{ color: '#14652B', fontWeight: '700', fontSize: '18px' }}>
+                <label style={{ color: '#1e3a5f', fontWeight: '700', fontSize: '18px' }}>
                   Payment Code <span style={{ color: '#f87171' }}>*</span>
                 </label>
                 <input
@@ -752,12 +736,12 @@ const BillDashboard = () => {
                   autoFocus
                   style={{
                     background: 'rgba(255,255,255,0.04)',
-                    border: `2px solid ${paymentError ? 'rgba(68, 239, 77, 0.3)' : 'rgba(34, 107, 43, 1)'}`,
+                    border: `2px solid ${paymentError ? 'rgba(220, 38, 38, 0.3)' : '#4a90d9'}`,
                     borderRadius: '12px',
                     padding: '10px 16px',
                     fontSize: '20px',
                     fontWeight: '600',
-                    color: '#14652B',
+                    color: '#1e3a5f',
                     width: '100%',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -766,11 +750,11 @@ const BillDashboard = () => {
                   }}
                 />
                 {paymentError && (
-                  <span className="error-message" style={{ color: '#f87171', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  <span className="error-message" style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>
                     ❌ {paymentError}
                   </span>
                 )}
-                <p style={{ color: '#14652B', fontSize: '12px'}}>
+                <p style={{ color: '#718096', fontSize: '12px' }}>
                   Enter the 7-digit code provided for this payment (e.g., 1234567)
                 </p>
               </div>
@@ -800,10 +784,9 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* HORIZONTAL STATS */}
+      {/* Horizontal Stats */}
       <div className="stats-horizontal">
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Total Bills</span>
             <span className="stat-value">{stats.total}</span>
@@ -811,7 +794,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-        
           <div className="stat-info-horizontal">
             <span className="stat-label">Paid</span>
             <span className="stat-value paid-value">{stats.paid}</span>
@@ -819,7 +801,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Unpaid</span>
             <span className="stat-value unpaid-value">{stats.unpaid}</span>
@@ -827,7 +808,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Overdue</span>
             <span className="stat-value overdue-value">{stats.overdue}</span>
@@ -835,7 +815,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Total Consumers</span>
             <span className="stat-value">{stats.totalConsumers}</span>
@@ -843,7 +822,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Residential</span>
             <span className="stat-value residential-value">{stats.residential}</span>
@@ -851,7 +829,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-     
           <div className="stat-info-horizontal">
             <span className="stat-label">Commercial</span>
             <span className="stat-value commercial-value">{stats.commercial}</span>
@@ -859,7 +836,6 @@ const BillDashboard = () => {
         </div>
         <div className="stat-divider"></div>
         <div className="stat-item">
-          
           <div className="stat-info-horizontal">
             <span className="stat-label">Location</span>
             <span className="stat-value location-value">{stats.location || 'N/A'}</span>
@@ -893,88 +869,67 @@ const BillDashboard = () => {
       </div>
 
       {/* Bills Display - Table View */}
-      {viewMode === 'table' ? (
-        <div className="table-container">
-          {filteredBills.length === 0 ? (
-            <div className="empty-state-3d">
-              <p>No bills found. {searchTerm || filterType !== 'all' ? 'Try adjusting your search.' : 'Add your first water bill!'}</p>
-            </div>
-          ) : (
-            <table className="bills-table">
-              <thead>
-                <tr>
-                  <th>WSIN</th>
-                  <th>Consumer Name</th>
-                  <th>Location</th>
-                  <th>Period</th>
-                  <th>Consumer Type</th>
-                  <th>Previous Reading</th>
-                  <th>Present Reading</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBills.map((bill) => {
-                  const status = getStatusBadge(bill.status);
-                  const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                  return (
-                    <tr key={bill.id}>
-                      <td className="bill-number-cell">{bill.billNumber || 'N/A'}</td>
-                      <td className="consumer-name-cell">{bill.consumerName || 'N/A'}</td>
-                      <td>{bill.location || 'N/A'}</td>
-                      <td>{period.trim() || 'N/A'}</td>
-                      <td>
-                        <span className={`consumer-type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
-                          {bill.consumerType || 'N/A'}
-                        </span>
-                      </td>
-                      <td>{bill.previousReading || '0'}</td>
-                      <td>{bill.presentReading || '0'}</td>
-                      <td>
-                        <span className={`status-badge-3d ${status.class}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="table-actions">
-                          {bill.status !== 'paid' && (
-                            <button 
-                              className="pay-btn"
-                              onClick={() => handlePayBill(bill)}
-                            >
-                              💳 Pay
-                            </button>
-                          )}
-                         
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      ) : (
-        <div className="bills-grid">
-          {filteredBills.length === 0 ? (
-            <div className="empty-state-3d" style={{ gridColumn: '1 / -1' }}>
-              <p>No bills found. {searchTerm || filterType !== 'all' ? 'Try adjusting your search.' : 'Add your first water bill!'}</p>
-            </div>
-          ) : (
-            filteredBills.map((bill) => (
-              <BillCard
-                key={bill.id}
-                bill={bill}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onPay={handlePayBill}
-              />
-            ))
-          )}
-        </div>
-      )}
+      <div className="table-container">
+        {filteredBills.length === 0 ? (
+          <div className="empty-state-3d">
+            <p>No bills found. {searchTerm || filterType !== 'all' ? 'Try adjusting your search.' : 'Add your first water bill!'}</p>
+          </div>
+        ) : (
+          <table className="bills-table">
+            <thead>
+              <tr>
+                <th>WSIN</th>
+                <th>Consumer Name</th>
+                <th>Location</th>
+                <th>Period</th>
+                <th>Consumer Type</th>
+                <th>Previous Reading</th>
+                <th>Present Reading</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBills.map((bill) => {
+                const status = getStatusBadge(bill.status);
+                const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                return (
+                  <tr key={bill.id}>
+                    <td className="bill-number-cell">{bill.billNumber || 'N/A'}</td>
+                    <td className="consumer-name-cell">{bill.consumerName || 'N/A'}</td>
+                    <td>{bill.location || 'N/A'}</td>
+                    <td>{period.trim() || 'N/A'}</td>
+                    <td>
+                      <span className={`consumer-type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
+                        {bill.consumerType || 'N/A'}
+                      </span>
+                    </td>
+                    <td>{bill.previousReading || '0'}</td>
+                    <td>{bill.presentReading || '0'}</td>
+                    <td>
+                      <span className={`status-badge ${status.class}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        {bill.status !== 'paid' && (
+                          <button 
+                            className="pay-btn"
+                            onClick={() => handlePayBill(bill)}
+                          >
+                            💳 Pay
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {/* Bill Form Modal */}
       {showForm && (

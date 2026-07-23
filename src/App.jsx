@@ -9,7 +9,7 @@ import Register from './components/auth/Register';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import BillHistory from './pages/BillHistory';
-import Navbar from './components/common/Navbar';
+import Sidebar from './components/common/Sidebar';
 import './App.css';
 
 function App() {
@@ -17,8 +17,8 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="App">
-          <Navbar />
-          <main>
+          {/* Sidebar will be conditionally rendered inside routes or globally */}
+          <div className="app-layout">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -27,7 +27,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <SidebarLayout>
+                      <Dashboard />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -35,12 +37,14 @@ function App() {
                 path="/bills"
                 element={
                   <ProtectedRoute>
-                    <BillHistory />
+                    <SidebarLayout>
+                      <BillHistory />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
             </Routes>
-          </main>
+          </div>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -48,14 +52,14 @@ function App() {
               style: {
                 background: '#ffffff',
                 color: '#1a1a2e',
-                border: '1px solid #14652B',
+                border: '1px solid #4a90d9',
                 borderRadius: '12px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
               },
               success: {
                 duration: 3000,
                 iconTheme: {
-                  primary: '#14652B',
+                  primary: '#4a90d9',
                   secondary: '#ffffff',
                 },
               },
@@ -73,5 +77,17 @@ function App() {
     </Router>
   );
 }
+
+// Layout component for pages with Sidebar
+const SidebarLayout = ({ children }) => {
+  return (
+    <div className="sidebar-layout">
+      <Sidebar />
+      <main className="main-content">
+        {children}
+      </main>
+    </div>
+  );
+};
 
 export default App;

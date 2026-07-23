@@ -13,7 +13,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     const result = await logoutUser();
     if (result.success) {
-      toast.success('Logged out successfully');
+      
       navigate('/login');
     } else {
       toast.error(result.error);

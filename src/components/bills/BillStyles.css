@@ -983,3 +983,121 @@
   border-color: rgba(239, 68, 68, 0.3) !important;
   
 }
+/* ========== BILL CARD ========== */
+.bill-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px 22px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+}
+
+.bill-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(74, 144, 217, 0.08);
+  border-color: rgba(74, 144, 217, 0.12);
+}
+
+.bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.bill-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin: 0;
+}
+
+.bill-body {
+  margin: 8px 0;
+}
+
+.bill-consumer {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a2e;
+  margin-bottom: 2px;
+}
+
+.bill-amount {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+
+.bill-due-date {
+  font-size: 13px;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.overdue-warning {
+  color: #e53e3e;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.bill-notes {
+  font-size: 13px;
+  color: #718096;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.bill-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f4f8;
+}
+
+.bill-actions button {
+  padding: 5px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.pay-btn-card {
+  background: rgba(74, 144, 217, 0.08);
+  color: #4a90d9;
+}
+
+.pay-btn-card:hover {
+  background: rgba(74, 144, 217, 0.15);
+  transform: translateY(-2px);
+}
+
+.edit-btn-card {
+  background: rgba(74, 144, 217, 0.06);
+  color: #4a90d9;
+}
+
+.edit-btn-card:hover {
+  background: rgba(74, 144, 217, 0.12);
+  transform: translateY(-2px);
+}
+
+.delete-btn-card {
+  background: rgba(229, 62, 62, 0.06);
+  color: #e53e3e;
+}
+
+.delete-btn-card:hover {
+  background: rgba(229, 62, 62, 0.12);
+  transform: translateY(-2px);
+}

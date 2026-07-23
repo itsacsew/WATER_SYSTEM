@@ -76,7 +76,6 @@ const BillForm = ({ bill, onClose, onSave }) => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Row 1: Bill Number + Consumer Name */}
           <div className="form-row-horizontal">
             <div className="form-group form-group-horizontal">
               <label>Bill Number</label>
@@ -101,7 +100,6 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Row 2: Location + Consumer Type */}
           <div className="form-row-horizontal">
             <div className="form-group form-group-horizontal">
               <label>Location</label>
@@ -124,7 +122,6 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Row 3: Amount + Due Date */}
           <div className="form-row-horizontal">
             <div className="form-group form-group-horizontal">
               <label>Amount (₱)</label>
@@ -149,7 +146,6 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Row 4: Status + Notes */}
           <div className="form-row-horizontal">
             <div className="form-group form-group-horizontal">
               <label>Status</label>
@@ -173,7 +169,6 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Row 5: Buttons */}
           <div className="form-actions-horizontal">
             <button type="button" className="cancel-btn-horizontal" onClick={onClose}>
               Cancel
