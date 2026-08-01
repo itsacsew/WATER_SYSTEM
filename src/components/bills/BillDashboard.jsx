@@ -1,11 +1,11 @@
 // src/components/bills/BillDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import BillCard from './BillCard';
 import BillForm from './BillForm';
+import ReceiptPrinter from './ReceiptPrinter';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import './BillStyles.css';
@@ -24,12 +24,23 @@ const BillDashboard = () => {
   const [showProgress, setShowProgress] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [filterLocation, setFilterLocation] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
   const [selectedBill, setSelectedBill] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentCode, setPaymentCode] = useState('');
   const [paymentError, setPaymentError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
+  
+  // Available options for filters
+  const [locations, setLocations] = useState([]);
+  const [months, setMonths] = useState([]);
+  const [years, setYears] = useState([]);
+  
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
@@ -43,12 +54,11 @@ const BillDashboard = () => {
 
   useEffect(() => {
     fetchBills();
-    checkLocalStorage();
   }, [user]);
 
   useEffect(() => {
     filterBills();
-  }, [bills, searchTerm, filterType]);
+  }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear]);
 
   useEffect(() => {
     if (showPayModal) {
@@ -57,15 +67,43 @@ const BillDashboard = () => {
     }
   }, [showPayModal]);
 
-  const checkLocalStorage = () => {
-    try {
-      const importedData = localStorage.getItem('importedBills');
-      if (importedData) {
-        console.log('Found imported data in localStorage');
+  // ✅ NUMERIC SORT by WSIN/billNumber
+  const sortByBillNumber = (data) => {
+    return [...data].sort((a, b) => {
+      const numA = Number(a.billNumber) || 0;
+      const numB = Number(b.billNumber) || 0;
+      return numA - numB;
+    });
+  };
+
+  // ✅ Extract unique values for filters
+  const extractFilterOptions = (billsData) => {
+    const locationSet = new Set();
+    const monthSet = new Set();
+    const yearSet = new Set();
+    
+    billsData.forEach(bill => {
+      if (bill.location && bill.location !== 'N/A') {
+        locationSet.add(bill.location);
       }
-    } catch (error) {
-      console.error('Error checking localStorage:', error);
-    }
+      if (bill.month && bill.month !== 'N/A') {
+        monthSet.add(bill.month);
+      }
+      if (bill.year && bill.year !== 'N/A') {
+        yearSet.add(bill.year);
+      }
+    });
+    
+    // Sort locations alphabetically
+    setLocations(Array.from(locationSet).sort());
+    
+    // Sort months in chronological order
+    const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+                        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    setMonths(Array.from(monthSet).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
+    
+    // Sort years descending (newest first)
+    setYears(Array.from(yearSet).sort((a, b) => Number(b) - Number(a)));
   };
 
   const fetchBills = async () => {
@@ -76,36 +114,45 @@ const BillDashboard = () => {
       const billsRef = collection(db, 'bills');
       const q = query(
         billsRef,
-        where('userId', '==', user.uid),
-        orderBy('dueDate', 'desc')
+        where('userId', '==', user.uid)
       );
       const querySnapshot = await getDocs(q);
       const billsData = [];
       querySnapshot.forEach((doc) => {
         billsData.push({ id: doc.id, ...doc.data() });
       });
-      setBills(billsData);
-      setFilteredBills(billsData);
-      calculateStats(billsData);
+      
+      const sortedBills = sortByBillNumber(billsData);
+      
+      setBills(sortedBills);
+      setFilteredBills(sortedBills);
+      calculateStats(sortedBills);
+      
+      // ✅ Extract filter options from data
+      extractFilterOptions(sortedBills);
       
       try {
-        localStorage.setItem('bills_backup', JSON.stringify(billsData));
+        localStorage.setItem('bills_backup', JSON.stringify(sortedBills));
       } catch (error) {
         console.error('Error saving to localStorage:', error);
       }
       
     } catch (error) {
+      console.error('Error fetching bills:', error);
       try {
         const backupData = localStorage.getItem('bills_backup');
         if (backupData) {
           const parsedData = JSON.parse(backupData);
-          setBills(parsedData);
-          setFilteredBills(parsedData);
-          calculateStats(parsedData);
+          const sortedBackup = sortByBillNumber(parsedData);
+          setBills(sortedBackup);
+          setFilteredBills(sortedBackup);
+          calculateStats(sortedBackup);
+          extractFilterOptions(sortedBackup);
           toast.success('Loaded bills from local backup');
         }
       } catch (e) {
         console.error('Error loading backup:', e);
+        toast.error('Error loading bills from database');
       }
     }
     setLoading(false);
@@ -114,18 +161,45 @@ const BillDashboard = () => {
   const filterBills = () => {
     let filtered = [...bills];
     
+    // Search by consumer name or WSIN
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(bill => 
-        bill.consumerName?.toLowerCase().includes(term)
+        bill.consumerName?.toLowerCase().includes(term) ||
+        bill.billNumber?.toString().includes(term)
       );
     }
     
+    // Filter by consumer type
     if (filterType !== 'all') {
       filtered = filtered.filter(bill => 
         bill.consumerType?.toUpperCase() === filterType.toUpperCase()
       );
     }
+    
+    // ✅ Filter by Location
+    if (filterLocation !== 'all') {
+      filtered = filtered.filter(bill => 
+        bill.location === filterLocation
+      );
+    }
+    
+    // ✅ Filter by Month
+    if (filterMonth !== 'all') {
+      filtered = filtered.filter(bill => 
+        bill.month?.toUpperCase() === filterMonth.toUpperCase()
+      );
+    }
+    
+    // ✅ Filter by Year
+    if (filterYear !== 'all') {
+      filtered = filtered.filter(bill => 
+        bill.year === filterYear
+      );
+    }
+    
+    // Sort by billNumber numerically
+    filtered = sortByBillNumber(filtered);
     
     setFilteredBills(filtered);
   };
@@ -150,13 +224,13 @@ const BillDashboard = () => {
       }
     });
     
-    const locations = new Set();
+    const locationSet = new Set();
     billsData.forEach(b => {
       if (b.location) {
-        locations.add(b.location);
+        locationSet.add(b.location);
       }
     });
-    const locationString = Array.from(locations).join(', ') || 'N/A';
+    const locationString = Array.from(locationSet).join(', ') || 'N/A';
     
     setStats({ 
       total, 
@@ -170,16 +244,21 @@ const BillDashboard = () => {
     });
   };
 
+  // ✅ Reset all filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterType('all');
+    setFilterLocation('all');
+    setFilterMonth('all');
+    setFilterYear('all');
+  };
+
   const handleDelete = async (billId) => {
     if (!confirm('Are you sure you want to delete this bill?')) return;
     
     try {
       await deleteDoc(doc(db, 'bills', billId));
       toast.success('Bill deleted successfully');
-      
-      const updatedBills = bills.filter(b => b.id !== billId);
-      localStorage.setItem('bills_backup', JSON.stringify(updatedBills));
-      
       fetchBills();
     } catch (error) {
       toast.error('Error deleting bill');
@@ -244,6 +323,14 @@ const BillDashboard = () => {
       toast.success(`Reference: ${referenceNumber}`);
       
       setShowPayModal(false);
+      
+      setReceiptData({
+        bill: selectedBill,
+        paymentCode: paymentCode,
+        referenceNumber: referenceNumber
+      });
+      setShowReceipt(true);
+      
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
@@ -284,12 +371,14 @@ const BillDashboard = () => {
       headerRow.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF1e3a5f' }
+        fgColor: { argb: 'FF37353E' }
       };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      filteredBills.forEach((bill) => {
+      const sortedForExport = sortByBillNumber(filteredBills);
+      
+      sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
         worksheet.addRow({
           wsin: bill.billNumber || 'N/A',
@@ -313,7 +402,7 @@ const BillDashboard = () => {
               pattern: 'solid',
               fgColor: { argb: 'FFFFFFFF' }
             };
-            cell.font = { color: { argb: 'FF1e3a5f' }, size: 11 };
+            cell.font = { color: { argb: 'FF37353E' }, size: 11 };
           });
           
           const statusCell = row.getCell(8);
@@ -331,10 +420,10 @@ const BillDashboard = () => {
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            left: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            bottom: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            right: { style: 'thin', color: { argb: 'FF1e3a5f' } }
+            top: { style: 'thin', color: { argb: 'FF37353E' } },
+            left: { style: 'thin', color: { argb: 'FF37353E' } },
+            bottom: { style: 'thin', color: { argb: 'FF37353E' } },
+            right: { style: 'thin', color: { argb: 'FF37353E' } }
           };
         });
       });
@@ -376,7 +465,7 @@ const BillDashboard = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`✅ Exported ${filteredBills.length} bills with password protection!`);
+      toast.success(`✅ Exported ${sortedForExport.length} bills with password protection!`);
       toast.info(`🔒 Password: ${EXCEL_PASSWORD}`);
       
     } catch (error) {
@@ -549,7 +638,8 @@ const BillDashboard = () => {
               ...b,
               id: `local_${Date.now()}_${idx}`
             }))];
-            localStorage.setItem('bills_backup', JSON.stringify(allBills));
+            const sortedBackup = sortByBillNumber(allBills);
+            localStorage.setItem('bills_backup', JSON.stringify(sortedBackup));
             localStorage.setItem('importedBills', JSON.stringify({
               date: new Date().toISOString(),
               count: successCount,
@@ -618,11 +708,19 @@ const BillDashboard = () => {
     return statusMap[status] || statusMap.unpaid;
   };
 
+  // Count active filters
+  const activeFilterCount = [
+    filterType !== 'all',
+    filterLocation !== 'all',
+    filterMonth !== 'all',
+    filterYear !== 'all'
+  ].filter(Boolean).length;
+
   if (loading) {
     return (
       <div className="loading-spinner">
         <div className="spinner-3d"></div>
-        <p style={{ color: '#718096', marginTop: '16px' }}>Loading your bills...</p>
+        <p style={{ color: '#718096', marginTop: '16px', fontFamily: 'Inter, sans-serif' }}>Loading your bills...</p>
       </div>
     );
   }
@@ -631,7 +729,7 @@ const BillDashboard = () => {
     <div className="bill-dashboard">
       <div className="dashboard-header">
         <div>
-          <h2>Water Bill Dashboard</h2>
+          <h2><span>Water</span>Bill Dashboard</h2>
           <p>Manage and track your water bills</p>
         </div>
         <div className="header-actions">
@@ -644,7 +742,7 @@ const BillDashboard = () => {
               onClick={() => document.getElementById('fileInput').click()}
               disabled={uploading}
             >
-              {uploading ? 'Uploading...' : 'Import Excel'}
+              {uploading ? 'Uploading...' : '📥 Import Excel'}
             </button>
             <input
               type="file"
@@ -659,7 +757,7 @@ const BillDashboard = () => {
             onClick={handleExportWithPassword}
             disabled={filteredBills.length === 0 || isExporting}
           >
-            {isExporting ? '⏳ Exporting...' : 'Export Excel'}
+            {isExporting ? '⏳ Exporting...' : '📤 Export Excel'}
           </button>
         </div>
       </div>
@@ -668,7 +766,7 @@ const BillDashboard = () => {
       {showProgress && (
         <div className="progress-overlay">
           <div className="progress-modal">
-            <h3>Importing Excel Data</h3>
+            <h3>Importing Excel Data to Firebase</h3>
             <div className="progress-bar-container">
               <div 
                 className="progress-bar-fill" 
@@ -691,40 +789,41 @@ const BillDashboard = () => {
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-3d">
+            <div className="modal-header">
               <h3>Confirm Payment</h3>
-              <button className="close-btn-3d" onClick={() => setShowPayModal(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowPayModal(false)}>×</button>
             </div>
             <div>
               <div style={{ 
-                background: 'rgba(30, 58, 95, 0.04)', 
-                padding: '16px', 
-                borderRadius: '12px',
-                marginBottom: '20px'
+                background: 'rgba(55, 53, 62, 0.04)', 
+                padding: '20px', 
+                borderRadius: '14px',
+                marginBottom: '20px',
+                border: '1px solid rgba(55, 53, 62, 0.06)'
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Bill Number</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Number</p>
+                    <p style={{ color: '#37353E', fontWeight: '700', fontSize: '18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Consumer</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Consumer</p>
+                    <p style={{ color: '#37353E', fontWeight: '600', fontSize: '18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Amount</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount</p>
+                    <p style={{ color: '#37353E', fontWeight: '700', fontSize: '20px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Due Date</p>
-                    <p style={{color: '#1e3a5f', fontWeight: '600', fontSize:'20px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Due Date</p>
+                    <p style={{ color: '#37353E', fontWeight: '600', fontSize: '18px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
                   </div>
                 </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label style={{ color: '#1e3a5f', fontWeight: '700', fontSize: '18px' }}>
-                  Payment Code <span style={{ color: '#f87171' }}>*</span>
+                <label style={{ color: '#37353E', fontWeight: '700', fontSize: '16px', display: 'block', marginBottom: '6px' }}>
+                  Payment Code <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -735,26 +834,26 @@ const BillDashboard = () => {
                   maxLength="7"
                   autoFocus
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: `2px solid ${paymentError ? 'rgba(220, 38, 38, 0.3)' : '#4a90d9'}`,
+                    background: '#F8F3E1',
+                    border: `2px solid ${paymentError ? '#dc2626' : '#D3DAD9'}`,
                     borderRadius: '12px',
-                    padding: '10px 16px',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    color: '#1e3a5f',
+                    padding: '12px 16px',
+                    fontSize: '22px',
+                    fontWeight: '700',
+                    color: '#37353E',
                     width: '100%',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    letterSpacing: '6px',
+                    letterSpacing: '8px',
                     textAlign: 'center'
                   }}
                 />
                 {paymentError && (
-                  <span className="error-message" style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  <span className="error-message">
                     ❌ {paymentError}
                   </span>
                 )}
-                <p style={{ color: '#718096', fontSize: '12px' }}>
+                <p style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>
                   Enter the 7-digit code provided for this payment (e.g., 1234567)
                 </p>
               </div>
@@ -782,6 +881,19 @@ const BillDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Receipt Printer */}
+      {showReceipt && receiptData && (
+        <ReceiptPrinter
+          bill={receiptData.bill}
+          paymentCode={receiptData.paymentCode}
+          referenceNumber={receiptData.referenceNumber}
+          onClose={() => {
+            setShowReceipt(false);
+            setReceiptData(null);
+          }}
+        />
       )}
 
       {/* Horizontal Stats */}
@@ -843,16 +955,19 @@ const BillDashboard = () => {
         </div>
       </div>
 
-      {/* Search and Filter Section */}
+      {/* ✅ SEARCH AND FILTER SECTION WITH 4 DROPDOWNS */}
       <div className="search-filter-section">
         <div className="search-bar-container">
+          {/* Search Input */}
           <input
             type="text"
             className="search-input"
-            placeholder="🔍 Search by consumer name..."
+            placeholder="🔍 Search by consumer name or WSIN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+
+          {/* Consumer Type Dropdown */}
           <select 
             className="filter-select"
             value={filterType}
@@ -862,9 +977,57 @@ const BillDashboard = () => {
             <option value="RESIDENTIAL">🏠 Residential</option>
             <option value="COMMERCIAL">🏢 Commercial</option>
           </select>
-          <span className="result-count">
-            {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'} found
-          </span>
+
+          {/* ✅ Location Dropdown */}
+          <select 
+            className="filter-select"
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
+          >
+            <option value="all">📍 All Locations</option>
+            {locations.map(location => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
+
+          {/* ✅ Month Dropdown */}
+          <select 
+            className="filter-select"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+          >
+            <option value="all">📅 All Months</option>
+            {months.map(month => (
+              <option key={month} value={month}>{month}</option>
+            ))}
+          </select>
+
+          {/* ✅ Year Dropdown */}
+          <select 
+            className="filter-select"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+          >
+            <option value="all">📆 All Years</option>
+            {years.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+
+          {/* Result Count with Reset Button */}
+          <div className="filter-actions">
+            <span className="result-count">
+              {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'} found
+              {activeFilterCount > 0 && (
+                <span className="active-filter-badge"> ({activeFilterCount} filters)</span>
+              )}
+            </span>
+            {activeFilterCount > 0 && (
+              <button className="reset-filters-btn" onClick={resetFilters}>
+                ✕ Clear Filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -872,7 +1035,7 @@ const BillDashboard = () => {
       <div className="table-container">
         {filteredBills.length === 0 ? (
           <div className="empty-state-3d">
-            <p>No bills found. {searchTerm || filterType !== 'all' ? 'Try adjusting your search.' : 'Add your first water bill!'}</p>
+            <p>No bills found. {searchTerm || filterType !== 'all' || filterLocation !== 'all' || filterMonth !== 'all' || filterYear !== 'all' ? 'Try adjusting your search or filters.' : 'Add your first water bill or import from Excel!'}</p>
           </div>
         ) : (
           <table className="bills-table">
@@ -921,6 +1084,42 @@ const BillDashboard = () => {
                             💳 Pay
                           </button>
                         )}
+                        <button 
+                          className="edit-btn"
+                          onClick={() => handleEdit(bill)}
+                          style={{
+                            padding: '6px 16px',
+                            background: '#715A5A',
+                            color: '#D3DAD9',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className="delete-btn"
+                          onClick={() => handleDelete(bill.id)}
+                          style={{
+                            padding: '6px 16px',
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

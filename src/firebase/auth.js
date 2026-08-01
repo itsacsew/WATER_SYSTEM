@@ -36,7 +36,11 @@ export const registerUser = async (email, password, displayName) => {
       displayName: displayName,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      role: 'user'
+      role: 'user',
+      preferences: {
+        theme: 'light',
+        notifications: true
+      }
     });
     
     console.log('Registration successful!');
@@ -45,7 +49,6 @@ export const registerUser = async (email, password, displayName) => {
     console.error('Registration error:', error.code, error.message);
     let errorMessage = error.message;
     
-    // User-friendly error messages
     switch (error.code) {
       case 'auth/email-already-in-use':
         errorMessage = 'This email is already registered.';
@@ -72,7 +75,6 @@ export const loginUser = async (email, password) => {
     console.log('Attempting to login:', email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     
-    // Update last login
     await updateDoc(doc(db, 'users', userCredential.user.uid), {
       lastLogin: serverTimestamp()
     }).catch(err => console.log('Update lastLogin error:', err));
@@ -134,6 +136,20 @@ export const getUserData = async (uid) => {
     return { success: false, error: 'User data not found' };
   } catch (error) {
     console.error('Get user data error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateUserData = async (uid, data) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Update user data error:', error);
     return { success: false, error: error.message };
   }
 };

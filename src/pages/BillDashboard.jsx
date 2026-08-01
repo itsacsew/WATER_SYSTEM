@@ -1,11 +1,11 @@
 // src/components/bills/BillDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import BillCard from './BillCard';
 import BillForm from './BillForm';
+import ReceiptPrinter from './ReceiptPrinter';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import './BillStyles.css';
@@ -30,6 +30,8 @@ const BillDashboard = () => {
   const [paymentError, setPaymentError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
@@ -244,6 +246,15 @@ const BillDashboard = () => {
       toast.success(`Reference: ${referenceNumber}`);
       
       setShowPayModal(false);
+      
+      // Show receipt
+      setReceiptData({
+        bill: selectedBill,
+        paymentCode: paymentCode,
+        referenceNumber: referenceNumber
+      });
+      setShowReceipt(true);
+      
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
@@ -284,7 +295,7 @@ const BillDashboard = () => {
       headerRow.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF1e3a5f' }
+        fgColor: { argb: 'FF37353E' }
       };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
@@ -313,7 +324,7 @@ const BillDashboard = () => {
               pattern: 'solid',
               fgColor: { argb: 'FFFFFFFF' }
             };
-            cell.font = { color: { argb: 'FF1e3a5f' }, size: 11 };
+            cell.font = { color: { argb: 'FF37353E' }, size: 11 };
           });
           
           const statusCell = row.getCell(8);
@@ -331,10 +342,10 @@ const BillDashboard = () => {
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            left: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            bottom: { style: 'thin', color: { argb: 'FF1e3a5f' } },
-            right: { style: 'thin', color: { argb: 'FF1e3a5f' } }
+            top: { style: 'thin', color: { argb: 'FF37353E' } },
+            left: { style: 'thin', color: { argb: 'FF37353E' } },
+            bottom: { style: 'thin', color: { argb: 'FF37353E' } },
+            right: { style: 'thin', color: { argb: 'FF37353E' } }
           };
         });
       });
@@ -622,7 +633,7 @@ const BillDashboard = () => {
     return (
       <div className="loading-spinner">
         <div className="spinner-3d"></div>
-        <p style={{ color: '#718096', marginTop: '16px' }}>Loading your bills...</p>
+        <p style={{ color: '#718096', marginTop: '16px', fontFamily: 'Inter, sans-serif' }}>Loading your bills...</p>
       </div>
     );
   }
@@ -631,7 +642,7 @@ const BillDashboard = () => {
     <div className="bill-dashboard">
       <div className="dashboard-header">
         <div>
-          <h2>Water Bill Dashboard</h2>
+          <h2><span>Water</span>Bill Dashboard</h2>
           <p>Manage and track your water bills</p>
         </div>
         <div className="header-actions">
@@ -691,40 +702,41 @@ const BillDashboard = () => {
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-3d">
+            <div className="modal-header">
               <h3>Confirm Payment</h3>
-              <button className="close-btn-3d" onClick={() => setShowPayModal(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowPayModal(false)}>×</button>
             </div>
             <div>
               <div style={{ 
-                background: 'rgba(30, 58, 95, 0.04)', 
-                padding: '16px', 
-                borderRadius: '12px',
-                marginBottom: '20px'
+                background: 'rgba(55, 53, 62, 0.04)', 
+                padding: '20px', 
+                borderRadius: '14px',
+                marginBottom: '20px',
+                border: '1px solid rgba(55, 53, 62, 0.06)'
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Bill Number</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Number</p>
+                    <p style={{ color: '#37353E', fontWeight: '700', fontSize: '18px', margin: '0' }}>{selectedBill.billNumber || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Consumer</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Consumer</p>
+                    <p style={{ color: '#37353E', fontWeight: '600', fontSize: '18px', margin: '0' }}>{selectedBill.consumerName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Amount</p>
-                    <p style={{ color: '#1e3a5f', fontWeight: '600', fontSize:'18px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount</p>
+                    <p style={{ color: '#37353E', fontWeight: '700', fontSize: '20px', margin: '0' }}>{formatCurrency(selectedBill.amount)}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#1e3a5f', fontSize: '18px', fontWeight:'700', margin: '0 0 2px 0' }}>Due Date</p>
-                    <p style={{color: '#1e3a5f', fontWeight: '600', fontSize:'20px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
+                    <p style={{ color: '#718096', fontSize: '12px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Due Date</p>
+                    <p style={{ color: '#37353E', fontWeight: '600', fontSize: '18px', margin: '0' }}>{formatDate(selectedBill.dueDate)}</p>
                   </div>
                 </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label style={{ color: '#1e3a5f', fontWeight: '700', fontSize: '18px' }}>
-                  Payment Code <span style={{ color: '#f87171' }}>*</span>
+                <label style={{ color: '#37353E', fontWeight: '700', fontSize: '16px', display: 'block', marginBottom: '6px' }}>
+                  Payment Code <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -735,26 +747,26 @@ const BillDashboard = () => {
                   maxLength="7"
                   autoFocus
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: `2px solid ${paymentError ? 'rgba(220, 38, 38, 0.3)' : '#4a90d9'}`,
+                    background: '#F8F3E1',
+                    border: `2px solid ${paymentError ? '#dc2626' : '#D3DAD9'}`,
                     borderRadius: '12px',
-                    padding: '10px 16px',
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    color: '#1e3a5f',
+                    padding: '12px 16px',
+                    fontSize: '22px',
+                    fontWeight: '700',
+                    color: '#37353E',
                     width: '100%',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    letterSpacing: '6px',
+                    letterSpacing: '8px',
                     textAlign: 'center'
                   }}
                 />
                 {paymentError && (
-                  <span className="error-message" style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  <span className="error-message">
                     ❌ {paymentError}
                   </span>
                 )}
-                <p style={{ color: '#718096', fontSize: '12px' }}>
+                <p style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>
                   Enter the 7-digit code provided for this payment (e.g., 1234567)
                 </p>
               </div>
@@ -782,6 +794,19 @@ const BillDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Receipt Printer */}
+      {showReceipt && receiptData && (
+        <ReceiptPrinter
+          bill={receiptData.bill}
+          paymentCode={receiptData.paymentCode}
+          referenceNumber={receiptData.referenceNumber}
+          onClose={() => {
+            setShowReceipt(false);
+            setReceiptData(null);
+          }}
+        />
       )}
 
       {/* Horizontal Stats */}

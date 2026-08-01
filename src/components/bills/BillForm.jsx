@@ -69,111 +69,108 @@ const BillForm = ({ bill, onClose, onSave }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content bill-form-3d" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header-3d">
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
           <h3>{bill ? 'Edit Bill' : 'Add New Bill'}</h3>
-          <button className="close-btn-3d" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-row-horizontal">
-            <div className="form-group form-group-horizontal">
-              <label>Bill Number</label>
-              <input
-                {...register('billNumber')}
-                type="text"
-                placeholder="e.g., WB-2024-001"
-                className={errors.billNumber ? 'error' : ''}
-              />
-              {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
-            </div>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Bill Number</label>
+            <input
+              {...register('billNumber')}
+              type="text"
+              placeholder="e.g., WB-2024-001"
+              className={`modal-input ${errors.billNumber ? 'error' : ''}`}
+            />
+            {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
+          </div>
 
-            <div className="form-group form-group-horizontal">
-              <label>Consumer Name</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Name</label>
               <input
                 {...register('consumerName')}
                 type="text"
                 placeholder="Enter consumer name"
-                className={errors.consumerName ? 'error' : ''}
+                className={`modal-input ${errors.consumerName ? 'error' : ''}`}
               />
               {errors.consumerName && <span className="error-message">{errors.consumerName.message}</span>}
             </div>
-          </div>
 
-          <div className="form-row-horizontal">
-            <div className="form-group form-group-horizontal">
-              <label>Location</label>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Location</label>
               <input
                 {...register('location')}
                 type="text"
                 placeholder="Location"
-                className={errors.location ? 'error' : ''}
+                className={`modal-input ${errors.location ? 'error' : ''}`}
               />
               {errors.location && <span className="error-message">{errors.location.message}</span>}
             </div>
+          </div>
 
-            <div className="form-group form-group-horizontal">
-              <label>Consumer Type</label>
-              <select {...register('consumerType')} className={errors.consumerType ? 'error' : ''}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Type</label>
+              <select {...register('consumerType')} className="modal-input">
                 <option value="RESIDENTIAL">🏠 Residential</option>
                 <option value="COMMERCIAL">🏢 Commercial</option>
               </select>
               {errors.consumerType && <span className="error-message">{errors.consumerType.message}</span>}
             </div>
-          </div>
 
-          <div className="form-row-horizontal">
-            <div className="form-group form-group-horizontal">
-              <label>Amount (₱)</label>
-              <input
-                {...register('amount')}
-                type="number"
-                placeholder="0.00"
-                step="0.01"
-                className={errors.amount ? 'error' : ''}
-              />
-              {errors.amount && <span className="error-message">{errors.amount.message}</span>}
-            </div>
-
-            <div className="form-group form-group-horizontal">
-              <label>Due Date</label>
-              <input
-                {...register('dueDate')}
-                type="date"
-                className={errors.dueDate ? 'error' : ''}
-              />
-              {errors.dueDate && <span className="error-message">{errors.dueDate.message}</span>}
-            </div>
-          </div>
-
-          <div className="form-row-horizontal">
-            <div className="form-group form-group-horizontal">
-              <label>Status</label>
-              <select {...register('status')} className={errors.status ? 'error' : ''}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Status</label>
+              <select {...register('status')} className="modal-input">
                 <option value="unpaid">⏳ Unpaid</option>
                 <option value="paid">✅ Paid</option>
                 <option value="overdue">⚠️ Overdue</option>
               </select>
               {errors.status && <span className="error-message">{errors.status.message}</span>}
             </div>
+          </div>
 
-            <div className="form-group form-group-horizontal">
-              <label>Notes (Optional)</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Amount (₱)</label>
               <input
-                {...register('notes')}
-                type="text"
-                placeholder="Additional notes..."
-                className={errors.notes ? 'error' : ''}
+                {...register('amount')}
+                type="number"
+                placeholder="0.00"
+                step="0.01"
+                className={`modal-input ${errors.amount ? 'error' : ''}`}
               />
-              {errors.notes && <span className="error-message">{errors.notes.message}</span>}
+              {errors.amount && <span className="error-message">{errors.amount.message}</span>}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Due Date</label>
+              <input
+                {...register('dueDate')}
+                type="date"
+                className={`modal-input ${errors.dueDate ? 'error' : ''}`}
+              />
+              {errors.dueDate && <span className="error-message">{errors.dueDate.message}</span>}
             </div>
           </div>
 
-          <div className="form-actions-horizontal">
-            <button type="button" className="cancel-btn-horizontal" onClick={onClose}>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Notes (Optional)</label>
+            <input
+              {...register('notes')}
+              type="text"
+              placeholder="Additional notes..."
+              className="modal-input"
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="modal-btn secondary" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="submit-btn-horizontal" disabled={loading}>
+            <button type="submit" className="modal-btn primary" disabled={loading}>
               {loading ? 'Saving...' : bill ? 'Update Bill' : 'Add Bill'}
             </button>
           </div>

@@ -1,6 +1,6 @@
 // src/components/common/Navbar.jsx
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { logoutUser } from '../../firebase/auth';
 import toast from 'react-hot-toast';
@@ -9,46 +9,110 @@ import './Navbar.css';
 const Navbar = () => {
   const { user, userData } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const handleLogout = async () => {
-    const result = await logoutUser();
-    if (result.success) {
-      
-      navigate('/login');
-    } else {
-      toast.error(result.error);
+  // src/components/common/Navbar.jsx (update handleLogout)
+const handleLogout = async () => {
+  const result = await logoutUser();
+  if (result.success) {
+    // Clear saved credentials
+    localStorage.removeItem('autoLoginEmail');
+    localStorage.removeItem('autoLoginPassword');
+    localStorage.removeItem('rememberMe');
+    toast.success('Logged out successfully 👋');
+    navigate('/login');
+  } else {
+    toast.error(result.error);
+  }
+};
+
+  const getInitials = () => {
+    if (userData?.displayName) {
+      return userData.displayName.charAt(0).toUpperCase();
     }
+    return user?.email?.charAt(0).toUpperCase() || 'U';
   };
+
+  const getRoleLabel = (role) => {
+    const roles = {
+      admin: 'Administrator',
+      user: 'User',
+      staff: 'Staff'
+    };
+    return roles[role] || 'User';
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const toggleMobileMenu = () => {
+    setIsMobileOpen(!isMobileOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileOpen(false);
+  };
+
+  const navItems = [
+    { path: '/dashboard', label: 'DASHBOARD' },
+    { path: '/bills', label: 'BILL HISTORY'},
+    { path: '/profile', label: 'PROFILE' },
+  ];
 
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to="/" className="nav-brand">
-          <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="10" fill="#14652B"/>
-            <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" stroke="white" strokeWidth="2"/>
-            <path d="M20 15V25M15 20H25" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span>WaterBill</span>
+        {/* Brand */}
+        <Link to="/dashboard" className="nav-brand" onClick={closeMobileMenu}>
+          <span className="nav-brand-icon">💧</span>
+          <div className="nav-brand-text">
+            <span className="nav-brand-name">WaterBill</span>
+            <span className="nav-brand-sub">Management System</span>
+          </div>
         </Link>
 
-        <div className="nav-menu">
-          {user ? (
-            <>
+        {/* Mobile Toggle */}
+        <button className="nav-toggle" onClick={toggleMobileMenu} aria-label="Toggle menu">
+          {isMobileOpen ? '✕' : '☰'}
+        </button>
+
+        {/* Navigation Links */}
+        <div className={`nav-links ${isMobileOpen ? 'open' : ''}`}>
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+              onClick={closeMobileMenu}
+            >
+              <span className="nav-link-icon">{item.icon}</span>
+              {item.label}
               
-              <div className="nav-user">
-                <span className="user-name">WELCOME, {userData?.displayName || user.email}</span>
-                <button onClick={handleLogout} className="logout-btn">
-                  Logout
-                </button>
+            </Link>
+          ))}
+        </div>
+
+        {/* User Section */}
+        <div className="nav-user">
+          <div className="nav-user-info">
+            <div className="nav-avatar-wrapper">
+              <div className="nav-avatar">
+                {getInitials()}
+                <span className="online-dot"></span>
               </div>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="nav-link">Login</Link>
-              <Link to="/register" className="nav-link register-link">Sign Up</Link>
-            </>
-          )}
+            </div>
+            <div className="nav-user-details">
+              <span className="nav-user-name">
+                {userData?.displayName || 'User'}
+              </span>
+              <span className="nav-user-role">
+                {getRoleLabel(userData?.role)}
+              </span>
+            </div>
+          </div>
+          <button className="nav-logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
     </nav>

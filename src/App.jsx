@@ -1,15 +1,15 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
-import Home from './pages/Home';
+import Profile from './components/auth/Profile';
 import Dashboard from './pages/Dashboard';
 import BillHistory from './pages/BillHistory';
-import Sidebar from './components/common/Sidebar';
+import Navbar from './components/common/Navbar';
 import './App.css';
 
 function App() {
@@ -17,34 +17,46 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="App">
-          {/* Sidebar will be conditionally rendered inside routes or globally */}
-          <div className="app-layout">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <SidebarLayout>
-                      <Dashboard />
-                    </SidebarLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/bills"
-                element={
-                  <ProtectedRoute>
-                    <SidebarLayout>
-                      <BillHistory />
-                    </SidebarLayout>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
+          <Routes>
+            {/* Default route - redirect to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Auth routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <NavbarLayout>
+                    <Dashboard />
+                  </NavbarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bills"
+              element={
+                <ProtectedRoute>
+                  <NavbarLayout>
+                    <BillHistory />
+                  </NavbarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <NavbarLayout>
+                    <Profile />
+                  </NavbarLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -52,14 +64,14 @@ function App() {
               style: {
                 background: '#ffffff',
                 color: '#1a1a2e',
-                border: '1px solid #4a90d9',
+                border: '1px solid #715A5A',
                 borderRadius: '12px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
               },
               success: {
                 duration: 3000,
                 iconTheme: {
-                  primary: '#4a90d9',
+                  primary: '#715A5A',
                   secondary: '#ffffff',
                 },
               },
@@ -78,12 +90,12 @@ function App() {
   );
 }
 
-// Layout component for pages with Sidebar
-const SidebarLayout = ({ children }) => {
+// Layout component for pages with Navbar
+const NavbarLayout = ({ children }) => {
   return (
-    <div className="sidebar-layout">
-      <Sidebar />
-      <main className="main-content">
+    <div className="navbar-layout">
+      <Navbar />
+      <main className="main-content-navbar">
         {children}
       </main>
     </div>
