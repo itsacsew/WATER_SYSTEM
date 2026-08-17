@@ -17,6 +17,11 @@ const schema = yup.object().shape({
   amount: yup.number().required('Amount is required').positive('Must be positive'),
   dueDate: yup.string().required('Due date is required'),
   status: yup.string().required('Status is required'),
+  month: yup.string(),
+  year: yup.string(),
+  previousReading: yup.number(),
+  presentReading: yup.number(),
+  consumption: yup.number(),
   notes: yup.string()
 });
 
@@ -29,23 +34,34 @@ const BillForm = ({ bill, onClose, onSave }) => {
     defaultValues: bill || {
       billNumber: '',
       consumerName: '',
-      location: 'CALIAN',
+      location: '',
       consumerType: 'RESIDENTIAL',
       amount: '',
       dueDate: '',
       status: 'unpaid',
+      month: '',
+      year: new Date().getFullYear().toString(),
+      previousReading: '',
+      presentReading: '',
+      consumption: '',
       notes: ''
     }
   });
 
   const onSubmit = async (data) => {
-    if (!user) return;
+    if (!user) {
+      toast.error('You must be logged in to add bills');
+      return;
+    }
     
     setLoading(true);
     try {
       const billData = {
         ...data,
         amount: parseFloat(data.amount),
+        previousReading: data.previousReading ? parseFloat(data.previousReading) : 0,
+        presentReading: data.presentReading ? parseFloat(data.presentReading) : 0,
+        consumption: data.consumption ? parseFloat(data.consumption) : 0,
         userId: user.uid,
         updatedAt: new Date().toISOString()
       };
@@ -62,6 +78,7 @@ const BillForm = ({ bill, onClose, onSave }) => {
       onSave();
       onClose();
     } catch (error) {
+      console.error('Error saving bill:', error);
       toast.error(error.message || 'Error saving bill');
     }
     setLoading(false);
@@ -77,11 +94,11 @@ const BillForm = ({ bill, onClose, onSave }) => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Bill Number</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Bill Number (WSIN) *</label>
             <input
               {...register('billNumber')}
               type="text"
-              placeholder="e.g., WB-2024-001"
+              placeholder="e.g., 1001"
               className={`modal-input ${errors.billNumber ? 'error' : ''}`}
             />
             {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
@@ -89,7 +106,7 @@ const BillForm = ({ bill, onClose, onSave }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Name</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Name *</label>
               <input
                 {...register('consumerName')}
                 type="text"
@@ -113,7 +130,7 @@ const BillForm = ({ bill, onClose, onSave }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Type</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumer Type *</label>
               <select {...register('consumerType')} className="modal-input">
                 <option value="RESIDENTIAL">🏠 Residential</option>
                 <option value="COMMERCIAL">🏢 Commercial</option>
@@ -122,7 +139,7 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
 
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Status</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Status *</label>
               <select {...register('status')} className="modal-input">
                 <option value="unpaid">⏳ Unpaid</option>
                 <option value="paid">✅ Paid</option>
@@ -134,7 +151,70 @@ const BillForm = ({ bill, onClose, onSave }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Amount (₱)</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Month</label>
+              <select {...register('month')} className="modal-input">
+                <option value="JANUARY">January</option>
+                <option value="FEBRUARY">February</option>
+                <option value="MARCH">March</option>
+                <option value="APRIL">April</option>
+                <option value="MAY">May</option>
+                <option value="JUNE">June</option>
+                <option value="JULY">July</option>
+                <option value="AUGUST">August</option>
+                <option value="SEPTEMBER">September</option>
+                <option value="OCTOBER">October</option>
+                <option value="NOVEMBER">November</option>
+                <option value="DECEMBER">December</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Year</label>
+              <input
+                {...register('year')}
+                type="text"
+                placeholder="2026"
+                className="modal-input"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Previous Reading</label>
+              <input
+                {...register('previousReading')}
+                type="number"
+                placeholder="0"
+                step="0.01"
+                className="modal-input"
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Present Reading</label>
+              <input
+                {...register('presentReading')}
+                type="number"
+                placeholder="0"
+                step="0.01"
+                className="modal-input"
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Consumption</label>
+              <input
+                {...register('consumption')}
+                type="number"
+                placeholder="0"
+                step="0.01"
+                className="modal-input"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Amount (₱) *</label>
               <input
                 {...register('amount')}
                 type="number"
@@ -146,7 +226,7 @@ const BillForm = ({ bill, onClose, onSave }) => {
             </div>
 
             <div className="form-group" style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Due Date</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600' }}>Due Date *</label>
               <input
                 {...register('dueDate')}
                 type="date"

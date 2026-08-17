@@ -1,5 +1,31 @@
 /* src/App.css */
 @font-face {
+  font-family: 'Cascadia Code';
+  src: url('./assets/fonts/CascadiaCode-jEZzj.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Bold.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains MonoNL';
+  src: url(./assets/fonts/JetBrainsMonoNL-Medium.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Cascadia Code';
+  src: url('./assets/fonts/CascadiaCode-jEZzj.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
   font-family: 'Savein';
   src: url('/fonts/savein.ttf') format('woff2'),
        url('/fonts/Savein-Regular.woff') format('woff'),
@@ -17,7 +43,7 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: #F8F3E1;
+  background: linear-gradient(145deg, #010030 20%, #0b0b5f 40%, #010030 80%);
   color: #1a1a2e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -27,21 +53,22 @@ body {
 
 #root {
   min-height: 100vh;
-  background: #F8F3E1;
+  background: linear-gradient(145deg, #010030 20%, #194752 40%, #1e5664 60%, #010030 80%);
 }
 
 /* Main content adjustment for Navbar */
 .main-content-navbar {
   min-height: calc(100vh - 72px);
   padding: 28px 36px;
-  background: #F8F3E1;
+  
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scrollbar Styling - Same as Login */
+/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
+  
 }
 
 ::-webkit-scrollbar-track {
@@ -64,21 +91,6 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 300px;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(55, 53, 62, 0.08);
-  border-top-color: #37353E;
-  border-radius: 50%;
-  animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.05); }
-  100% { transform: rotate(360deg) scale(1); }
 }
 
 /* Responsive */

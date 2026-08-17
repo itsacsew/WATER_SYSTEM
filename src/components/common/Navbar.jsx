@@ -12,20 +12,18 @@ const Navbar = () => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // src/components/common/Navbar.jsx (update handleLogout)
-const handleLogout = async () => {
-  const result = await logoutUser();
-  if (result.success) {
-    // Clear saved credentials
-    localStorage.removeItem('autoLoginEmail');
-    localStorage.removeItem('autoLoginPassword');
-    localStorage.removeItem('rememberMe');
-    toast.success('Logged out successfully 👋');
-    navigate('/login');
-  } else {
-    toast.error(result.error);
-  }
-};
+  const handleLogout = async () => {
+    const result = await logoutUser();
+    if (result.success) {
+      localStorage.removeItem('autoLoginEmail');
+      localStorage.removeItem('autoLoginPassword');
+      localStorage.removeItem('rememberMe');
+      toast.success('Logged out successfully 👋');
+      navigate('/login');
+    } else {
+      toast.error(result.error);
+    }
+  };
 
   const getInitials = () => {
     if (userData?.displayName) {
@@ -55,7 +53,7 @@ const handleLogout = async () => {
 
   const navItems = [
     { path: '/dashboard', label: 'DASHBOARD' },
-    { path: '/bills', label: 'BILL HISTORY'},
+    { path: '/bills', label: 'BILL HISTORY' },
     { path: '/profile', label: 'PROFILE' },
   ];
 
@@ -87,7 +85,6 @@ const handleLogout = async () => {
             >
               <span className="nav-link-icon">{item.icon}</span>
               {item.label}
-              
             </Link>
           ))}
         </div>

@@ -25,6 +25,39 @@ const schema = yup.object().shape({
     .oneOf([yup.ref('password')], 'Passwords must match')
 });
 
+// ========== HARDCODED SVG ICONS ==========
+
+const WaterPumpIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={28} height={28} color={"#ffffff"} fill={"none"}>
+    <path d="M12.5 5.5H10.5C9.55719 5.5 9.08579 5.5 8.79289 5.79289C8.5 6.08579 8.5 6.55719 8.5 7.5V9.5C8.5 10.4428 8.5 10.9142 8.79289 11.2071C9.08579 11.5 9.55719 11.5 10.5 11.5H12.5C13.4428 11.5 13.9142 11.5 14.2071 11.2071C14.5 10.9142 14.5 10.4428 14.5 9.5V7.5C14.5 6.55719 14.5 6.08579 14.2071 5.79289C13.9142 5.5 13.4428 5.5 12.5 5.5Z" stroke="#ffffff" strokeWidth="1.5" strokeLinejoin="round"></path>
+    <path d="M13 11.5H10V21.5H13V11.5Z" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M7.5 21.5H15.5" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M14.5 7H18.5C20.1569 7 21.5 8.34315 21.5 10V12.5H18.5V10H14.5V7Z" stroke="#ffffff" strokeWidth="1.5" strokeLinejoin="round"></path>
+    <path d="M14.5 2.5H9.09949C7.83781 2.5 7.20696 2.5 6.70992 2.82302C6.21288 3.14603 5.95667 3.7225 5.44425 4.87545L2.5 11.5" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M20 15.5L20.5582 14.9991C20.4159 14.8406 20.213 14.75 20 14.75C19.787 14.75 19.5841 14.8406 19.4418 14.9991L20 15.5ZM20.75 18C20.75 18.4142 20.4142 18.75 20 18.75V20.25C21.2426 20.25 22.25 19.2426 22.25 18H20.75ZM20 18.75C19.5858 18.75 19.25 18.4142 19.25 18H17.75C17.75 19.2426 18.7574 20.25 20 20.25V18.75ZM19.25 18C19.25 18.003 19.2507 17.969 19.2771 17.8886C19.3022 17.8119 19.343 17.7162 19.4012 17.6031C19.5182 17.3759 19.6824 17.1227 19.8589 16.8772C20.0335 16.6345 20.2097 16.4137 20.3431 16.2528C20.4094 16.1727 20.4644 16.1084 20.5023 16.0646C20.5212 16.0428 20.5358 16.0262 20.5454 16.0153C20.5502 16.0099 20.5537 16.0059 20.5559 16.0035C20.557 16.0023 20.5577 16.0015 20.5581 16.001C20.5583 16.0008 20.5584 16.0007 20.5584 16.0007C20.5584 16.0007 20.5584 16.0007 20.5584 16.0007C20.5584 16.0007 20.5583 16.0008 20.5583 16.0008C20.5583 16.0008 20.5582 16.0009 20 15.5C19.4418 14.9991 19.4417 14.9992 19.4417 14.9992C19.4416 14.9993 19.4415 14.9994 19.4415 14.9994C19.4414 14.9996 19.4412 14.9997 19.441 14.9999C19.4407 15.0003 19.4403 15.0008 19.4397 15.0014C19.4387 15.0026 19.4373 15.0042 19.4355 15.0061C19.432 15.0101 19.4271 15.0156 19.4209 15.0226C19.4085 15.0367 19.3909 15.0568 19.3688 15.0822C19.3246 15.1332 19.2625 15.2059 19.1882 15.2955C19.0403 15.4739 18.8415 15.7228 18.6411 16.0015C18.4426 16.2774 18.2318 16.5975 18.0675 16.9166C17.9157 17.2115 17.75 17.6053 17.75 18H19.25ZM20 15.5C19.4418 16.0009 19.4417 16.0008 19.4417 16.0008C19.4417 16.0008 19.4416 16.0007 19.4416 16.0007C19.4416 16.0007 19.4416 16.0007 19.4416 16.0007C19.4416 16.0007 19.4417 16.0008 19.4419 16.001C19.4423 16.0015 19.443 16.0023 19.4441 16.0035C19.4463 16.0059 19.4498 16.0099 19.4546 16.0153C19.4642 16.0262 19.4788 16.0428 19.4977 16.0646C19.5356 16.1084 19.5906 16.1727 19.6569 16.2528C19.7903 16.4137 19.9665 16.6345 20.1411 16.8772C20.3176 17.1227 20.4818 17.3759 20.5988 17.6031C20.657 17.7162 20.6978 17.8119 20.7229 17.8886C20.7493 17.969 20.75 18.003 20.75 18H22.25C22.25 17.6053 22.0843 17.2115 21.9325 16.9166C21.7682 16.5975 21.5574 16.2774 21.3589 16.0015C21.1585 15.7228 20.9597 15.4739 20.8118 15.2955C20.7375 15.2059 20.6754 15.1332 20.6312 15.0822C20.6091 15.0568 20.5915 15.0367 20.5791 15.0226C20.5729 15.0156 20.568 15.0101 20.5645 15.0061C20.5627 15.0042 20.5613 15.0026 20.5603 15.0014C20.5597 15.0008 20.5593 15.0003 20.559 14.9999C20.5588 14.9997 20.5586 14.9996 20.5585 14.9994C20.5585 14.9994 20.5584 14.9993 20.5583 14.9992C20.5583 14.9992 20.5582 14.9991 20 15.5Z" fill="#ffffff"></path>
+    <path d="M11.5 2.5V5.5" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
+    <path d="M2 8C2 8 6.47715 3 12 3C17.5228 3 22 8 22 8" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"></path>
+    <path d="M21.544 13.045C21.848 13.4713 22 13.6845 22 14C22 14.3155 21.848 14.5287 21.544 14.955C20.1779 16.8706 16.6892 21 12 21C7.31078 21 3.8221 16.8706 2.45604 14.955C2.15201 14.5287 2 14.3155 2 14C2 13.6845 2.15201 13.4713 2.45604 13.045C3.8221 11.1294 7.31078 7 12 7C16.6892 7 20.1779 11.1294 21.544 13.045Z" stroke="#a0aec0" strokeWidth="1.5"></path>
+    <path d="M15 14C15 12.3431 13.6569 11 12 11C10.3431 11 9 12.3431 9 14C9 15.6569 10.3431 17 12 17C13.6569 17 15 15.6569 15 14Z" stroke="#a0aec0" strokeWidth="1.5"></path>
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
+    <path d="M6.43385 6.51953C4.22009 7.89049 2.93281 9.86457 2.31858 11.0339C2.10621 11.4382 2.00003 11.6403 2 12.0082C1.99997 12.3761 2.10584 12.5777 2.3176 12.981C3.32862 14.9066 6.16702 19.0195 11.9669 19.0195C14.2454 19.0195 16.0669 18.3848 17.5 17.4972" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M9.87868 9.87868C9.33579 10.4216 9 11.1716 9 12C9 13.6569 10.3431 15 12 15C12.8284 15 13.5784 14.6642 14.1213 14.1213" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"></path>
+    <path d="M2 2L22 22" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M10 5.14847C10.5934 5.05255 11.224 5 11.8936 5C17.7747 5 20.6528 9.05385 21.6779 10.9517C21.8927 11.3492 22 11.548 22 11.9106C22 12.2733 21.8921 12.4727 21.6765 12.8717C21.3678 13.4428 20.8916 14.2085 20.2167 15" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+  </svg>
+);
+
+// ========== REGISTER COMPONENT ==========
+
 const Register = () => {
   const { user, loading } = useAuth();
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -41,7 +74,6 @@ const Register = () => {
 
   const watchPassword = watch('password', '');
 
-  // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (!loading && user) {
       navigate('/dashboard', { replace: true });
@@ -52,20 +84,12 @@ const Register = () => {
     setPassword(watchPassword || '');
   }, [watchPassword]);
 
-  useEffect(() => {
-    const elements = document.querySelectorAll('.fade-in-down, .fade-in-up, .fade-in-scale');
-    elements.forEach((el, index) => {
-      el.style.animationDelay = `${0.08 * (index + 1)}s`;
-    });
-  }, []);
-
   const onSubmit = async (data) => {
     setLoadingSubmit(true);
     const result = await registerUser(data.email, data.password, data.fullName);
     if (result.success) {
       toast.success('Account created successfully! 🎉');
       
-      // Auto-login: Save credentials if remember me is checked
       if (rememberMe) {
         localStorage.setItem('autoLoginEmail', data.email);
         localStorage.setItem('autoLoginPassword', data.password);
@@ -83,264 +107,196 @@ const Register = () => {
     return regex.test(password);
   };
 
-  const generateBubbles = () => {
-    const bubbles = [];
-    for (let i = 0; i < 12; i++) {
-      const size = 8 + Math.random() * 24;
-      const left = 5 + Math.random() * 90;
-      const duration = 12 + Math.random() * 18;
-      const delay = Math.random() * 20;
-      const drift = (Math.random() - 0.5) * 60;
-      bubbles.push(
-        <div
-          key={i}
-          className="water-bubble"
-          style={{
-            width: size,
-            height: size,
-            left: `${left}%`,
-            animationDuration: `${duration}s`,
-            animationDelay: `${delay}s`,
-            '--drift': `${drift}px`
-          }}
-        />
-      );
-    }
-    return bubbles;
-  };
-
-  // Show loading while checking auth
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '100vh',
-        background: '#F8F3E1'
-      }}>
-        <div className="spinner" style={{
-          width: '48px',
-          height: '48px',
-          border: '4px solid rgba(55, 53, 62, 0.08)',
-          borderTopColor: '#37353E',
-          borderRadius: '50%',
-          animation: 'spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
-        }}></div>
-        <p style={{ marginTop: '16px', color: '#44444E', fontFamily: 'Inter, sans-serif' }}>
-          Loading...
-        </p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.05); }
-            100% { transform: rotate(360deg) scale(1); }
-          }
-        `}</style>
+      <div className="auth-loader">
+        <div className="spinner"></div>
+        <p>Loading...</p>
       </div>
     );
   }
 
-  // If user is logged in, don't render register form (will redirect via useEffect)
   if (user) {
     return null;
   }
 
   return (
-    <div className="auth-layout">
-      
-      {/* LEFT PANEL */}
-      <div className="auth-left-panel">
-        <div className="bubbles-field">{generateBubbles()}</div>
-
-        <div className="wave-wrap">
-          <svg className="wave-svg wave-back" viewBox="0 0 1200 100" preserveAspectRatio="none">
-            <path d="M0,40 C200,10 400,70 600,40 C800,10 1000,70 1200,40 L1200,100 L0,100 Z" />
-          </svg>
-          <svg className="wave-svg wave-front" viewBox="0 0 1200 100" preserveAspectRatio="none">
-            <path d="M0,60 C200,30 400,90 600,60 C800,30 1000,90 1200,60 L1200,100 L0,100 Z" />
-          </svg>
-        </div>
-        
-        <div className="auth-left-top fade-in-down delay-1">
-          <div className="auth-brand-line">
-            <span className="line"></span>
-            <span className="auth-brand-icon">💧</span>
-            <span className="line"></span>
-          </div>
-          <h1>WATERBILL</h1>
-          <h2>Management System</h2>
-        </div>
-
-        <div className="auth-left-middle fade-in-scale delay-2">
-          <div className="logo-ripple-wrap">
-            <div className="auth-logo-container live-logo">
-              <img 
-                src={logo} 
-                alt="Municipality of Liloan Official Seal" 
-                className="live-logo-img"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/240x240?text=LILOAN+SEAL';
-                }}
-              />
-            </div>
-            <div className="logo-ripple-ring ring-1"></div>
-            <div className="logo-ripple-ring ring-2"></div>
-            <div className="logo-ripple-ring ring-3"></div>
-          </div>
-        </div>
-
-        <div className="auth-left-bottom fade-in-up delay-3">
-          <p className="auth-powered-by">
-            Powered by <strong>MTO LILOAN</strong>
-          </p>
+    <div className="auth-container">
+      {/* Top Bar */}
+      <div className="auth-top-bar">
+        <div className="auth-top-bar-content">
+          <span>SYSTEM ACCESS</span>
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="auth-right-panel">
-        <div className="auth-right-header fade-in-down delay-1">
-          <span>
-            Already have an account? <Link to="/login">Log in</Link>
-          </span>
+      {/* Main Card */}
+      <div className="auth-card">
+        {/* Left Side - Gradient Panel */}
+        <div className="auth-card-left">
+          <div className="auth-card-left-content">
+            <div className="auth-brand">
+              <div className="auth-brand-line">
+                <span className="line"></span>
+                <span className="brand-icon">
+                  <WaterPumpIcon />
+                </span>
+                <span className="line"></span>
+              </div>
+              <h1>WATERBILL</h1>
+              <h2>Management System</h2>
+            </div>
+
+            <div className="auth-center-text">
+              <div className="auth-logo-container">
+                <img 
+                  src={logo} 
+                  alt="Municipality of Liloan Official Seal" 
+                  className="auth-logo-img"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="auth-bottom-text">
+              <p className="auth-office">Office of the Municipal Treasurer</p>
+              <p className="auth-municipality">Municipality of Liloan, Southern Leyte</p>
+            </div>
+          </div>
         </div>
-        
-        <div className="auth-right-content">
-          <h2 className="fade-in-down delay-2">Create Account</h2>
-          <p className="fade-in-down delay-3">Join the WaterBill management system today.</p>
 
-          <form className="auth-form-remote" onSubmit={handleSubmit(onSubmit)}>
-            {/* TWO-COLUMN LAYOUT START */}
-            <div className="auth-form-grid">
-              {/* LEFT COLUMN */}
-              <div className="auth-form-col">
-                {/* Full Name */}
-                <div className="form-group-remote fade-in-up delay-3">
-                  <label>Full Name</label>
-                  <input
-                    {...register('fullName')}
-                    type="text"
-                    placeholder="Enter your full name"
-                    className={errors.fullName ? 'error' : ''}
-                  />
-                  {errors.fullName && <span className="error-message">{errors.fullName.message}</span>}
+        {/* Right Side - Form */}
+        <div className="auth-card-right">
+          <div className="auth-form-container">
+            <div className="auth-form-header">
+              <h2>CREATE ACCOUNT</h2>
+              <p>Join the WaterBill management system today.</p>
+            </div>
+
+            <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+              <div className="auth-form-grid">
+                <div className="auth-form-col">
+                  <div className="form-group">
+                    <label>Full Name</label>
+                    <input
+                      {...register('fullName')}
+                      type="text"
+                      placeholder="Enter your full name"
+                      className={errors.fullName ? 'error' : ''}
+                    />
+                    {errors.fullName && <span className="error-message">{errors.fullName.message}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Email Address</label>
+                    <input
+                      {...register('email')}
+                      type="email"
+                      placeholder="name@company.com"
+                      className={errors.email ? 'error' : ''}
+                    />
+                    {errors.email && <span className="error-message">{errors.email.message}</span>}
+                  </div>
                 </div>
 
-                {/* Email Address */}
-                <div className="form-group-remote fade-in-up delay-3">
-                  <label>Email Address</label>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    placeholder="name@company.com"
-                    className={errors.email ? 'error' : ''}
-                  />
-                  {errors.email && <span className="error-message">{errors.email.message}</span>}
+                <div className="auth-form-col">
+                  <div className="form-group">
+                    <label>Password</label>
+                    <div className="password-input-wrapper">
+                      <input
+                        {...register('password')}
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Create a strong password"
+                        className={errors.password ? 'error' : ''}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        onBlur={() => setIsPasswordFocused(false)}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                    {errors.password && <span className="error-message">{errors.password.message}</span>}
+                    
+                    <div className={`password-requirements ${isPasswordFocused || password.length > 0 ? 'visible' : ''}`}>
+                      <div className={`requirement ${checkRequirement(/[a-z]/) ? 'met' : ''}`}>
+                        <span className="dot"></span>
+                        Lowercase characters
+                      </div>
+                      <div className={`requirement ${checkRequirement(/[A-Z]/) ? 'met' : ''}`}>
+                        <span className="dot"></span>
+                        Uppercase characters
+                      </div>
+                      <div className={`requirement ${checkRequirement(/[0-9]/) ? 'met' : ''}`}>
+                        <span className="dot"></span>
+                        Numbers
+                      </div>
+                      <div className={`requirement ${password.length >= 14 ? 'met' : ''}`}>
+                        <span className="dot"></span>
+                        14 characters minimum
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Confirm Password</label>
+                    <div className="password-input-wrapper">
+                      <input
+                        {...register('confirmPassword')}
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm your password"
+                        className={errors.confirmPassword ? 'error' : ''}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword.message}</span>}
+                  </div>
                 </div>
               </div>
 
-              {/* RIGHT COLUMN */}
-              <div className="auth-form-col">
-                {/* Password */}
-                <div className="form-group-remote fade-in-up delay-4">
-                  <label>Password</label>
-                  <div className="password-input-wrapper">
-                    <input
-                      {...register('password')}
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Create a strong password"
-                      className={errors.password ? 'error' : ''}
-                      onFocus={() => setIsPasswordFocused(true)}
-                      onBlur={() => setIsPasswordFocused(false)}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle-btn"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                  {errors.password && <span className="error-message">{errors.password.message}</span>}
-                  
-                  <div className={`password-requirements ${isPasswordFocused || password.length > 0 ? 'visible' : ''}`}>
-                    <div className={`requirement ${checkRequirement(/[a-z]/) ? 'met' : ''}`}>
-                      <span className="dot"></span>
-                      Lowercase characters
-                    </div>
-                    <div className={`requirement ${checkRequirement(/[A-Z]/) ? 'met' : ''}`}>
-                      <span className="dot"></span>
-                      Uppercase characters
-                    </div>
-                    <div className={`requirement ${checkRequirement(/[0-9]/) ? 'met' : ''}`}>
-                      <span className="dot"></span>
-                      Numbers
-                    </div>
-                    <div className={`requirement ${password.length >= 14 ? 'met' : ''}`}>
-                      <span className="dot"></span>
-                      14 characters minimum
-                    </div>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="form-group-remote fade-in-up delay-4">
-                  <label>Confirm Password</label>
-                  <div className="password-input-wrapper">
-                    <input
-                      {...register('confirmPassword')}
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Confirm your password"
-                      className={errors.confirmPassword ? 'error' : ''}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle-btn"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && <span className="error-message">{errors.confirmPassword.message}</span>}
-                </div>
+              <div className="form-group remember-group">
+                <input
+                  type="checkbox"
+                  id="rememberMeRegister"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <label htmlFor="rememberMeRegister">🔒 Stay logged in</label>
               </div>
+
+              <button type="submit" className="auth-submit-btn" disabled={loadingSubmit}>
+                {loadingSubmit ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Creating account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </button>
+            </form>
+
+            <div className="auth-form-footer">
+              <p>
+                Already have an account? <Link to="/login">Log in</Link>
+              </p>
+              <p className="auth-help-text">
+                Trouble signing up? Contact your system administrator.
+              </p>
             </div>
-            {/* TWO-COLUMN LAYOUT END */}
-
-            {/* REMEMBER ME CHECKBOX */}
-            <div className="form-group-remote fade-in-up delay-5" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-              <input
-                type="checkbox"
-                id="rememberMeRegister"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#37353E', cursor: 'pointer' }}
-              />
-              <label htmlFor="rememberMeRegister" style={{ cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
-                🔒 Stay logged in (auto-login next time)
-              </label>
-            </div>
-
-            <button type="submit" className="auth-submit-btn fade-in-up delay-5" disabled={loadingSubmit}>
-              {loadingSubmit ? (
-                <>
-                  <span className="btn-spinner"></span>
-                  Creating account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </form>
-
-          <div className="auth-footer-remote fade-in-up delay-5">
-            <p>
-              By signing up, you agree to our{' '}
-              <a href="#">Privacy Policy</a> and{' '}
-              <a href="#">Terms of Service</a>
-            </p>
           </div>
         </div>
       </div>
