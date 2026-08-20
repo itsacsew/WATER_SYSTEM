@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { logoutUser } from '../../firebase/auth';
 import toast from 'react-hot-toast';
 import './Navbar.css';
+import logo from '../../assets/logo.png';
 
 const Navbar = () => {
   const { user, userData } = useAuth();
@@ -62,9 +63,17 @@ const Navbar = () => {
       <div className="nav-container">
         {/* Brand */}
         <Link to="/dashboard" className="nav-brand" onClick={closeMobileMenu}>
-          <span className="nav-brand-icon">💧</span>
+          <img 
+              src={logo} 
+              alt="Municipality of Liloan Official Seal" 
+              className="auth-logo-img"
+              onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';
+                            }}
+                          />
           <div className="nav-brand-text">
-            <span className="nav-brand-name">WaterBill</span>
+            <span className="nav-brand-name">WATERBILL</span>
             <span className="nav-brand-sub">Management System</span>
           </div>
         </Link>

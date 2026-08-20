@@ -7,6 +7,8 @@
   border-bottom: 2px solid #176477;
   padding: 0 32px;
   position: sticky;
+  margin-left: 35px;
+  margin-right: 35px;
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
@@ -34,6 +36,13 @@
 }
 
 /* ========== BRAND / LOGO ========== */
+.auth-logo-img {
+  width: 15%;
+  height: 15%;
+  border-radius: 50%;
+  object-fit: contain;
+  animation: breatheScale 4s ease-in-out infinite;
+}
 .nav-brand {
   display: flex;
   align-items: center;
@@ -56,7 +65,7 @@
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #6563f3 0%, #a4a2f8 30%, #a4a2f8 50%, #a4a2f8 70%, #6563f3 100%);
+  background: #ffffff;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -66,7 +75,7 @@
 .nav-brand-sub {
   font-family: 'JetBrains Mono', 'Inter', sans-serif;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
   letter-spacing: 3px;
   text-transform: uppercase;
   margin-top: -2px;
@@ -112,7 +121,7 @@
   transform: translateX(-50%);
   width: 20px;
   height: 3px;
-  background: linear-gradient(90deg, #6563f3, #a4a2f8);
+  background: linear-gradient(90deg, #5cb7ce, #5ccae6);
   border-radius: 3px 3px 0 0;
   box-shadow: 0 0 20px rgba(101, 99, 243, 0.4);
 }
@@ -157,11 +166,11 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6563f3, #a4a2f8);
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #15404b;
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;

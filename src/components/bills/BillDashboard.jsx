@@ -411,6 +411,9 @@ const BillDashboard = () => {
     }
   };
 
+  // ============================================================
+  // EXPORT WITH FILE PICKER (FIXED - NO toast.info)
+  // ============================================================
   const handleExportWithPassword = async () => {
     if (filteredBills.length === 0) {
       toast.error('No bills to export!');
@@ -519,21 +522,51 @@ const BillDashboard = () => {
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
+      
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
-      
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const fileName = `Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
-      toast.success(`✅ Exported ${sortedForExport.length} bills with password protection!`);
+      const defaultFileName = `Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Check if the File System Access API is supported
+      if ('showSaveFilePicker' in window) {
+        try {
+          // Show the native file picker for "Save As"
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: defaultFileName,
+            types: [{
+              description: 'Excel Workbook',
+              accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+            }]
+          });
+
+          // Create a writable stream and write the blob
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          // Get the actual filename from the file handle
+          const savedFileName = fileHandle.name || defaultFileName;
+          
+          // Use toast.success only (no toast.info to avoid errors)
+          toast.success(`✅ Exported ${sortedForExport.length} bills to "${savedFileName}"!`);
+          toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
+          
+        } catch (pickError) {
+          // User cancelled the file picker
+          if (pickError.name === 'AbortError' || pickError.name === 'SecurityError') {
+            toast.error('Export cancelled');
+          } else {
+            console.error('File picker error:', pickError);
+            // Fallback to download
+            fallbackDownload(blob, defaultFileName);
+          }
+        }
+      } else {
+        // Fallback for browsers that don't support showSaveFilePicker
+        fallbackDownload(blob, defaultFileName);
+      }
       
     } catch (error) {
       console.error('Export error:', error);
@@ -541,6 +574,21 @@ const BillDashboard = () => {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Fallback download method (for unsupported browsers)
+  const fallbackDownload = (blob, fileName) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`✅ Exported ${filteredBills.length} bills!`);
+    toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
   };
 
   const parseExcelData = (jsonData) => {
@@ -801,12 +849,12 @@ const BillDashboard = () => {
             onClick={handleExportWithPassword}
             disabled={filteredBills.length === 0 || isExporting}
           >
-            EXPORT
+            {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
         </div>
       </div>
 
-      {/* Hidden File Input - THIS IS THE FIX */}
+      {/* Hidden File Input */}
       <input
         type="file"
         id="fileInput"
