@@ -2,14 +2,11 @@
 
 /* ========== DASHBOARD ========== */
 .bill-dashboard {
-  padding: 24px 32px 40px;
-  max-width: 1500px;
-  margin: 0 auto;
-  background: #ffffff;
-  border-radius: 20px;
-  min-height: calc(80vh);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  padding: 24px 2px 4px;
+  max-width: 100%;      /* Changed from fixed 1500px */
+  width: 100%;          /* Ensures full width */
+  overflow-x: hidden;   /* Prevents horizontal scroll */
+  box-sizing: border-box;
 }
 
 /* ========== HEADER ========== */
@@ -22,10 +19,16 @@
   gap: 16px;
   padding-bottom: 20px;
   border-bottom: 2px solid #194752;
+  background-color: #ffffff;
+  margin-top: -20px;
+  border-radius: 10px;
+  border-color: #194752;
 }
 
 .header-left h1 {
   font-size: 35px;
+  padding-left: 20px; 
+  padding-top: 10px;
   font-weight: 800;
   color: #15404b;
   margin: 0;
@@ -35,14 +38,15 @@
 
 .header-left p {
   color: #15404b;
-  margin: 4px 0 0 0;
   font-size: 14px;
+  padding-left: 20px; 
 }
 
 .header-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-right: 20px;
 }
 
 /* ========== BUTTONS ========== */
@@ -283,7 +287,7 @@
   text-align: left;
   font-weight: 600;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   
@@ -745,4 +749,46 @@
   .modal-actions {
     flex-direction: column;
   }
+}
+/* ========== EXPORT MODAL STYLES ========== */
+.modal-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #F8FAFC;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #0F172A;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  border-color: #194752;
+  box-shadow: 0 0 0 3px rgba(25, 71, 82, 0.15);
+}
+
+.modal-input.error {
+  border-color: #DC2626;
+}
+
+.modal-input option {
+  padding: 8px;
+}
+
+/* Export modal specific */
+.export-location-info {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #EFF6FF;
+  border-radius: 8px;
+  border: 1px solid #BFDBFE;
+  font-size: 14px;
+  color: #1E40AF;
+}
+
+.export-location-info strong {
+  font-weight: 700;
 }

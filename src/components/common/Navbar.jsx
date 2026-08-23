@@ -19,7 +19,7 @@ const Navbar = () => {
       localStorage.removeItem('autoLoginEmail');
       localStorage.removeItem('autoLoginPassword');
       localStorage.removeItem('rememberMe');
-      toast.success('Logged out successfully 👋');
+      toast.success('Logged out successfully');
       navigate('/login');
     } else {
       toast.error(result.error);
@@ -66,7 +66,7 @@ const Navbar = () => {
           <img 
               src={logo} 
               alt="Municipality of Liloan Official Seal" 
-              className="auth-logo-img"
+              className="auth-logo-img1"
               onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';

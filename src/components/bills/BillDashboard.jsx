@@ -86,6 +86,61 @@ const SecurityWarningIcon = (props) => (
 );
 
 // ============================================================
+// OVERDUE CHECKING HELPER FUNCTIONS
+// ============================================================
+
+const getCurrentPeriod = () => {
+  const now = new Date();
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+                  'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  return {
+    currentMonth: months[now.getMonth()],
+    currentMonthIndex: now.getMonth(),
+    currentYear: now.getFullYear()
+  };
+};
+
+const getMonthIndex = (monthName) => {
+  if (!monthName) return -1;
+  const months = {
+    'JANUARY': 0, 'FEBRUARY': 1, 'MARCH': 2, 'APRIL': 3,
+    'MAY': 4, 'JUNE': 5, 'JULY': 6, 'AUGUST': 7,
+    'SEPTEMBER': 8, 'OCTOBER': 9, 'NOVEMBER': 10, 'DECEMBER': 11
+  };
+  return months[monthName.toUpperCase()] !== undefined ? months[monthName.toUpperCase()] : -1;
+};
+
+const isBillOverdue = (billMonth, billYear) => {
+  const { currentMonthIndex, currentYear } = getCurrentPeriod();
+  const billMonthIndex = getMonthIndex(billMonth);
+  
+  if (billMonthIndex === -1) return false;
+  
+  const billYearNum = parseInt(billYear);
+  if (isNaN(billYearNum)) return false;
+  
+  if (billYearNum < currentYear) return true;
+  if (billYearNum > currentYear) return false;
+  
+  return billMonthIndex < currentMonthIndex;
+};
+
+const determineBillStatus = (bill) => {
+  if (bill.status === 'paid') return 'paid';
+  const isOverdue = isBillOverdue(bill.month, bill.year);
+  if (isOverdue) return 'overdue';
+  return 'unpaid';
+};
+
+const processBillsWithStatus = (billsData) => {
+  return billsData.map(bill => {
+    if (bill.status === 'paid') return bill;
+    const computedStatus = determineBillStatus(bill);
+    return { ...bill, status: computedStatus };
+  });
+};
+
+// ============================================================
 // BILL DASHBOARD COMPONENT
 // ============================================================
 
@@ -112,6 +167,11 @@ const BillDashboard = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  
+  // Export Modal States
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedExportLocation, setSelectedExportLocation] = useState('all');
+  const [exportLocations, setExportLocations] = useState([]);
   
   const [locations, setLocations] = useState([]);
   const [months, setMonths] = useState([]);
@@ -142,6 +202,16 @@ const BillDashboard = () => {
       setPaymentError('');
     }
   }, [showPayModal]);
+
+  useEffect(() => {
+    const locationSet = new Set();
+    bills.forEach(bill => {
+      if (bill.location && bill.location !== 'N/A') {
+        locationSet.add(bill.location);
+      }
+    });
+    setExportLocations(Array.from(locationSet).sort());
+  }, [bills]);
 
   const sortByBillNumber = (data) => {
     return [...data].sort((a, b) => {
@@ -198,7 +268,8 @@ const BillDashboard = () => {
         billsData.push({ id: doc.id, ...doc.data() });
       });
       
-      const sortedBills = sortByBillNumber(billsData);
+      const processedBills = processBillsWithStatus(billsData);
+      const sortedBills = sortByBillNumber(processedBills);
       
       setBills(sortedBills);
       setFilteredBills(sortedBills);
@@ -218,7 +289,8 @@ const BillDashboard = () => {
         const backupData = localStorage.getItem('bills_backup');
         if (backupData) {
           const parsedData = JSON.parse(backupData);
-          const sortedBackup = sortByBillNumber(parsedData);
+          const processedBackup = processBillsWithStatus(parsedData);
+          const sortedBackup = sortByBillNumber(processedBackup);
           setBills(sortedBackup);
           setFilteredBills(sortedBackup);
           calculateStats(sortedBackup);
@@ -270,32 +342,31 @@ const BillDashboard = () => {
       );
     }
     
+    filtered = processBillsWithStatus(filtered);
     filtered = sortByBillNumber(filtered);
     setFilteredBills(filtered);
   };
 
   const calculateStats = (billsData) => {
-    const total = billsData.length;
-    const paid = billsData.filter(b => b.status === 'paid').length;
-    const unpaid = billsData.filter(b => b.status === 'unpaid').length;
-    const overdue = billsData.filter(b => {
-      if (b.status === 'paid') return false;
-      const dueDate = new Date(b.dueDate);
-      return dueDate < new Date();
-    }).length;
+    const processed = processBillsWithStatus(billsData);
+    
+    const total = processed.length;
+    const paid = processed.filter(b => b.status === 'paid').length;
+    const unpaid = processed.filter(b => b.status === 'unpaid').length;
+    const overdue = processed.filter(b => b.status === 'overdue').length;
     
     const uniqueConsumers = new Set();
-    const residentialCount = billsData.filter(b => b.consumerType?.toUpperCase() === 'RESIDENTIAL').length;
-    const commercialCount = billsData.filter(b => b.consumerType?.toUpperCase() === 'COMMERCIAL').length;
+    const residentialCount = processed.filter(b => b.consumerType?.toUpperCase() === 'RESIDENTIAL').length;
+    const commercialCount = processed.filter(b => b.consumerType?.toUpperCase() === 'COMMERCIAL').length;
     
-    billsData.forEach(b => {
+    processed.forEach(b => {
       if (b.consumerName) {
         uniqueConsumers.add(b.consumerName);
       }
     });
     
     const locationSet = new Set();
-    billsData.forEach(b => {
+    processed.forEach(b => {
       if (b.location) {
         locationSet.add(b.location);
       }
@@ -412,20 +483,45 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // EXPORT WITH FILE PICKER (FIXED - NO toast.info)
+  // EXPORT FUNCTIONS
   // ============================================================
-  const handleExportWithPassword = async () => {
-    if (filteredBills.length === 0) {
+  
+  const openExportModal = () => {
+    if (bills.length === 0) {
       toast.error('No bills to export!');
       return;
     }
+    setSelectedExportLocation('all');
+    setShowExportModal(true);
+  };
 
+  const closeExportModal = () => {
+    setShowExportModal(false);
+    setSelectedExportLocation('all');
+  };
+
+  const handleExportWithLocationFilter = async () => {
+    let billsToExport = [];
+    
+    if (selectedExportLocation === 'all') {
+      billsToExport = [...bills];
+    } else {
+      billsToExport = bills.filter(bill => bill.location === selectedExportLocation);
+    }
+    
+    if (billsToExport.length === 0) {
+      toast.error(`No bills found for location: ${selectedExportLocation}`);
+      return;
+    }
+    
     setIsExporting(true);
+    closeExportModal();
 
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Water Bills');
 
+      // ===== COLUMN HEADERS - EXACTLY AS REQUESTED =====
       worksheet.columns = [
         { header: 'WSIN', key: 'wsin', width: 15 },
         { header: 'Consumer Name', key: 'consumerName', width: 25 },
@@ -437,6 +533,7 @@ const BillDashboard = () => {
         { header: 'Status', key: 'status', width: 12 }
       ];
 
+      // ===== HEADER ROW STYLING =====
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
       headerRow.fill = {
@@ -447,7 +544,8 @@ const BillDashboard = () => {
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      const sortedForExport = sortByBillNumber(filteredBills);
+      // ===== NO EXTRA ROWS - DIRECTLY ADD DATA =====
+      const sortedForExport = sortByBillNumber(billsToExport);
       
       sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
@@ -463,6 +561,7 @@ const BillDashboard = () => {
         });
       });
 
+      // ===== STYLING FOR DATA ROWS =====
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber > 1) {
           row.height = 22;
@@ -488,6 +587,7 @@ const BillDashboard = () => {
         }
       });
 
+      // ===== BORDERS =====
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
@@ -499,6 +599,7 @@ const BillDashboard = () => {
         });
       });
 
+      // ===== PROTECT SHEET WITH PASSWORD =====
       await worksheet.protect(EXCEL_PASSWORD, {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -521,18 +622,18 @@ const BillDashboard = () => {
         });
       });
 
+      // ===== GENERATE FILE =====
       const buffer = await workbook.xlsx.writeBuffer();
       
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
 
-      const defaultFileName = `Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const locationSuffix = selectedExportLocation !== 'all' ? `_${selectedExportLocation}` : '';
+      const defaultFileName = `Water_Bills${locationSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-      // Check if the File System Access API is supported
       if ('showSaveFilePicker' in window) {
         try {
-          // Show the native file picker for "Save As"
           const fileHandle = await window.showSaveFilePicker({
             suggestedName: defaultFileName,
             types: [{
@@ -541,31 +642,25 @@ const BillDashboard = () => {
             }]
           });
 
-          // Create a writable stream and write the blob
           const writable = await fileHandle.createWritable();
           await writable.write(blob);
           await writable.close();
 
-          // Get the actual filename from the file handle
           const savedFileName = fileHandle.name || defaultFileName;
           
-          // Use toast.success only (no toast.info to avoid errors)
-          toast.success(`✅ Exported ${sortedForExport.length} bills to "${savedFileName}"!`);
+          toast.success(`✅ Exported ${billsToExport.length} bills to "${savedFileName}"!`);
           toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
           
         } catch (pickError) {
-          // User cancelled the file picker
           if (pickError.name === 'AbortError' || pickError.name === 'SecurityError') {
             toast.error('Export cancelled');
           } else {
             console.error('File picker error:', pickError);
-            // Fallback to download
-            fallbackDownload(blob, defaultFileName);
+            fallbackDownload(blob, defaultFileName, billsToExport.length);
           }
         }
       } else {
-        // Fallback for browsers that don't support showSaveFilePicker
-        fallbackDownload(blob, defaultFileName);
+        fallbackDownload(blob, defaultFileName, billsToExport.length);
       }
       
     } catch (error) {
@@ -576,8 +671,7 @@ const BillDashboard = () => {
     }
   };
 
-  // Fallback download method (for unsupported browsers)
-  const fallbackDownload = (blob, fileName) => {
+  const fallbackDownload = (blob, fileName, count) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -587,9 +681,13 @@ const BillDashboard = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    toast.success(`✅ Exported ${filteredBills.length} bills!`);
+    toast.success(`✅ Exported ${count} bills!`);
     toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
   };
+
+  // ============================================================
+  // IMPORT FUNCTIONS
+  // ============================================================
 
   const parseExcelData = (jsonData) => {
     const parsedData = [];
@@ -846,8 +944,8 @@ const BillDashboard = () => {
           </button>
           <button 
             className="btn btn-secondary"
-            onClick={handleExportWithPassword}
-            disabled={filteredBills.length === 0 || isExporting}
+            onClick={openExportModal}
+            disabled={bills.length === 0 || isExporting}
           >
             {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
@@ -862,6 +960,89 @@ const BillDashboard = () => {
         style={{ display: 'none' }}
         onChange={handleFileUpload}
       />
+
+      {/* Export Location Modal */}
+      {showExportModal && (
+        <div className="modal-overlay" onClick={closeExportModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📤 Export Bills by Location</h2>
+              <button className="close-btn" onClick={closeExportModal}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
+                Select a location to export. Only bills from the selected location will be included.
+              </p>
+              
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                  Select Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <select
+                  value={selectedExportLocation}
+                  onChange={(e) => setSelectedExportLocation(e.target.value)}
+                  className="modal-input"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: '#F8FAFC',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '15px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <option value="all">🌍 All Locations ({bills.length} bills)</option>
+                  {exportLocations.map(location => {
+                    const count = bills.filter(b => b.location === location).length;
+                    return (
+                      <option key={location} value={location}>
+                        📍 {location} ({count} bills)
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              
+              {selectedExportLocation !== 'all' && (
+                <div style={{ 
+                  marginTop: '12px', 
+                  padding: '10px 14px', 
+                  background: '#EFF6FF', 
+                  borderRadius: '8px',
+                  border: '1px solid #BFDBFE',
+                  fontSize: '14px',
+                  color: '#1E40AF'
+                }}>
+                  ℹ️ Exporting <strong>{bills.filter(b => b.location === selectedExportLocation).length}</strong> bills from <strong>{selectedExportLocation}</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeExportModal}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleExportWithLocationFilter}
+                disabled={isExporting}
+                style={{ flex: 1 }}
+              >
+                {isExporting ? '⏳ Exporting...' : '📥 Export Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="stats-grid">
@@ -1111,8 +1292,16 @@ const BillDashboard = () => {
             </thead>
             <tbody>
               {filteredBills.map((bill) => {
-                const status = getStatusBadge(bill.status);
+                let displayStatus;
+                if (bill.status === 'paid') {
+                  displayStatus = 'paid';
+                } else {
+                  displayStatus = determineBillStatus(bill);
+                }
+                
+                const status = getStatusBadge(displayStatus);
                 const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                
                 return (
                   <tr key={bill.id}>
                     <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
@@ -1133,7 +1322,7 @@ const BillDashboard = () => {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        {bill.status !== 'paid' && (
+                        {displayStatus !== 'paid' && (
                           <button className="action-btn pay" onClick={() => handlePayBill(bill)}>
                             PAY
                           </button>

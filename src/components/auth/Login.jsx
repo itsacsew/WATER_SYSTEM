@@ -86,7 +86,7 @@ const Login = () => {
     setLoadingSubmit(true);
     const result = await loginUser(data.username, data.password);
     if (result.success) {
-      toast.success('Welcome back! 👋');
+      toast.success('Welcome back!');
       
       if (rememberMe) {
         localStorage.setItem('autoLoginEmail', data.username);

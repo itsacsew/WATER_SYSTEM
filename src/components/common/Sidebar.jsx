@@ -40,7 +40,7 @@ const handleLogout = async () => {
     localStorage.removeItem('autoLoginEmail');
     localStorage.removeItem('autoLoginPassword');
     localStorage.removeItem('rememberMe');
-    toast.success('Logged out successfully 👋');
+    toast.success('Logged out successfully');
     navigate('/login');
   } else {
     toast.error(result.error);
