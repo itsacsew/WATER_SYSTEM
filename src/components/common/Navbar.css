@@ -15,7 +15,6 @@
   animation: gradientMove 20s ease-in-out infinite alternate;
   border-radius: 30px 30px 30px 30px; 
   margin-top: 10px;
-  /* Added rounded bottom corners */
 }
 
 @keyframes gradientMove {
@@ -43,6 +42,7 @@
   object-fit: contain;
   animation: breatheScale 4s ease-in-out infinite;
 }
+
 .nav-brand {
   display: flex;
   align-items: center;
@@ -253,7 +253,7 @@
 @media (max-width: 1024px) {
   .navbar {
     padding: 0 20px;
-    border-radius: 20px 20px 20px 20px; /* Slightly smaller radius on tablet */
+    border-radius: 20px 20px 20px 20px;
   }
 }
 
@@ -276,7 +276,7 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     gap: 4px;
     animation: gradientMove 20s ease-in-out infinite alternate;
-    border-radius: 20px 20px 20px 20px; /* Rounded bottom corners for mobile menu too */
+    border-radius: 20px 20px 20px 20px;
   }
   
   .nav-links.open {
@@ -307,14 +307,14 @@
   }
   
   .navbar {
-    border-radius: 0 0 16px 16px; /* Smaller radius on mobile */
+    border-radius: 0 0 16px 16px;
   }
 }
 
 @media (max-width: 480px) {
   .navbar {
     padding: 0 12px;
-    border-radius: 0 0 12px 12px; /* Even smaller radius on small mobile */
+    border-radius: 0 0 12px 12px;
   }
   
   .nav-brand-name {

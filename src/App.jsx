@@ -1,15 +1,19 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import AdminRoute from './components/common/AdminRoute';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Profile from './components/auth/Profile';
 import Dashboard from './pages/Dashboard';
 import BillHistory from './pages/BillHistory';
+import AdminDashboard from './components/admin/AdminDashboard';
+import Users from './components/admin/Users';
 import Navbar from './components/common/Navbar';
+import RoleRedirect from './components/common/RoleRedirect';
 import './App.css';
 
 function App() {
@@ -18,14 +22,14 @@ function App() {
       <AuthProvider>
         <div className="App">
           <Routes>
-            {/* Default route - redirect to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* Root route - role-based redirect */}
+            <Route path="/" element={<RoleRedirect />} />
             
             {/* Auth routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
-            {/* Protected routes */}
+            {/* Protected routes - all users */}
             <Route
               path="/dashboard"
               element={
@@ -54,6 +58,28 @@ function App() {
                     <Profile />
                   </NavbarLayout>
                 </ProtectedRoute>
+              }
+            />
+            
+            {/* Admin only routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <NavbarLayout>
+                    <AdminDashboard />
+                  </NavbarLayout>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <AdminRoute>
+                  <NavbarLayout>
+                    <Users />
+                  </NavbarLayout>
+                </AdminRoute>
               }
             />
           </Routes>

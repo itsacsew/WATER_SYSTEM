@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, userData } = useAuth();
 
   if (loading) {
     return (
@@ -40,6 +40,14 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If admin tries to access dashboard, redirect to admin
+  if (userData?.role === 'admin') {
+    const path = window.location.pathname;
+    if (path === '/dashboard' || path === '/bills') {
+      return <Navigate to="/admin" replace />;
+    }
   }
 
   return children;

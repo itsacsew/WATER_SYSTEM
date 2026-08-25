@@ -1,6 +1,6 @@
 // src/components/bills/BillDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ import './BillStyles.css';
 const EXCEL_PASSWORD = 'Water_2026';
 
 // ============================================================
-// HARD-CODED SVG ICONS
+// HARD-CODED SVG ICONS (Same as AdminDashboard)
 // ============================================================
 
 const SummationCircleIcon = (props) => (
@@ -86,6 +86,73 @@ const SecurityWarningIcon = (props) => (
 );
 
 // ============================================================
+// BILL CALCULATION FUNCTIONS
+// ============================================================
+
+/**
+ * Calculate bill amount based on consumer type and consumption
+ * @param {string} consumerType - 'RESIDENTIAL' or 'COMMERCIAL'
+ * @param {number} consumption - Total cubic meters consumed
+ * @returns {number} Calculated amount
+ */
+const calculateBillAmount = (consumerType, consumption) => {
+  const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
+  
+  if (type === 'RESIDENTIAL') {
+    // Residential: First 5 m³ = ₱62.50, Excess = ₱12.50 per m³
+    const FIRST_5_RATE = 62.50;
+    const EXCESS_RATE = 12.50;
+    
+    if (consumption <= 0) return 0;
+    if (consumption <= 5) return FIRST_5_RATE;
+    
+    const excess = consumption - 5;
+    return FIRST_5_RATE + (excess * EXCESS_RATE);
+    
+  } else if (type === 'COMMERCIAL') {
+    // Commercial: 
+    // 0-10 m³ = ₱15 per m³
+    // 11-20 m³ = ₱20 per m³
+    // 21+ m³ = ₱30 per m³
+    const TIER1_RATE = 15;
+    const TIER2_RATE = 20;
+    const TIER3_RATE = 30;
+    const TIER1_LIMIT = 10;
+    const TIER2_LIMIT = 20;
+    
+    if (consumption <= 0) return 0;
+    
+    if (consumption <= TIER1_LIMIT) {
+      return consumption * TIER1_RATE;
+    } else if (consumption <= TIER2_LIMIT) {
+      const tier1Amount = TIER1_LIMIT * TIER1_RATE;
+      const tier2Consumption = consumption - TIER1_LIMIT;
+      return tier1Amount + (tier2Consumption * TIER2_RATE);
+    } else {
+      const tier1Amount = TIER1_LIMIT * TIER1_RATE;
+      const tier2Amount = (TIER2_LIMIT - TIER1_LIMIT) * TIER2_RATE;
+      const tier3Consumption = consumption - TIER2_LIMIT;
+      return tier1Amount + tier2Amount + (tier3Consumption * TIER3_RATE);
+    }
+  }
+  
+  // Default fallback
+  return consumption * 15;
+};
+
+/**
+ * Calculate consumption from readings
+ * @param {number} presentReading - Current meter reading
+ * @param {number} previousReading - Previous meter reading
+ * @returns {number} Consumption in cubic meters
+ */
+const calculateConsumption = (presentReading, previousReading) => {
+  const present = Number(presentReading) || 0;
+  const previous = Number(previousReading) || 0;
+  return Math.max(0, present - previous);
+};
+
+// ============================================================
 // OVERDUE CHECKING HELPER FUNCTIONS
 // ============================================================
 
@@ -137,6 +204,14 @@ const processBillsWithStatus = (billsData) => {
     if (bill.status === 'paid') return bill;
     const computedStatus = determineBillStatus(bill);
     return { ...bill, status: computedStatus };
+  });
+};
+
+const sortByBillNumber = (data) => {
+  return [...data].sort((a, b) => {
+    const numA = Number(a.billNumber) || 0;
+    const numB = Number(b.billNumber) || 0;
+    return numA - numB;
   });
 };
 
@@ -213,14 +288,6 @@ const BillDashboard = () => {
     setExportLocations(Array.from(locationSet).sort());
   }, [bills]);
 
-  const sortByBillNumber = (data) => {
-    return [...data].sort((a, b) => {
-      const numA = Number(a.billNumber) || 0;
-      const numB = Number(b.billNumber) || 0;
-      return numA - numB;
-    });
-  };
-
   const extractFilterOptions = (billsData) => {
     const locationSet = new Set();
     const monthSet = new Set();
@@ -257,11 +324,7 @@ const BillDashboard = () => {
     
     try {
       const billsRef = collection(db, 'bills');
-      const q = query(
-        billsRef,
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
+      const q = query(billsRef, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       const billsData = [];
       querySnapshot.forEach((doc) => {
@@ -276,33 +339,9 @@ const BillDashboard = () => {
       calculateStats(sortedBills);
       extractFilterOptions(sortedBills);
       
-      try {
-        localStorage.setItem('bills_backup', JSON.stringify(sortedBills));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-      }
-      
     } catch (error) {
       console.error('Error fetching bills from Firebase:', error);
-      
-      try {
-        const backupData = localStorage.getItem('bills_backup');
-        if (backupData) {
-          const parsedData = JSON.parse(backupData);
-          const processedBackup = processBillsWithStatus(parsedData);
-          const sortedBackup = sortByBillNumber(processedBackup);
-          setBills(sortedBackup);
-          setFilteredBills(sortedBackup);
-          calculateStats(sortedBackup);
-          extractFilterOptions(sortedBackup);
-          toast.success('Loaded bills from local backup');
-        } else {
-          toast.error('No bills found in Firebase or backup');
-        }
-      } catch (e) {
-        console.error('Error loading backup:', e);
-        toast.error('Error loading bills from database');
-      }
+      toast.error('Error loading bills from database');
     }
     setLoading(false);
   };
@@ -431,6 +470,10 @@ const BillDashboard = () => {
     }
   };
 
+  // ============================================================
+  // PAYMENT CONFIRMATION WITH AUTO-CALCULATION
+  // ============================================================
+
   const confirmPayBill = async () => {
     if (!paymentCode || paymentCode.length < 7) {
       setPaymentError('Please enter a valid 7-digit payment code.');
@@ -443,42 +486,192 @@ const BillDashboard = () => {
     }
 
     if (!selectedBill) return;
-    
+
     setIsPaying(true);
-    
+
     try {
       const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      // ✅ Calculate consumption and amount based on readings
+      const consumption = calculateConsumption(
+        selectedBill.presentReading,
+        selectedBill.previousReading
+      );
       
+      const calculatedAmount = calculateBillAmount(
+        selectedBill.consumerType,
+        consumption
+      );
+
+      console.log('📊 Bill Calculation:');
+      console.log(`   Consumer: ${selectedBill.consumerName}`);
+      console.log(`   Type: ${selectedBill.consumerType}`);
+      console.log(`   Previous Reading: ${selectedBill.previousReading}`);
+      console.log(`   Present Reading: ${selectedBill.presentReading}`);
+      console.log(`   Consumption: ${consumption} m³`);
+      console.log(`   Calculated Amount: ₱${calculatedAmount.toFixed(2)}`);
+
       const billRef = doc(db, 'bills', selectedBill.id);
+      
+      // ✅ Step 1: Update the bill to paid with calculated amount
       await updateDoc(billRef, {
         status: 'paid',
         paidAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         paymentCode: paymentCode,
         referenceNumber: referenceNumber,
-        paidBy: user?.email || 'Unknown'
+        paidBy: user?.email || 'Unknown',
+        consumption: consumption,
+        amount: calculatedAmount,
+        amountCalculated: true,
+        calculationDetails: {
+          consumerType: selectedBill.consumerType || 'RESIDENTIAL',
+          previousReading: selectedBill.previousReading || 0,
+          presentReading: selectedBill.presentReading || 0,
+          consumption: consumption,
+          calculatedAmount: calculatedAmount,
+          calculatedAt: new Date().toISOString()
+        }
       });
-      
+
+      console.log('✅ Bill updated to paid successfully');
+
+      // ✅ Step 2: Auto-create next month's bill
+      await createNextMonthBill({
+        ...selectedBill,
+        consumption: consumption,
+        amount: calculatedAmount
+      });
+
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
-      
+      toast.success(`💰 Amount: ₱${calculatedAmount.toFixed(2)}`);
+
       setShowPayModal(false);
-      
+
       setReceiptData({
-        bill: selectedBill,
+        bill: {
+          ...selectedBill,
+          consumption: consumption,
+          amount: calculatedAmount
+        },
         paymentCode: paymentCode,
         referenceNumber: referenceNumber
       });
       setShowReceipt(true);
-      
+
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
       fetchBills();
     } catch (error) {
-      toast.error('Error updating bill status');
-      console.error('Payment error:', error);
+      console.error('❌ Payment error details:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      
+      if (error.code === 'permission-denied') {
+        toast.error('Permission denied. Please check your Firestore rules.');
+      } else {
+        toast.error('Error updating bill status: ' + error.message);
+      }
     } finally {
       setIsPaying(false);
+    }
+  };
+
+  // ============================================================
+  // AUTO-CREATE NEXT MONTH BILL WITH CALCULATED AMOUNT
+  // ============================================================
+
+  const createNextMonthBill = async (paidBill) => {
+    try {
+      console.log('🔄 Creating next month bill for:', paidBill.consumerName);
+      
+      const currentMonth = paidBill.month;
+      const currentYear = parseInt(paidBill.year);
+
+      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
+      if (currentIndex === -1) {
+        console.warn('Invalid month:', currentMonth);
+        return;
+      }
+
+      const nextIndex = (currentIndex + 1) % 12;
+      const nextMonth = monthOrder[nextIndex];
+      const nextYear = nextIndex === 0 ? currentYear + 1 : currentYear;
+
+      console.log(`📅 Next month: ${nextMonth} ${nextYear}`);
+
+      const billsRef = collection(db, 'bills');
+      const q = query(
+        billsRef,
+        where('month', '==', nextMonth),
+        where('year', '==', nextYear.toString()),
+        where('consumerName', '==', paidBill.consumerName),
+        where('location', '==', paidBill.location)
+      );
+      const querySnapshot = await getDocs(q);
+
+      // If bill already exists, just update the previous reading
+      if (!querySnapshot.empty) {
+        const existingDoc = querySnapshot.docs[0];
+        const existingData = existingDoc.data();
+        
+        if (!existingData.previousReading || existingData.previousReading === 0) {
+          const existingRef = doc(db, 'bills', existingDoc.id);
+          await updateDoc(existingRef, {
+            previousReading: paidBill.presentReading || 0,
+            updatedAt: new Date().toISOString()
+          });
+          console.log(`✅ Updated existing ${nextMonth} ${nextYear} bill previousReading to: ${paidBill.presentReading}`);
+        }
+        return;
+      }
+
+      // ✅ CREATE NEW BILL FOR NEXT MONTH
+      const nextBillNumber = paidBill.billNumber || `WB-${nextYear}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+
+      const newBillData = {
+        billNumber: nextBillNumber,
+        consumerName: paidBill.consumerName || 'N/A',
+        location: paidBill.location || 'N/A',
+        consumerType: paidBill.consumerType || 'RESIDENTIAL',
+        month: nextMonth,
+        year: nextYear.toString(),
+        previousReading: paidBill.presentReading || 0,
+        presentReading: 0, // Waiting for new reading
+        consumption: 0,
+        amount: 0, // Will be calculated when paid
+        dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
+        status: 'unpaid',
+        notes: `Auto-created from ${currentMonth} ${currentYear} payment`,
+        userId: user?.uid || paidBill.userId || 'unknown',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isAutoGenerated: true,
+        generatedFrom: paidBill.id,
+        generatedFromBillNumber: paidBill.billNumber,
+        // Store previous calculation for reference
+        previousAmount: paidBill.amount || 0,
+        previousConsumption: paidBill.consumption || 0
+      };
+
+      console.log('📝 New bill data:', newBillData);
+
+      const docRef = await addDoc(collection(db, 'bills'), newBillData);
+      console.log(`✅ Auto-created ${nextMonth} ${nextYear} bill with ID: ${docRef.id}`);
+      console.log(`   Previous Reading: ${newBillData.previousReading}`);
+      console.log(`   Present Reading: ${newBillData.presentReading}`);
+
+      toast.success(`📋 Auto-created bill for ${nextMonth} ${nextYear}`);
+
+      return docRef.id;
+
+    } catch (error) {
+      console.error('Error creating next month bill:', error);
+      console.error('Error details:', error.code, error.message);
+      toast.error('Error creating next month bill: ' + error.message);
     }
   };
 
@@ -521,7 +714,6 @@ const BillDashboard = () => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Water Bills');
 
-      // ===== COLUMN HEADERS - EXACTLY AS REQUESTED =====
       worksheet.columns = [
         { header: 'WSIN', key: 'wsin', width: 15 },
         { header: 'Consumer Name', key: 'consumerName', width: 25 },
@@ -530,10 +722,11 @@ const BillDashboard = () => {
         { header: 'Consumer Type', key: 'consumerType', width: 18 },
         { header: 'Previous Reading', key: 'previousReading', width: 18 },
         { header: 'Present Reading', key: 'presentReading', width: 18 },
-        { header: 'Status', key: 'status', width: 12 }
+        { header: 'Consumption', key: 'consumption', width: 15 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
       ];
 
-      // ===== HEADER ROW STYLING =====
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
       headerRow.fill = {
@@ -544,7 +737,6 @@ const BillDashboard = () => {
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      // ===== NO EXTRA ROWS - DIRECTLY ADD DATA =====
       const sortedForExport = sortByBillNumber(billsToExport);
       
       sortedForExport.forEach((bill) => {
@@ -557,11 +749,13 @@ const BillDashboard = () => {
           consumerType: bill.consumerType || 'N/A',
           previousReading: bill.previousReading || '0',
           presentReading: bill.presentReading || '0',
-          status: bill.status?.toUpperCase() || 'UNPAID'
+          consumption: bill.consumption || '0',
+          amount: bill.amount || '0',
+          status: bill.status?.toUpperCase() || 'UNPAID',
+          importedBy: bill.importedByName || bill.importedBy || bill.userId || 'N/A'
         });
       });
 
-      // ===== STYLING FOR DATA ROWS =====
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber > 1) {
           row.height = 22;
@@ -575,7 +769,7 @@ const BillDashboard = () => {
             cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
           });
           
-          const statusCell = row.getCell(8);
+          const statusCell = row.getCell(10);
           const statusValue = statusCell.value?.toString().toLowerCase() || '';
           if (statusValue === 'paid') {
             statusCell.font = { color: { argb: 'FF059669' }, bold: true };
@@ -587,7 +781,6 @@ const BillDashboard = () => {
         }
       });
 
-      // ===== BORDERS =====
       worksheet.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
@@ -599,7 +792,6 @@ const BillDashboard = () => {
         });
       });
 
-      // ===== PROTECT SHEET WITH PASSWORD =====
       await worksheet.protect(EXCEL_PASSWORD, {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -622,7 +814,6 @@ const BillDashboard = () => {
         });
       });
 
-      // ===== GENERATE FILE =====
       const buffer = await workbook.xlsx.writeBuffer();
       
       const blob = new Blob([buffer], { 
@@ -686,7 +877,7 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // IMPORT FUNCTIONS
+  // IMPORT FUNCTIONS - DIRECT TO FIREBASE
   // ============================================================
 
   const parseExcelData = (jsonData) => {
@@ -822,6 +1013,8 @@ const BillDashboard = () => {
               const billData = {
                 ...parsedBills[i],
                 userId: user.uid,
+                importedBy: user?.email || user?.uid || 'Unknown User',
+                importedByName: user?.displayName || 'Unknown',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -845,19 +1038,7 @@ const BillDashboard = () => {
             await batch.commit();
           }
 
-          try {
-            const existingBackup = JSON.parse(localStorage.getItem('bills_backup') || '[]');
-            const allBills = [...existingBackup, ...parsedBills.map((b, idx) => ({
-              ...b,
-              id: `local_${Date.now()}_${idx}`
-            }))];
-            const sortedBackup = sortByBillNumber(allBills);
-            localStorage.setItem('bills_backup', JSON.stringify(sortedBackup));
-          } catch (error) {
-            console.error('Error saving to localStorage:', error);
-          }
-
-          toast.success(`Successfully imported ${successCount} bills! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
+          toast.success(`✅ Successfully imported ${successCount} bills to Firebase! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
           fetchBills();
           
         } catch (error) {
@@ -923,13 +1104,22 @@ const BillDashboard = () => {
     filterYear !== 'all'
   ].filter(Boolean).length;
 
+  if (loading) {
+    return (
+      <div className="loading-spinner">
+        <div className="spinner-3d"></div>
+        <p style={{ color: '#ffffff', marginTop: '16px', fontFamily: 'Inter, sans-serif' }}>Loading your bills...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bill-dashboard">
       {/* Header */}
       <div className="dashboard-header">
         <div className="header-left">
           <h1>WATERBILL DASHBOARD</h1>
-          <p>Manage and track all your water bill records</p>
+          <p>Manage and track all water bill records</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
@@ -1183,7 +1373,7 @@ const BillDashboard = () => {
       {showProgress && (
         <div className="modal-overlay">
           <div className="modal-content progress-modal">
-            <h3>Importing Bills</h3>
+            <h3>Importing Bills to Firebase</h3>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
@@ -1217,12 +1407,33 @@ const BillDashboard = () => {
                 <span className="pay-value">{selectedBill.consumerName || 'N/A'}</span>
               </div>
               <div className="pay-row">
-                <span className="pay-label">Amount</span>
-                <span className="pay-value amount">{formatCurrency(selectedBill.amount)}</span>
+                <span className="pay-label">Type</span>
+                <span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span>
               </div>
               <div className="pay-row">
-                <span className="pay-label">Due Date</span>
-                <span className="pay-value">{formatDate(selectedBill.dueDate)}</span>
+                <span className="pay-label">Previous Reading</span>
+                <span className="pay-value">{selectedBill.previousReading || '0'}</span>
+              </div>
+              <div className="pay-row">
+                <span className="pay-label">Present Reading</span>
+                <span className="pay-value">{selectedBill.presentReading || '0'}</span>
+              </div>
+              <div className="pay-row" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px' }}>
+                <span className="pay-label" style={{ fontWeight: 'bold' }}>Consumption</span>
+                <span className="pay-value" style={{ fontWeight: 'bold' }}>
+                  {calculateConsumption(selectedBill.presentReading, selectedBill.previousReading)} m³
+                </span>
+              </div>
+              <div className="pay-row" style={{ borderTop: '2px solid #194752', paddingTop: '8px', marginTop: '4px' }}>
+                <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
+                <span className="pay-value amount" style={{ fontSize: '22px' }}>
+                  {formatCurrency(
+                    calculateBillAmount(
+                      selectedBill.consumerType,
+                      calculateConsumption(selectedBill.presentReading, selectedBill.previousReading)
+                    )
+                  )}
+                </span>
               </div>
             </div>
 
@@ -1286,6 +1497,8 @@ const BillDashboard = () => {
                 <th>Type</th>
                 <th>Previous</th>
                 <th>Present</th>
+                <th>Consumption</th>
+                <th>Amount</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1301,6 +1514,8 @@ const BillDashboard = () => {
                 
                 const status = getStatusBadge(displayStatus);
                 const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                const consumption = bill.consumption || calculateConsumption(bill.presentReading, bill.previousReading);
+                const amount = bill.amount || calculateBillAmount(bill.consumerType, consumption);
                 
                 return (
                   <tr key={bill.id}>
@@ -1315,6 +1530,8 @@ const BillDashboard = () => {
                     </td>
                     <td className="name-cell">{bill.previousReading || '0'}</td>
                     <td className="name-cell">{bill.presentReading || '0'}</td>
+                    <td className="name-cell" style={{ fontWeight: '600' }}>{consumption} m³</td>
+                    <td className="name-cell" style={{ fontWeight: '600' }}>{formatCurrency(amount)}</td>
                     <td>
                       <span className={`status-badge ${status.class}`}>
                         {status.label}

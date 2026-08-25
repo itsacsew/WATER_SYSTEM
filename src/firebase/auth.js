@@ -22,7 +22,7 @@ import { auth, db } from './config';
 setPersistence(auth, browserLocalPersistence)
   .catch((error) => console.error('Persistence error:', error));
 
-export const registerUser = async (email, password, displayName) => {
+export const registerUser = async (email, password, displayName, role = 'user') => {
   try {
     console.log('Attempting to register:', email);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -34,9 +34,9 @@ export const registerUser = async (email, password, displayName) => {
       uid: user.uid,
       email: user.email,
       displayName: displayName,
+      role: role, // <-- NEW: Save role
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      role: 'user',
       preferences: {
         theme: 'light',
         notifications: true

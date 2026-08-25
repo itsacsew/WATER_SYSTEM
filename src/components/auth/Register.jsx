@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
-import { registerUser } from '../../firebase/auth';
+import { registerUser, getUserData } from '../../firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
@@ -14,6 +14,7 @@ import logo from '../../assets/logo.png';
 const schema = yup.object().shape({
   fullName: yup.string().required('Full name is required'),
   email: yup.string().required('Email is required').email('Invalid email'),
+  role: yup.string().required('Role is required'),
   password: yup.string()
     .required('Password is required')
     .min(14, 'Password must be at least 14 characters')
@@ -69,7 +70,10 @@ const Register = () => {
   const navigate = useNavigate();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
+    resolver: yupResolver(schema),
+    defaultValues: {
+      role: 'user' // Default role
+    }
   });
 
   const watchPassword = watch('password', '');
@@ -84,24 +88,31 @@ const Register = () => {
     setPassword(watchPassword || '');
   }, [watchPassword]);
 
-  const onSubmit = async (data) => {
-    setLoadingSubmit(true);
-    const result = await registerUser(data.email, data.password, data.fullName);
-    if (result.success) {
-      toast.success('Account created successfully! 🎉');
-      
-      if (rememberMe) {
-        localStorage.setItem('autoLoginEmail', data.email);
-        localStorage.setItem('autoLoginPassword', data.password);
-        localStorage.setItem('rememberMe', 'true');
-      }
-      
-      navigate('/dashboard');
-    } else {
-      toast.error(result.error);
+// src/components/auth/Register.jsx - Update the onSubmit function only
+
+const onSubmit = async (data) => {
+  setLoadingSubmit(true);
+  const result = await registerUser(data.email, data.password, data.fullName, data.role);
+  if (result.success) {
+    toast.success('Account created successfully! 🎉');
+    
+    if (rememberMe) {
+      localStorage.setItem('autoLoginEmail', data.email);
+      localStorage.setItem('autoLoginPassword', data.password);
+      localStorage.setItem('rememberMe', 'true');
     }
-    setLoadingSubmit(false);
-  };
+    
+    // Redirect based on role
+    if (data.role === 'admin') {
+      navigate('/admin', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
+  } else {
+    toast.error(result.error);
+  }
+  setLoadingSubmit(false);
+};
 
   const checkRequirement = (regex) => {
     return regex.test(password);
@@ -198,6 +209,42 @@ const Register = () => {
                       className={errors.email ? 'error' : ''}
                     />
                     {errors.email && <span className="error-message">{errors.email.message}</span>}
+                  </div>
+
+                  {/* NEW: Role Selection */}
+                  <div className="form-group">
+                    <label>Role</label>
+                    <select
+                      {...register('role')}
+                      className={errors.role ? 'error' : ''}
+                      style={{
+                        padding: '14px 18px',
+                        background: '#f7fafc',
+                        border: `2px solid ${errors.role ? '#e53e3e' : '#e2e8f0'}`,
+                        borderRadius: '10px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '15px',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        outline: 'none',
+                        color: '#194752',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        appearance: 'auto'
+                      }}
+                    >
+                      <option value="user">👤 User</option>
+                      <option value="admin">👑 Administrator</option>
+                      <option value="staff">👔 Staff</option>
+                    </select>
+                    {errors.role && <span className="error-message">{errors.role.message}</span>}
+                    <p style={{ 
+                      fontSize: '11px', 
+                      color: '#194752', 
+                      marginTop: '4px',
+                      opacity: 0.7
+                    }}>
+                      Select your account role. Admin has full access to all features.
+                    </p>
                   </div>
                 </div>
 

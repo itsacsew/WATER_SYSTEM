@@ -52,26 +52,48 @@ const Navbar = () => {
     setIsMobileOpen(false);
   };
 
-  const navItems = [
-    { path: '/dashboard', label: 'DASHBOARD' },
-    { path: '/bills', label: 'BILL HISTORY' },
-    { path: '/profile', label: 'PROFILE' },
-  ];
+  // Check if user is admin
+  const isAdmin = userData?.role === 'admin';
+
+  // ============================================================
+  // NAV ITEMS - BASED ON USER ROLE
+  // ============================================================
+  let navItems = [];
+
+  if (isAdmin) {
+    // Admin sees: Admin, Users, Profile
+    navItems = [
+      { path: '/admin', label: 'DASHBOARD' },
+      { path: '/users', label: 'USERS' },
+      { path: '/profile', label: 'PROFILE' },
+    ];
+  } else {
+    // Regular users see: Dashboard, Bill History, Profile
+    navItems = [
+      { path: '/dashboard', label: 'DASHBOARD' },
+      { path: '/bills', label: 'BILL HISTORY' },
+      { path: '/profile', label: 'PROFILE' },
+    ];
+  }
 
   return (
     <nav className="navbar">
       <div className="nav-container">
         {/* Brand */}
-        <Link to="/dashboard" className="nav-brand" onClick={closeMobileMenu}>
+        <Link 
+          to={isAdmin ? "/admin" : "/dashboard"} 
+          className="nav-brand" 
+          onClick={closeMobileMenu}
+        >
           <img 
-              src={logo} 
-              alt="Municipality of Liloan Official Seal" 
-              className="auth-logo-img1"
-              onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';
-                            }}
-                          />
+            src={logo} 
+            alt="Municipality of Liloan Official Seal" 
+            className="auth-logo-img1"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';
+            }}
+          />
           <div className="nav-brand-text">
             <span className="nav-brand-name">WATERBILL</span>
             <span className="nav-brand-sub">Management System</span>
@@ -94,6 +116,13 @@ const Navbar = () => {
             >
               <span className="nav-link-icon">{item.icon}</span>
               {item.label}
+              {/* Show badge for ADMIN link */}
+              {item.path === '/admin' && isAdmin && (
+                <span></span>
+              )}
+              {item.path === '/users' && isAdmin && (
+                <span></span>
+              )}
             </Link>
           ))}
         </div>
@@ -113,6 +142,7 @@ const Navbar = () => {
               </span>
               <span className="nav-user-role">
                 {getRoleLabel(userData?.role)}
+                {isAdmin && ' '}
               </span>
             </div>
           </div>

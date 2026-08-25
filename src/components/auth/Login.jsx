@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
-import { loginUser, resetPassword } from '../../firebase/auth';
+import { loginUser, resetPassword, getUserData } from '../../firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
@@ -50,7 +50,7 @@ const EyeOffIcon = () => (
 // ========== LOGIN COMPONENT ==========
 
 const Login = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, userData } = useAuth();
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -66,9 +66,14 @@ const Login = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/dashboard', { replace: true });
+      // Check role and redirect immediately
+      if (userData?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, userData, loading, navigate]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('autoLoginEmail');
@@ -88,6 +93,9 @@ const Login = () => {
     if (result.success) {
       toast.success('Welcome back!');
       
+      // Get user role immediately
+      const userDataResult = await getUserData(result.user.uid);
+      
       if (rememberMe) {
         localStorage.setItem('autoLoginEmail', data.username);
         localStorage.setItem('autoLoginPassword', data.password);
@@ -98,7 +106,12 @@ const Login = () => {
         localStorage.removeItem('rememberMe');
       }
       
-      navigate('/dashboard');
+      // Redirect based on role IMMEDIATELY - no delay
+      if (userDataResult.success && userDataResult.data?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } else {
       toast.error(result.error);
     }
@@ -143,7 +156,6 @@ const Login = () => {
         <div className="auth-card-left">
           <div className="auth-card-left-content">
             <div className="auth-brand">
-              
               <h1>WATERBILL</h1>
               <h2>Management System</h2>
             </div>
