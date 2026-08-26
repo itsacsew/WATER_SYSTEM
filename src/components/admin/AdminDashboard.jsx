@@ -14,7 +14,7 @@ import './AdminStyles.css';
 const EXCEL_PASSWORD = 'Water_2026';
 
 // ============================================================
-// HARD-CODED SVG ICONS (Reused from BillDashboard)
+// HARD-CODED SVG ICONS
 // ============================================================
 
 const SummationCircleIcon = (props) => (
@@ -83,6 +83,20 @@ const ApartmentIcon = (props) => (
     <path d="M8 21.5V18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17.5 7.5H13.5V21.5H17.5C19.3856 21.5 20.3284 21.5 20.9142 20.9142C21.5 20.3284 21.5 19.3856 21.5 17.5V11.5C21.5 9.61438 21.5 8.67157 20.9142 8.08579C20.3284 7.5 19.3856 7.5 17.5 7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17 10.5H18M17 13.5H18M17 16.5H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+  </svg>
+);
+
+// ============================================================
+// ADD NEW MONTH ICON
+// ============================================================
+
+const CalendarAddIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M15.5 2V6M7.5 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M20.3985 8C20.2706 6.69989 19.9816 5.82475 19.3284 5.17157C18.1569 4 16.2712 4 12.5 4H10.5C6.72876 4 4.84315 4 3.67157 5.17157C2.5 6.34315 2.5 8.22876 2.5 12V14C2.5 17.7712 2.5 19.6569 3.67157 20.8284C4.47975 21.6366 5.6277 21.8873 7.5 21.965" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M2.5 10H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M15.5 15H19.5M17.5 13V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M13 18C13 20.2091 14.7909 22 17 22C19.2091 22 21 20.2091 21 18C21 15.7909 19.2091 14 17 14C14.7909 14 13 15.7909 13 18Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -293,6 +307,16 @@ const AdminDashboard = () => {
     location: ''
   });
 
+  // ========== ADD NEW MONTH STATE ==========
+  const [showNewMonthModal, setShowNewMonthModal] = useState(false);
+  const [newMonthLocation, setNewMonthLocation] = useState('');
+  const [newMonthMonth, setNewMonthMonth] = useState('');
+  const [newMonthYear, setNewMonthYear] = useState('');
+  const [newMonthLoading, setNewMonthLoading] = useState(false);
+  const [newMonthPreview, setNewMonthPreview] = useState([]);
+  const [showNewMonthPreview, setShowNewMonthPreview] = useState(false);
+  const [availableLocationsForNewMonth, setAvailableLocationsForNewMonth] = useState([]);
+
   useEffect(() => {
     fetchBills();
   }, [user]);
@@ -316,6 +340,7 @@ const AdminDashboard = () => {
       }
     });
     setExportLocations(Array.from(locationSet).sort());
+    setAvailableLocationsForNewMonth(Array.from(locationSet).sort());
   }, [bills]);
 
   const extractFilterOptions = (billsData) => {
@@ -522,7 +547,6 @@ const AdminDashboard = () => {
     try {
       const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // ✅ Check if readings are defective
       const isPresentDefective = isDefective(selectedBill.presentReading);
       const isPreviousDefective = isDefective(selectedBill.previousReading);
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
@@ -543,15 +567,6 @@ const AdminDashboard = () => {
           consumption
         );
       }
-
-      console.log('📊 Bill Calculation:');
-      console.log(`   Consumer: ${selectedBill.consumerName}`);
-      console.log(`   Type: ${selectedBill.consumerType}`);
-      console.log(`   Previous Reading: ${selectedBill.previousReading} ${isPreviousDefective ? '(DEFECTIVE)' : ''}`);
-      console.log(`   Present Reading: ${selectedBill.presentReading} ${isPresentDefective ? '(DEFECTIVE)' : ''}`);
-      console.log(`   Is Defective: ${isDefectiveReading}`);
-      console.log(`   Consumption: ${consumption} m³`);
-      console.log(`   Calculated Amount: ₱${calculatedAmount.toFixed(2)}`);
 
       const billRef = doc(db, 'bills', selectedBill.id);
       
@@ -579,9 +594,6 @@ const AdminDashboard = () => {
         }
       });
 
-      console.log('✅ Bill updated to paid successfully');
-
-      // ✅ Step 2: Auto-create next month's bill
       await createNextMonthBill({
         ...selectedBill,
         consumption: consumption,
@@ -614,8 +626,6 @@ const AdminDashboard = () => {
       fetchBills();
     } catch (error) {
       console.error('❌ Payment error details:', error);
-      console.error('❌ Error code:', error.code);
-      console.error('❌ Error message:', error.message);
       
       if (error.code === 'permission-denied') {
         toast.error('Permission denied. Please check your Firestore rules.');
@@ -650,8 +660,6 @@ const AdminDashboard = () => {
       const nextMonth = monthOrder[nextIndex];
       const nextYear = nextIndex === 0 ? currentYear + 1 : currentYear;
 
-      console.log(`📅 Next month: ${nextMonth} ${nextYear}`);
-
       const billsRef = collection(db, 'bills');
       const q = query(
         billsRef,
@@ -672,7 +680,6 @@ const AdminDashboard = () => {
             previousReading: paidBill.presentReading || 0,
             updatedAt: new Date().toISOString()
           });
-          console.log(`✅ Updated existing ${nextMonth} ${nextYear} bill previousReading to: ${paidBill.presentReading}`);
         }
         return;
       }
@@ -703,8 +710,6 @@ const AdminDashboard = () => {
         previousConsumption: paidBill.consumption || 0
       };
 
-      console.log('📝 New bill data:', newBillData);
-
       const docRef = await addDoc(collection(db, 'bills'), newBillData);
       console.log(`✅ Auto-created ${nextMonth} ${nextYear} bill with ID: ${docRef.id}`);
 
@@ -715,6 +720,191 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error creating next month bill:', error);
       toast.error('Error creating next month bill: ' + error.message);
+    }
+  };
+
+  // ============================================================
+  // ADD NEW MONTH FUNCTIONS
+  // ============================================================
+
+  const openNewMonthModal = () => {
+    setNewMonthLocation('');
+    setNewMonthMonth('');
+    setNewMonthYear(new Date().getFullYear().toString());
+    setNewMonthPreview([]);
+    setShowNewMonthPreview(false);
+    setShowNewMonthModal(true);
+  };
+
+  const closeNewMonthModal = () => {
+    setShowNewMonthModal(false);
+    setNewMonthLocation('');
+    setNewMonthMonth('');
+    setNewMonthPreview([]);
+    setShowNewMonthPreview(false);
+    setNewMonthLoading(false);
+  };
+
+  const previewNewMonth = async () => {
+    if (!newMonthLocation || !newMonthMonth || !newMonthYear) {
+      toast.error('Please select Location, Month, and Year');
+      return;
+    }
+
+    setNewMonthLoading(true);
+
+    try {
+      // Get all bills for the selected location and month
+      const billsRef = collection(db, 'bills');
+      const q = query(
+        billsRef,
+        where('location', '==', newMonthLocation),
+        where('month', '==', newMonthMonth),
+        where('year', '==', newMonthYear)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const billsData = [];
+      querySnapshot.forEach((doc) => {
+        billsData.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (billsData.length === 0) {
+        toast.error(`No bills found for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
+        setNewMonthLoading(false);
+        return;
+      }
+
+      setNewMonthPreview(billsData);
+      setShowNewMonthPreview(true);
+      toast.success(`Found ${billsData.length} bills for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
+
+    } catch (error) {
+      console.error('Error previewing new month:', error);
+      toast.error('Error fetching bills: ' + error.message);
+    }
+
+    setNewMonthLoading(false);
+  };
+
+  const confirmNewMonth = async () => {
+    if (newMonthPreview.length === 0) {
+      toast.error('No data to process');
+      return;
+    }
+
+    // Get next month
+    const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    const currentIndex = monthOrder.indexOf(newMonthMonth.toUpperCase());
+    const nextIndex = (currentIndex + 1) % 12;
+    const nextMonth = monthOrder[nextIndex];
+    const nextYear = nextIndex === 0 ? parseInt(newMonthYear) + 1 : parseInt(newMonthYear);
+
+    // Check if next month already exists for this location
+    try {
+      const billsRef = collection(db, 'bills');
+      const q = query(
+        billsRef,
+        where('location', '==', newMonthLocation),
+        where('month', '==', nextMonth),
+        where('year', '==', nextYear.toString())
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        toast.error(`Bills for ${nextMonth} ${nextYear} in ${newMonthLocation} already exist!`);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking existing bills:', error);
+      toast.error('Error checking existing bills');
+      return;
+    }
+
+    setNewMonthLoading(true);
+    setShowNewMonthPreview(false);
+
+    try {
+      const billsCollectionRef = collection(db, 'bills');
+      let successCount = 0;
+      let errorCount = 0;
+      
+      let batch = writeBatch(db);
+      let batchCount = 0;
+
+      for (let i = 0; i < newMonthPreview.length; i++) {
+        try {
+          const bill = newMonthPreview[i];
+          const { id, ...billData } = bill;
+
+          // Get the present reading - this will become the previous reading for next month
+          const presentReading = billData.presentReading || 0;
+
+          // Create new bill for next month
+          const newBillData = {
+            ...billData,
+            month: nextMonth,
+            year: nextYear.toString(),
+            previousReading: presentReading, // Current present reading becomes previous
+            presentReading: 0, // Reset present reading
+            consumption: 0, // Reset consumption
+            amount: 0, // Reset amount
+            status: 'unpaid',
+            dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
+            notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
+            userId: user?.uid || billData.userId || 'unknown',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isRollover: true,
+            rolloverFrom: id,
+            rolloverFromMonth: newMonthMonth,
+            rolloverFromYear: newMonthYear,
+            rolloverLocation: newMonthLocation,
+            previousPresentReading: presentReading
+          };
+
+          // Generate new bill number
+          const newBillNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
+          newBillData.billNumber = newBillNumber;
+
+          const docRef = doc(billsCollectionRef);
+          batch.set(docRef, newBillData);
+          successCount++;
+          batchCount++;
+
+          if (batchCount >= 500) {
+            await batch.commit();
+            batch = writeBatch(db);
+            batchCount = 0;
+          }
+
+        } catch (error) {
+          console.error('Error creating new month bill:', error);
+          errorCount++;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      if (successCount > 0) {
+        toast.success(`✅ Successfully created ${successCount} bills for ${nextMonth} ${nextYear} in ${newMonthLocation}!`);
+        toast.success(`📋 Previous readings set from ${newMonthMonth} ${newMonthYear}`);
+        closeNewMonthModal();
+        fetchBills();
+      }
+
+      if (errorCount > 0) {
+        toast.error(`⚠️ ${errorCount} bills failed to create`);
+      }
+
+    } catch (error) {
+      console.error('Error during new month creation:', error);
+      toast.error('Error creating new month: ' + error.message);
+    } finally {
+      setNewMonthLoading(false);
     }
   };
 
@@ -973,7 +1163,6 @@ const AdminDashboard = () => {
         return parseFloat(cleaned) || 0;
       };
       
-      // ✅ CHECK IF READINGS ARE DEFECTIVE
       const isPresentDefective = isDefective(presentReading);
       const isPreviousDefective = isDefective(previousReading);
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
@@ -981,7 +1170,6 @@ const AdminDashboard = () => {
       let consumptionValue = parseAmount(consumption);
       let amountValue = parseAmount(overallTotal) || parseAmount(waterCharge) || 0;
       
-      // ✅ IF DEFECTIVE, SET CONSUMPTION TO 0 AND CALCULATE AMOUNT BASED ON TYPE
       if (isDefectiveReading) {
         consumptionValue = 0;
         if (consumerType === 'COMMERCIAL') {
@@ -1210,6 +1398,29 @@ const AdminDashboard = () => {
           >
             {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
+          {/* ✅ NEW: Add New Month Button */}
+          <button 
+            className="btn btn-success" 
+            onClick={openNewMonthModal}
+            style={{
+              background: '#16A34A',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 24px',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <CalendarAddIcon width={20} height={20} color="#ffffff" />
+            ADD NEW MONTH
+          </button>
         </div>
       </div>
 
@@ -1299,6 +1510,242 @@ const AdminDashboard = () => {
                 style={{ flex: 1 }}
               >
                 {isExporting ? '⏳ Exporting...' : '📥 Export Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          ADD NEW MONTH MODAL
+          ============================================================ */}
+      {showNewMonthModal && (
+        <div className="modal-overlay" onClick={closeNewMonthModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CalendarAddIcon width={28} height={28} color="#16A34A" />
+                Add New Month
+              </h2>
+              <button className="close-btn" onClick={closeNewMonthModal}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
+                Select a <strong>Location</strong> and <strong>Month</strong> to rollover to the next month.
+                All <strong>Present Readings</strong> will become <strong>Previous Readings</strong> for the new month.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <Location03Icon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={newMonthLocation}
+                    onChange={(e) => setNewMonthLocation(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Location...</option>
+                    {availableLocationsForNewMonth.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <CalendarClockIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Month <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={newMonthMonth}
+                    onChange={(e) => setNewMonthMonth(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Month...</option>
+                    {months.map(month => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <CalendarClockIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Year <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={newMonthYear}
+                    onChange={(e) => setNewMonthYear(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Year...</option>
+                    {years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={previewNewMonth}
+                  disabled={!newMonthLocation || !newMonthMonth || !newMonthYear || newMonthLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#16A34A',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: (!newMonthLocation || !newMonthMonth || !newMonthYear || newMonthLoading) ? '0.5' : '1'
+                  }}
+                >
+                  {newMonthLoading ? '⏳ Loading...' : '🔍 Preview Bills'}
+                </button>
+              </div>
+
+              {showNewMonthPreview && newMonthPreview.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
+                      📋 Found {newMonthPreview.length} bills for {newMonthMonth} {newMonthYear} in {newMonthLocation}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#16A34A' }}>
+                      Will rollover to next month
+                    </span>
+                  </div>
+                  
+                  <div style={{ 
+                    maxHeight: '200px', 
+                    overflow: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px'
+                  }}>
+                    <table style={{ 
+                      width: '100%', 
+                      borderCollapse: 'collapse',
+                      fontSize: '12px'
+                    }}>
+                      <thead style={{ 
+                        background: '#F1F5F9', 
+                        position: 'sticky', 
+                        top: 0,
+                        zIndex: 1
+                      }}>
+                        <tr>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Present Reading</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>→ New Previous</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {newMonthPreview.slice(0, 50).map((bill) => (
+                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px', fontWeight: '600', color: '#16A34A' }}>
+                              {bill.presentReading || '0'}
+                            </td>
+                            <td style={{ padding: '6px 12px', fontWeight: '600', color: '#2563EB' }}>
+                              → {bill.presentReading || '0'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {newMonthPreview.length > 50 && (
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        textAlign: 'center', 
+                        background: '#F8FAFC',
+                        fontSize: '12px',
+                        color: '#64748B'
+                      }}>
+                        Showing first 50 of {newMonthPreview.length} bills
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeNewMonthModal}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmNewMonth}
+                disabled={newMonthPreview.length === 0 || newMonthLoading}
+                style={{ 
+                  flex: 1,
+                  background: '#16A34A',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: (newMonthPreview.length === 0 || newMonthLoading) ? '0.5' : '1'
+                }}
+              >
+                {newMonthLoading ? '⏳ Creating...' : `📋 Create ${getNextMonth(newMonthMonth)} ${getNextYear(newMonthMonth, newMonthYear)}`}
               </button>
             </div>
           </div>
@@ -1523,7 +1970,7 @@ const AdminDashboard = () => {
                     return (
                       <>
                         {formatCurrency(amount)}
-                        {isDef && <span className="defective-badge fixed-rate"></span>}
+                        {isDef && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
                       </>
                     );
                   })()}
@@ -1609,7 +2056,6 @@ const AdminDashboard = () => {
                 const status = getStatusBadge(displayStatus);
                 const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
                 
-                // Check defective readings
                 const isPresentDefective = isDefective(bill.presentReading);
                 const isPreviousDefective = isDefective(bill.previousReading);
                 const isDefectiveReading = isPresentDefective || isPreviousDefective;
@@ -1636,11 +2082,11 @@ const AdminDashboard = () => {
                     </td>
                     <td className="name-cell">
                       {displayPrevious}
-                      {isPreviousDefective && <span className="defective-badge"></span>}
+                      {isPreviousDefective && <span className="defective-badge">⚠️</span>}
                     </td>
                     <td className="name-cell">
                       {displayPresent}
-                      {isPresentDefective && <span className="defective-badge"></span>}
+                      {isPresentDefective && <span className="defective-badge">⚠️</span>}
                     </td>
                     <td className="name-cell" style={{ fontWeight: '600' }}>
                       {consumption} m³
@@ -1648,7 +2094,7 @@ const AdminDashboard = () => {
                     </td>
                     <td className="name-cell" style={{ fontWeight: '600' }}>
                       {formatCurrency(amount)}
-                      {isDefectiveReading && <span className="defective-badge fixed-rate"></span>}
+                      {isDefectiveReading && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
                     </td>
                     <td>
                       <span className={`status-badge ${status.class}`}>
@@ -1688,6 +2134,31 @@ const AdminDashboard = () => {
       )}
     </div>
   );
+};
+
+// ============================================================
+// HELPER FUNCTIONS FOR NEW MONTH
+// ============================================================
+
+const getNextMonth = (currentMonth) => {
+  const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
+  if (currentIndex === -1) return '';
+  const nextIndex = (currentIndex + 1) % 12;
+  return monthOrder[nextIndex];
+};
+
+const getNextYear = (currentMonth, currentYear) => {
+  const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
+  if (currentIndex === -1) return currentYear;
+  const nextIndex = (currentIndex + 1) % 12;
+  if (nextIndex === 0) {
+    return (parseInt(currentYear) + 1).toString();
+  }
+  return currentYear;
 };
 
 export default AdminDashboard;
