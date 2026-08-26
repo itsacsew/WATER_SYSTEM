@@ -90,17 +90,10 @@ const ApartmentIcon = (props) => (
 // BILL CALCULATION FUNCTIONS
 // ============================================================
 
-/**
- * Calculate bill amount based on consumer type and consumption
- * @param {string} consumerType - 'RESIDENTIAL' or 'COMMERCIAL'
- * @param {number} consumption - Total cubic meters consumed
- * @returns {number} Calculated amount
- */
 const calculateBillAmount = (consumerType, consumption) => {
   const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
   
   if (type === 'RESIDENTIAL') {
-    // Residential: First 5 m³ = ₱62.50, Excess = ₱12.50 per m³
     const FIRST_5_RATE = 62.50;
     const EXCESS_RATE = 12.50;
     
@@ -111,10 +104,6 @@ const calculateBillAmount = (consumerType, consumption) => {
     return FIRST_5_RATE + (excess * EXCESS_RATE);
     
   } else if (type === 'COMMERCIAL') {
-    // Commercial: 
-    // 0-10 m³ = ₱15 per m³
-    // 11-20 m³ = ₱20 per m³
-    // 21+ m³ = ₱30 per m³
     const TIER1_RATE = 15;
     const TIER2_RATE = 20;
     const TIER3_RATE = 30;
@@ -137,20 +126,61 @@ const calculateBillAmount = (consumerType, consumption) => {
     }
   }
   
-  // Default fallback
   return consumption * 15;
 };
 
-/**
- * Calculate consumption from readings
- * @param {number} presentReading - Current meter reading
- * @param {number} previousReading - Previous meter reading
- * @returns {number} Consumption in cubic meters
- */
 const calculateConsumption = (presentReading, previousReading) => {
   const present = Number(presentReading) || 0;
   const previous = Number(previousReading) || 0;
   return Math.max(0, present - previous);
+};
+
+// ============================================================
+// DEFECTIVE HANDLING FUNCTIONS
+// ============================================================
+
+const isDefective = (reading) => {
+  if (!reading && reading !== 0) return false;
+  const str = String(reading).toUpperCase().trim();
+  return str === 'DEFECTIVE' || str === 'D' || str === 'DEF' || str.includes('DEFECTIVE');
+};
+
+const getReadingValue = (reading) => {
+  if (isDefective(reading)) return 0;
+  return Number(reading) || 0;
+};
+
+const calculateWithDefective = (presentReading, previousReading, consumerType) => {
+  const isPresentDefective = isDefective(presentReading);
+  const isPreviousDefective = isDefective(previousReading);
+  const isDefectiveReading = isPresentDefective || isPreviousDefective;
+  
+  let consumption = 0;
+  
+  if (isDefectiveReading) {
+    consumption = 0;
+  } else {
+    const present = Number(presentReading) || 0;
+    const previous = Number(previousReading) || 0;
+    consumption = Math.max(0, present - previous);
+  }
+  
+  let amount = 0;
+  const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
+  
+  if (isDefectiveReading) {
+    amount = type === 'RESIDENTIAL' ? 75 : 150;
+  } else {
+    amount = calculateBillAmount(consumerType, consumption);
+  }
+  
+  return {
+    consumption,
+    isDefective: isDefectiveReading,
+    amount,
+    isPresentDefective,
+    isPreviousDefective
+  };
 };
 
 // ============================================================
@@ -244,7 +274,6 @@ const AdminDashboard = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   
-  // Export Modal States
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportLocation, setSelectedExportLocation] = useState('all');
   const [exportLocations, setExportLocations] = useState([]);
@@ -472,7 +501,7 @@ const AdminDashboard = () => {
   };
 
   // ============================================================
-  // PAYMENT CONFIRMATION WITH AUTO-CALCULATION
+  // PAYMENT CONFIRMATION WITH DEFECTIVE HANDLING
   // ============================================================
 
   const confirmPayBill = async () => {
@@ -493,26 +522,39 @@ const AdminDashboard = () => {
     try {
       const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      // ✅ Calculate consumption and amount based on readings
-      const consumption = calculateConsumption(
-        selectedBill.presentReading,
-        selectedBill.previousReading
-      );
+      // ✅ Check if readings are defective
+      const isPresentDefective = isDefective(selectedBill.presentReading);
+      const isPreviousDefective = isDefective(selectedBill.previousReading);
+      const isDefectiveReading = isPresentDefective || isPreviousDefective;
       
-      const calculatedAmount = calculateBillAmount(
-        selectedBill.consumerType,
-        consumption
-      );
+      let consumption = 0;
+      let calculatedAmount = 0;
+      
+      if (isDefectiveReading) {
+        consumption = 0;
+        calculatedAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+      } else {
+        consumption = calculateConsumption(
+          selectedBill.presentReading,
+          selectedBill.previousReading
+        );
+        calculatedAmount = calculateBillAmount(
+          selectedBill.consumerType,
+          consumption
+        );
+      }
 
       console.log('📊 Bill Calculation:');
       console.log(`   Consumer: ${selectedBill.consumerName}`);
       console.log(`   Type: ${selectedBill.consumerType}`);
-      console.log(`   Previous Reading: ${selectedBill.previousReading}`);
-      console.log(`   Present Reading: ${selectedBill.presentReading}`);
+      console.log(`   Previous Reading: ${selectedBill.previousReading} ${isPreviousDefective ? '(DEFECTIVE)' : ''}`);
+      console.log(`   Present Reading: ${selectedBill.presentReading} ${isPresentDefective ? '(DEFECTIVE)' : ''}`);
+      console.log(`   Is Defective: ${isDefectiveReading}`);
       console.log(`   Consumption: ${consumption} m³`);
       console.log(`   Calculated Amount: ₱${calculatedAmount.toFixed(2)}`);
 
       const billRef = doc(db, 'bills', selectedBill.id);
+      
       await updateDoc(billRef, {
         status: 'paid',
         paidAt: new Date().toISOString(),
@@ -523,13 +565,17 @@ const AdminDashboard = () => {
         consumption: consumption,
         amount: calculatedAmount,
         amountCalculated: true,
+        isDefective: isDefectiveReading,
+        isPresentDefective,
+        isPreviousDefective,
         calculationDetails: {
           consumerType: selectedBill.consumerType || 'RESIDENTIAL',
           previousReading: selectedBill.previousReading || 0,
           presentReading: selectedBill.presentReading || 0,
           consumption: consumption,
           calculatedAmount: calculatedAmount,
-          calculatedAt: new Date().toISOString()
+          calculatedAt: new Date().toISOString(),
+          isDefective: isDefectiveReading
         }
       });
 
@@ -539,7 +585,10 @@ const AdminDashboard = () => {
       await createNextMonthBill({
         ...selectedBill,
         consumption: consumption,
-        amount: calculatedAmount
+        amount: calculatedAmount,
+        isDefective: isDefectiveReading,
+        isPresentDefective,
+        isPreviousDefective
       });
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
@@ -551,7 +600,8 @@ const AdminDashboard = () => {
         bill: {
           ...selectedBill,
           consumption: consumption,
-          amount: calculatedAmount
+          amount: calculatedAmount,
+          isDefective: isDefectiveReading
         },
         paymentCode: paymentCode,
         referenceNumber: referenceNumber
@@ -612,12 +662,11 @@ const AdminDashboard = () => {
       );
       const querySnapshot = await getDocs(q);
 
-      // If bill already exists, just update the previous reading
       if (!querySnapshot.empty) {
         const existingDoc = querySnapshot.docs[0];
         const existingData = existingDoc.data();
         
-        if (!existingData.previousReading || existingData.previousReading === 0) {
+        if (!existingData.previousReading || existingData.previousReading === 0 || existingData.previousReading === '0') {
           const existingRef = doc(db, 'bills', existingDoc.id);
           await updateDoc(existingRef, {
             previousReading: paidBill.presentReading || 0,
@@ -628,7 +677,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // ✅ CREATE NEW BILL FOR NEXT MONTH
       const nextBillNumber = paidBill.billNumber || `WB-${nextYear}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
 
       const newBillData = {
@@ -639,9 +687,9 @@ const AdminDashboard = () => {
         month: nextMonth,
         year: nextYear.toString(),
         previousReading: paidBill.presentReading || 0,
-        presentReading: 0, // Waiting for new reading
+        presentReading: 0,
         consumption: 0,
-        amount: 0, // Will be calculated when paid
+        amount: 0,
         dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
         status: 'unpaid',
         notes: `Auto-created from ${currentMonth} ${currentYear} payment`,
@@ -651,7 +699,6 @@ const AdminDashboard = () => {
         isAutoGenerated: true,
         generatedFrom: paidBill.id,
         generatedFromBillNumber: paidBill.billNumber,
-        // Store previous calculation for reference
         previousAmount: paidBill.amount || 0,
         previousConsumption: paidBill.consumption || 0
       };
@@ -660,8 +707,6 @@ const AdminDashboard = () => {
 
       const docRef = await addDoc(collection(db, 'bills'), newBillData);
       console.log(`✅ Auto-created ${nextMonth} ${nextYear} bill with ID: ${docRef.id}`);
-      console.log(`   Previous Reading: ${newBillData.previousReading}`);
-      console.log(`   Present Reading: ${newBillData.presentReading}`);
 
       toast.success(`📋 Auto-created bill for ${nextMonth} ${nextYear}`);
 
@@ -669,7 +714,6 @@ const AdminDashboard = () => {
 
     } catch (error) {
       console.error('Error creating next month bill:', error);
-      console.error('Error details:', error.code, error.message);
       toast.error('Error creating next month bill: ' + error.message);
     }
   };
@@ -723,7 +767,8 @@ const AdminDashboard = () => {
         { header: 'Present Reading', key: 'presentReading', width: 18 },
         { header: 'Consumption', key: 'consumption', width: 15 },
         { header: 'Amount', key: 'amount', width: 15 },
-        { header: 'Status', key: 'status', width: 12 }
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Defective', key: 'defective', width: 12 }
       ];
 
       const headerRow = worksheet.getRow(1);
@@ -740,17 +785,19 @@ const AdminDashboard = () => {
       
       sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+        const isDefectiveReading = isDefective(bill.presentReading) || isDefective(bill.previousReading);
         worksheet.addRow({
           wsin: bill.billNumber || 'N/A',
           consumerName: bill.consumerName || 'N/A',
           location: bill.location || 'N/A',
           period: period.trim() || 'N/A',
           consumerType: bill.consumerType || 'N/A',
-          previousReading: bill.previousReading || '0',
-          presentReading: bill.presentReading || '0',
+          previousReading: isDefective(bill.previousReading) ? 'DEFECTIVE' : (bill.previousReading || '0'),
+          presentReading: isDefective(bill.presentReading) ? 'DEFECTIVE' : (bill.presentReading || '0'),
           consumption: bill.consumption || '0',
           amount: bill.amount || '0',
-          status: bill.status?.toUpperCase() || 'UNPAID'
+          status: bill.status?.toUpperCase() || 'UNPAID',
+          defective: isDefectiveReading ? 'YES' : 'NO'
         });
       });
 
@@ -775,6 +822,11 @@ const AdminDashboard = () => {
             statusCell.font = { color: { argb: 'FFD97706' }, bold: true };
           } else if (statusValue === 'overdue') {
             statusCell.font = { color: { argb: 'FFDC2626' }, bold: true };
+          }
+
+          const defectiveCell = row.getCell(11);
+          if (defectiveCell.value === 'YES') {
+            defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
           }
         }
       });
@@ -875,7 +927,7 @@ const AdminDashboard = () => {
   };
 
   // ============================================================
-  // IMPORT FUNCTIONS - DIRECT TO FIREBASE (NO LOCAL BACKUP)
+  // IMPORT FUNCTIONS WITH DEFECTIVE HANDLING
   // ============================================================
 
   const parseExcelData = (jsonData) => {
@@ -921,6 +973,24 @@ const AdminDashboard = () => {
         return parseFloat(cleaned) || 0;
       };
       
+      // ✅ CHECK IF READINGS ARE DEFECTIVE
+      const isPresentDefective = isDefective(presentReading);
+      const isPreviousDefective = isDefective(previousReading);
+      const isDefectiveReading = isPresentDefective || isPreviousDefective;
+      
+      let consumptionValue = parseAmount(consumption);
+      let amountValue = parseAmount(overallTotal) || parseAmount(waterCharge) || 0;
+      
+      // ✅ IF DEFECTIVE, SET CONSUMPTION TO 0 AND CALCULATE AMOUNT BASED ON TYPE
+      if (isDefectiveReading) {
+        consumptionValue = 0;
+        if (consumerType === 'COMMERCIAL') {
+          amountValue = 150;
+        } else {
+          amountValue = 75;
+        }
+      }
+      
       parsedData.push({
         billNumber,
         consumerName,
@@ -930,18 +1000,21 @@ const AdminDashboard = () => {
         year: year || '2026',
         month: month || 'APRIL',
         status: billStatus,
-        presentReading: parseAmount(presentReading),
-        previousReading: parseAmount(previousReading),
-        consumption: parseAmount(consumption),
+        presentReading: presentReading,
+        previousReading: previousReading,
+        consumption: consumptionValue,
         waterCharge: parseAmount(waterCharge),
         surcharge: parseAmount(surcharge),
-        amount: parseAmount(overallTotal) || parseAmount(waterCharge) || 0,
+        amount: amountValue,
         dueDate: `${year || '2026'}-${getMonthNumber(month || 'APRIL')}-15`,
         officialReceipt: officialReceipt || '',
         processedBy: processedBy || '',
-        notes: '',
+        notes: isDefectiveReading ? 'DEFECTIVE METER' : '',
         isImported: true,
-        importDate: new Date().toISOString()
+        importDate: new Date().toISOString(),
+        isDefective: isDefectiveReading,
+        isPresentDefective,
+        isPreviousDefective
       });
     });
     
@@ -1023,7 +1096,6 @@ const AdminDashboard = () => {
               
               setUploadProgress({ current: i + 1, total: parsedBills.length });
               
-              // Commit in batches of 500 for performance
               if (i % 500 === 499) {
                 await batch.commit();
               }
@@ -1033,7 +1105,6 @@ const AdminDashboard = () => {
             }
           }
 
-          // Commit any remaining documents
           if (successCount > 0) {
             await batch.commit();
           }
@@ -1389,7 +1460,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Pay Modal */}
+      {/* Pay Modal with Defective Handling */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1412,27 +1483,50 @@ const AdminDashboard = () => {
               </div>
               <div className="pay-row">
                 <span className="pay-label">Previous Reading</span>
-                <span className="pay-value">{selectedBill.previousReading || '0'}</span>
+                <span className="pay-value">
+                  {isDefective(selectedBill.previousReading) ? 'DEFECTIVE ⚠️' : (selectedBill.previousReading || '0')}
+                </span>
               </div>
               <div className="pay-row">
                 <span className="pay-label">Present Reading</span>
-                <span className="pay-value">{selectedBill.presentReading || '0'}</span>
+                <span className="pay-value">
+                  {isDefective(selectedBill.presentReading) ? 'DEFECTIVE ⚠️' : (selectedBill.presentReading || '0')}
+                </span>
               </div>
               <div className="pay-row" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px' }}>
                 <span className="pay-label" style={{ fontWeight: 'bold' }}>Consumption</span>
                 <span className="pay-value" style={{ fontWeight: 'bold' }}>
-                  {calculateConsumption(selectedBill.presentReading, selectedBill.previousReading)} m³
+                  {(() => {
+                    const { consumption, isDefective: isDef } = calculateWithDefective(
+                      selectedBill.presentReading,
+                      selectedBill.previousReading,
+                      selectedBill.consumerType
+                    );
+                    return (
+                      <>
+                        {consumption} m³
+                        {isDef && <span className="defective-badge"> DEFECTIVE</span>}
+                      </>
+                    );
+                  })()}
                 </span>
               </div>
               <div className="pay-row" style={{ borderTop: '2px solid #194752', paddingTop: '8px', marginTop: '4px' }}>
                 <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
                 <span className="pay-value amount" style={{ fontSize: '22px' }}>
-                  {formatCurrency(
-                    calculateBillAmount(
-                      selectedBill.consumerType,
-                      calculateConsumption(selectedBill.presentReading, selectedBill.previousReading)
-                    )
-                  )}
+                  {(() => {
+                    const { amount, isDefective: isDef } = calculateWithDefective(
+                      selectedBill.presentReading,
+                      selectedBill.previousReading,
+                      selectedBill.consumerType
+                    );
+                    return (
+                      <>
+                        {formatCurrency(amount)}
+                        {isDef && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
+                      </>
+                    );
+                  })()}
                 </span>
               </div>
             </div>
@@ -1480,7 +1574,7 @@ const AdminDashboard = () => {
         />
       )}
 
-      {/* Table */}
+      {/* Table with Defective Display */}
       <div className="table-container">
         {filteredBills.length === 0 ? (
           <div className="empty-state">
@@ -1514,8 +1608,20 @@ const AdminDashboard = () => {
                 
                 const status = getStatusBadge(displayStatus);
                 const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                const consumption = bill.consumption || calculateConsumption(bill.presentReading, bill.previousReading);
-                const amount = bill.amount || calculateBillAmount(bill.consumerType, consumption);
+                
+                // Check defective readings
+                const isPresentDefective = isDefective(bill.presentReading);
+                const isPreviousDefective = isDefective(bill.previousReading);
+                const isDefectiveReading = isPresentDefective || isPreviousDefective;
+                
+                const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
+                const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
+                
+                const { consumption, amount } = calculateWithDefective(
+                  bill.presentReading,
+                  bill.previousReading,
+                  bill.consumerType
+                );
                 
                 return (
                   <tr key={bill.id}>
@@ -1528,10 +1634,22 @@ const AdminDashboard = () => {
                         {bill.consumerType || 'N/A'}
                       </span>
                     </td>
-                    <td className="name-cell">{bill.previousReading || '0'}</td>
-                    <td className="name-cell">{bill.presentReading || '0'}</td>
-                    <td className="name-cell" style={{ fontWeight: '600' }}>{consumption} m³</td>
-                    <td className="name-cell" style={{ fontWeight: '600' }}>{formatCurrency(amount)}</td>
+                    <td className="name-cell">
+                      {displayPrevious}
+                      {isPreviousDefective && <span className="defective-badge">⚠️</span>}
+                    </td>
+                    <td className="name-cell">
+                      {displayPresent}
+                      {isPresentDefective && <span className="defective-badge">⚠️</span>}
+                    </td>
+                    <td className="name-cell" style={{ fontWeight: '600' }}>
+                      {consumption} m³
+                      {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
+                    </td>
+                    <td className="name-cell" style={{ fontWeight: '600' }}>
+                      {formatCurrency(amount)}
+                      {isDefectiveReading && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
+                    </td>
                     <td>
                       <span className={`status-badge ${status.class}`}>
                         {status.label}
