@@ -1523,7 +1523,7 @@ const AdminDashboard = () => {
                     return (
                       <>
                         {formatCurrency(amount)}
-                        {isDef && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
+                        {isDef && <span className="defective-badge fixed-rate"></span>}
                       </>
                     );
                   })()}
@@ -1636,11 +1636,11 @@ const AdminDashboard = () => {
                     </td>
                     <td className="name-cell">
                       {displayPrevious}
-                      {isPreviousDefective && <span className="defective-badge">⚠️</span>}
+                      {isPreviousDefective && <span className="defective-badge"></span>}
                     </td>
                     <td className="name-cell">
                       {displayPresent}
-                      {isPresentDefective && <span className="defective-badge">⚠️</span>}
+                      {isPresentDefective && <span className="defective-badge"></span>}
                     </td>
                     <td className="name-cell" style={{ fontWeight: '600' }}>
                       {consumption} m³
@@ -1648,7 +1648,7 @@ const AdminDashboard = () => {
                     </td>
                     <td className="name-cell" style={{ fontWeight: '600' }}>
                       {formatCurrency(amount)}
-                      {isDefectiveReading && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
+                      {isDefectiveReading && <span className="defective-badge fixed-rate"></span>}
                     </td>
                     <td>
                       <span className={`status-badge ${status.class}`}>

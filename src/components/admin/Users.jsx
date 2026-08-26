@@ -1,6 +1,6 @@
 // src/components/admin/Users.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -51,6 +51,41 @@ const PhilippinePesoIconSmall = () => (
   </svg>
 );
 
+const ImportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
+    <path d="M12 3V12M12 12L9.5 9.5M12 12L14.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 17.5C3.5 16.5 2 14.5 2 12C2 7.02944 6.02944 3 11 3C15.9706 3 20 7.02944 20 12C20 14.5 18.5 16.5 17 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 21V13M12 21L9.5 18.5M12 21L14.5 18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 17L6 20L9 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ExportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
+    <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 6.5C3.5 7.5 2 9.5 2 12C2 16.9706 6.02944 21 11 21C15.9706 21 20 16.9706 20 12C20 9.5 18.5 7.5 17 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 3V11M12 11L9.5 8.5M12 11L14.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const LocationIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
+    <path d="M14.5 9C14.5 10.3807 13.3807 11.5 12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9Z" stroke="#194752" strokeWidth="1.5"/>
+    <path d="M18.2222 17C19.6167 18.9885 20.2838 20.0475 19.8865 20.8999C19.8466 20.9854 19.7999 21.0679 19.7469 21.1467C19.1724 22 17.6875 22 14.7178 22H9.28223C6.31251 22 4.82765 22 4.25311 21.1467C4.20005 21.0679 4.15339 20.9854 4.11355 20.8999C3.71619 20.0475 4.38326 18.9885 5.77778 17" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 17.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="#194752" strokeWidth="1.5"/>
+  </svg>
+);
+
+const MonthIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
+    <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12.1258 14H12.0008M12.1258 18H12.0008M7.625 14H7.5M7.625 18H7.5M16.625 14H16.5M12.2508 14C12.2508 14.1381 12.1389 14.25 12.0008 14.25C11.8628 14.25 11.7508 14.1381 11.7508 14C11.7508 13.8619 11.8628 13.75 12.0008 13.75C12.1389 13.75 12.2508 13.8619 12.2508 14ZM12.2508 18C12.2508 18.1381 12.1389 18.25 12.0008 18.25C11.8628 18.25 11.7508 18.1381 11.7508 18C11.7508 17.8619 11.8628 17.75 12.0008 17.75C12.1389 17.75 12.2508 17.8619 12.2508 18ZM7.75 14C7.75 14.1381 7.63807 14.25 7.5 14.25C7.36193 14.25 7.25 14.1381 7.25 14C7.25 13.8619 7.36193 13.75 7.5 13.75C7.63807 13.75 7.75 13.8619 7.75 14ZM7.75 18C7.75 18.1381 7.63807 18.25 7.5 18.25C7.36193 18.25 7.25 18.1381 7.25 18C7.25 17.8619 7.36193 17.75 7.5 17.75C7.63807 17.75 7.75 17.8619 7.75 18ZM16.75 14C16.75 14.1381 16.6381 14.25 16.5 14.25C16.3619 14.25 16.25 14.1381 16.25 14C16.25 13.8619 16.3619 13.75 16.5 13.75C16.6381 13.75 16.75 13.8619 16.75 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 // ============================================================
 // USERS COMPONENT
 // ============================================================
@@ -71,13 +106,109 @@ const Users = () => {
     staffCount: 0
   });
 
+  // ========== IMPORT MODAL STATE ==========
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMonth, setImportMonth] = useState('');
+  const [importLocation, setImportLocation] = useState('');
+  const [availableImportLocations, setAvailableImportLocations] = useState([]);
+  const [availableImportMonths, setAvailableImportMonths] = useState([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  const [showImportProgress, setShowImportProgress] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState([]);
+  const [showImportPreview, setShowImportPreview] = useState(false);
+
+  // ========== EXPORT MODAL STATE ==========
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportMonth, setExportMonth] = useState('');
+  const [exportLocation, setExportLocation] = useState('');
+  const [availableExportLocations, setAvailableExportLocations] = useState([]);
+  const [availableExportMonths, setAvailableExportMonths] = useState([]);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
+  const [showExportProgress, setShowExportProgress] = useState(false);
+  const [exportPreviewData, setExportPreviewData] = useState([]);
+  const [showExportPreview, setShowExportPreview] = useState(false);
+
   useEffect(() => {
     fetchUsers();
+    fetchImportFilterOptions();
+    fetchExportFilterOptions();
   }, []);
 
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, filterRole]);
+
+  // ============================================================
+  // FETCH FILTER OPTIONS FOR IMPORT MODAL
+  // ============================================================
+
+  const fetchImportFilterOptions = async () => {
+    try {
+      const billsRef = collection(db, 'bills');
+      const querySnapshot = await getDocs(billsRef);
+      
+      const locations = new Set();
+      const months = new Set();
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.location && data.location !== 'N/A') {
+          locations.add(data.location);
+        }
+        if (data.month && data.month !== 'N/A') {
+          months.add(data.month);
+        }
+      });
+      
+      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      
+      setAvailableImportLocations(Array.from(locations).sort());
+      setAvailableImportMonths(Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
+      
+    } catch (error) {
+      console.error('Error fetching import filter options:', error);
+    }
+  };
+
+  // ============================================================
+  // FETCH FILTER OPTIONS FOR EXPORT MODAL
+  // ============================================================
+
+  const fetchExportFilterOptions = async () => {
+    try {
+      const importRef = collection(db, 'import');
+      const querySnapshot = await getDocs(importRef);
+      
+      const locations = new Set();
+      const months = new Set();
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.location && data.location !== 'N/A') {
+          locations.add(data.location);
+        }
+        if (data.month && data.month !== 'N/A') {
+          months.add(data.month);
+        }
+      });
+      
+      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      
+      setAvailableExportLocations(Array.from(locations).sort());
+      setAvailableExportMonths(Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
+      
+    } catch (error) {
+      console.error('Error fetching export filter options:', error);
+    }
+  };
+
+  // ============================================================
+  // FETCH USERS
+  // ============================================================
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -93,10 +224,8 @@ const Users = () => {
       setUsers(usersData);
       setFilteredUsers(usersData);
       
-      // Get bills for each user
       await fetchBillsCount(usersData);
       
-      // Calculate stats
       const totalUsers = usersData.length;
       const adminCount = usersData.filter(u => u.role === 'admin').length;
       const userCount = usersData.filter(u => u.role === 'user' || !u.role).length;
@@ -156,6 +285,359 @@ const Users = () => {
     
     setFilteredUsers(filtered);
   };
+
+  // ============================================================
+  // IMPORT FUNCTIONS
+  // ============================================================
+
+  const openImportModal = () => {
+    setImportMonth('');
+    setImportLocation('');
+    setImportPreviewData([]);
+    setShowImportPreview(false);
+    setShowImportModal(true);
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportMonth('');
+    setImportLocation('');
+    setImportPreviewData([]);
+    setShowImportPreview(false);
+  };
+
+  const previewImport = async () => {
+    if (!importMonth || !importLocation) {
+      toast.error('Please select both Month and Location');
+      return;
+    }
+
+    setImportLoading(true);
+    
+    try {
+      const billsRef = collection(db, 'bills');
+      const q = query(
+        billsRef,
+        where('month', '==', importMonth),
+        where('location', '==', importLocation)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const billsData = [];
+      querySnapshot.forEach((doc) => {
+        billsData.push({ id: doc.id, ...doc.data() });
+      });
+      
+      if (billsData.length === 0) {
+        toast.error(`No bills found for ${importMonth} in ${importLocation}`);
+        setImportLoading(false);
+        return;
+      }
+      
+      setImportPreviewData(billsData);
+      setShowImportPreview(true);
+      toast.success(`Found ${billsData.length} bills to import`);
+      
+    } catch (error) {
+      console.error('Error previewing import:', error);
+      toast.error('Error fetching bills: ' + error.message);
+    }
+    
+    setImportLoading(false);
+  };
+
+  const confirmImport = async () => {
+    if (importPreviewData.length === 0) {
+      toast.error('No data to import');
+      return;
+    }
+
+    setImportLoading(true);
+    setShowImportProgress(true);
+    setImportProgress({ current: 0, total: importPreviewData.length });
+
+    try {
+      const importCollectionRef = collection(db, 'import');
+      let successCount = 0;
+      let errorCount = 0;
+      
+      let batch = writeBatch(db);
+      let batchCount = 0;
+
+      for (let i = 0; i < importPreviewData.length; i++) {
+        try {
+          const bill = importPreviewData[i];
+          const { id, ...billData } = bill;
+          
+          const importData = {
+            ...billData,
+            importedAt: new Date().toISOString(),
+            importedBy: user?.email || 'Unknown',
+            importedByUid: user?.uid || 'unknown',
+            originalBillId: id,
+            importBatch: `${importMonth}_${importLocation}_${Date.now()}`,
+            importMonth: importMonth,
+            importLocation: importLocation,
+            sourceCollection: 'bills'
+          };
+          
+          const docRef = doc(importCollectionRef);
+          batch.set(docRef, importData);
+          successCount++;
+          batchCount++;
+          
+          setImportProgress({ current: i + 1, total: importPreviewData.length });
+          
+          if (batchCount >= 500) {
+            await batch.commit();
+            batch = writeBatch(db);
+            batchCount = 0;
+          }
+          
+        } catch (error) {
+          console.error('Error adding import document:', error);
+          errorCount++;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      if (successCount > 0) {
+        toast.success(`✅ Successfully imported ${successCount} bills to "import" collection!`);
+        closeImportModal();
+        // Refresh export filter options after import
+        fetchExportFilterOptions();
+      }
+      
+      if (errorCount > 0) {
+        toast.error(`⚠️ ${errorCount} bills failed to import`);
+      }
+      
+    } catch (error) {
+      console.error('Error during import:', error);
+      toast.error('Error importing data: ' + error.message);
+    } finally {
+      setImportLoading(false);
+      setShowImportProgress(false);
+      setImportProgress({ current: 0, total: 0 });
+    }
+  };
+
+  // ============================================================
+  // EXPORT FUNCTIONS (Import collection → Bills collection)
+  // WITH AUTO-DELETE FROM IMPORT COLLECTION
+  // ============================================================
+
+  const openExportModal = () => {
+    setExportMonth('');
+    setExportLocation('');
+    setExportPreviewData([]);
+    setShowExportPreview(false);
+    setShowExportModal(true);
+  };
+
+  const closeExportModal = () => {
+    setShowExportModal(false);
+    setExportMonth('');
+    setExportLocation('');
+    setExportPreviewData([]);
+    setShowExportPreview(false);
+  };
+
+  const previewExport = async () => {
+    if (!exportMonth || !exportLocation) {
+      toast.error('Please select both Month and Location');
+      return;
+    }
+
+    setExportLoading(true);
+    
+    try {
+      const importRef = collection(db, 'import');
+      const q = query(
+        importRef,
+        where('month', '==', exportMonth),
+        where('location', '==', exportLocation)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const importData = [];
+      querySnapshot.forEach((doc) => {
+        importData.push({ id: doc.id, ...doc.data() });
+      });
+      
+      if (importData.length === 0) {
+        toast.error(`No imported bills found for ${exportMonth} in ${exportLocation}`);
+        setExportLoading(false);
+        return;
+      }
+      
+      setExportPreviewData(importData);
+      setShowExportPreview(true);
+      toast.success(`Found ${importData.length} imported bills to export to "bills" collection`);
+      
+    } catch (error) {
+      console.error('Error previewing export:', error);
+      toast.error('Error fetching imported bills: ' + error.message);
+    }
+    
+    setExportLoading(false);
+  };
+
+  const confirmExport = async () => {
+    if (exportPreviewData.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    setExportLoading(true);
+    setShowExportProgress(true);
+    setExportProgress({ current: 0, total: exportPreviewData.length });
+
+    try {
+      const billsCollectionRef = collection(db, 'bills');
+      let successCount = 0;
+      let errorCount = 0;
+      let deleteSuccessCount = 0;
+      let deleteErrorCount = 0;
+      
+      // ========== STEP 1: Export to bills collection ==========
+      let exportBatch = writeBatch(db);
+      let exportBatchCount = 0;
+
+      // Store document IDs for deletion later
+      const importDocIds = [];
+
+      for (let i = 0; i < exportPreviewData.length; i++) {
+        try {
+          const importDoc = exportPreviewData[i];
+          const { id, ...importData } = importDoc;
+          
+          // Store ID for deletion
+          importDocIds.push(id);
+          
+          // Remove import-specific metadata
+          const { 
+            importedAt, 
+            importedBy, 
+            importedByUid, 
+            originalBillId, 
+            importBatch, 
+            importMonth: impMonth, 
+            importLocation: impLocation, 
+            sourceCollection,
+            ...cleanBillData 
+          } = importData;
+          
+          // Add export metadata
+          const billData = {
+            ...cleanBillData,
+            exportedAt: new Date().toISOString(),
+            exportedFrom: id,
+            exportedFromCollection: 'import',
+            exportedBy: user?.email || 'Unknown',
+            exportedByUid: user?.uid || 'unknown',
+            exportBatch: `${exportMonth}_${exportLocation}_${Date.now()}`,
+            exportMonth: exportMonth,
+            exportLocation: exportLocation,
+            createdAt: importData.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          const docRef = doc(billsCollectionRef);
+          exportBatch.set(docRef, billData);
+          successCount++;
+          exportBatchCount++;
+          
+          setExportProgress({ current: i + 1, total: exportPreviewData.length * 2 });
+          
+          if (exportBatchCount >= 500) {
+            await exportBatch.commit();
+            exportBatch = writeBatch(db);
+            exportBatchCount = 0;
+          }
+          
+        } catch (error) {
+          console.error('Error adding bill document:', error);
+          errorCount++;
+        }
+      }
+
+      if (exportBatchCount > 0) {
+        await exportBatch.commit();
+      }
+
+      // ========== STEP 2: Delete from import collection ==========
+      if (successCount > 0) {
+        setExportProgress({ current: exportPreviewData.length, total: exportPreviewData.length * 2 });
+        
+        let deleteBatch = writeBatch(db);
+        let deleteBatchCount = 0;
+
+        for (let i = 0; i < importDocIds.length; i++) {
+          try {
+            const docId = importDocIds[i];
+            const docRef = doc(db, 'import', docId);
+            deleteBatch.delete(docRef);
+            deleteSuccessCount++;
+            deleteBatchCount++;
+            
+            setExportProgress({ 
+              current: exportPreviewData.length + i + 1, 
+              total: exportPreviewData.length * 2 
+            });
+            
+            if (deleteBatchCount >= 500) {
+              await deleteBatch.commit();
+              deleteBatch = writeBatch(db);
+              deleteBatchCount = 0;
+            }
+            
+          } catch (error) {
+            console.error('Error deleting import document:', error);
+            deleteErrorCount++;
+          }
+        }
+
+        if (deleteBatchCount > 0) {
+          await deleteBatch.commit();
+        }
+      }
+
+      // ========== STEP 3: Show results ==========
+      if (successCount > 0) {
+        toast.success(`✅ Successfully exported ${successCount} bills to "bills" collection!`);
+        toast.success(`🗑️ Successfully deleted ${deleteSuccessCount} bills from "import" collection!`);
+        closeExportModal();
+        // Refresh import filter options after export
+        fetchImportFilterOptions();
+        // Refresh export filter options (import collection is now empty)
+        fetchExportFilterOptions();
+      }
+      
+      if (errorCount > 0) {
+        toast.error(`⚠️ ${errorCount} bills failed to export`);
+      }
+      
+      if (deleteErrorCount > 0) {
+        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete from import`);
+      }
+      
+    } catch (error) {
+      console.error('Error during export:', error);
+      toast.error('Error exporting data: ' + error.message);
+    } finally {
+      setExportLoading(false);
+      setShowExportProgress(false);
+      setExportProgress({ current: 0, total: 0 });
+    }
+  };
+
+  // ============================================================
+  // HELPER FUNCTIONS
+  // ============================================================
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -248,6 +730,34 @@ const Users = () => {
           <p>Manage all registered users</p>
         </div>
         <div className="header-actions">
+          <button 
+            className="btn btn-secondary" 
+            onClick={openImportModal}
+            style={{ 
+              background: '#194752', 
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <ImportIcon />
+            IMPORT DATA
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={openExportModal}
+            style={{ 
+              background: '#1a5e6e', 
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <ExportIcon />
+            EXPORT TO BILLS
+          </button>
           <button className="btn btn-secondary" onClick={fetchUsers}>
             🔄 Refresh
           </button>
@@ -396,6 +906,521 @@ const Users = () => {
           </table>
         )}
       </div>
+
+      {/* ============================================================
+          IMPORT MODAL
+          ============================================================ */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={closeImportModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ImportIcon width={28} height={28} color="#194752" />
+                Import Bills to "import" Collection
+              </h2>
+              <button className="close-btn" onClick={closeImportModal}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
+                Select a <strong>Month</strong> and <strong>Location</strong> to import bills from the 
+                <strong> "bills" </strong> collection to the <strong> "import" </strong> collection in Firebase.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Month <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={importMonth}
+                    onChange={(e) => setImportMonth(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Month...</option>
+                    {availableImportMonths.map(month => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={importLocation}
+                    onChange={(e) => setImportLocation(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Location...</option>
+                    {availableImportLocations.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={previewImport}
+                  disabled={!importMonth || !importLocation || importLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#194752',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: (!importMonth || !importLocation || importLoading) ? '0.5' : '1'
+                  }}
+                >
+                  {importLoading ? '⏳ Loading...' : '🔍 Preview Bills'}
+                </button>
+              </div>
+
+              {showImportPreview && importPreviewData.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
+                      📋 Found {importPreviewData.length} bills to import
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#64748B' }}>
+                      From: {importMonth} | {importLocation}
+                    </span>
+                  </div>
+                  
+                  <div style={{ 
+                    maxHeight: '200px', 
+                    overflow: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px'
+                  }}>
+                    <table style={{ 
+                      width: '100%', 
+                      borderCollapse: 'collapse',
+                      fontSize: '12px'
+                    }}>
+                      <thead style={{ 
+                        background: '#F1F5F9', 
+                        position: 'sticky', 
+                        top: 0,
+                        zIndex: 1
+                      }}>
+                        <tr>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreviewData.slice(0, 50).map((bill) => (
+                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px' }}>
+                              <span style={{ 
+                                padding: '2px 10px', 
+                                borderRadius: '12px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
+                                color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
+                              }}>
+                                {bill.consumerType || 'N/A'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>
+                              ₱{(bill.amount || 0).toFixed(2)}
+                            </td>
+                            <td style={{ padding: '6px 12px' }}>
+                              <span style={{ 
+                                padding: '2px 10px', 
+                                borderRadius: '12px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
+                                color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
+                              }}>
+                                {bill.status || 'UNPAID'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {importPreviewData.length > 50 && (
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        textAlign: 'center', 
+                        background: '#F8FAFC',
+                        fontSize: '12px',
+                        color: '#64748B'
+                      }}>
+                        Showing first 50 of {importPreviewData.length} bills
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeImportModal}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmImport}
+                disabled={importPreviewData.length === 0 || importLoading}
+                style={{ 
+                  flex: 1,
+                  background: '#194752',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: (importPreviewData.length === 0 || importLoading) ? '0.5' : '1'
+                }}
+              >
+                {importLoading ? '⏳ Importing...' : `📥 Import ${importPreviewData.length} Bills`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Progress Modal */}
+      {showImportProgress && (
+        <div className="modal-overlay">
+          <div className="modal-content progress-modal">
+            <h3>📤 Importing Bills to "import" Collection</h3>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ 
+                  width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%` 
+                }}
+              />
+            </div>
+            <p className="progress-text">
+              {importProgress.current} / {importProgress.total} bills imported
+            </p>
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+              ⏳ Please wait, this may take a few moments...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          EXPORT MODAL (Import → Bills with Auto-Delete)
+          ============================================================ */}
+      {showExportModal && (
+        <div className="modal-overlay" onClick={closeExportModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ExportIcon width={28} height={28} color="#1a5e6e" />
+                Export to "bills" Collection (Auto-Delete from Import)
+              </h2>
+              <button className="close-btn" onClick={closeExportModal}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
+                Select a <strong>Month</strong> and <strong>Location</strong> to export bills from the 
+                <strong> "import" </strong> collection to the <strong> "bills" </strong> collection.
+              </p>
+              <p style={{ 
+                color: '#DC2626', 
+                fontSize: '13px', 
+                marginBottom: '16px',
+                background: '#FEF2F2',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #FECACA'
+              }}>
+                ⚠️ <strong>Note:</strong> After successful export, all data will be <strong>automatically deleted</strong> from the "import" collection.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Month <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={exportMonth}
+                    onChange={(e) => setExportMonth(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Month...</option>
+                    {availableExportMonths.map(month => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                    <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                    Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={exportLocation}
+                    onChange={(e) => setExportLocation(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '15px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Location...</option>
+                    {availableExportLocations.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={previewExport}
+                  disabled={!exportMonth || !exportLocation || exportLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#1a5e6e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: (!exportMonth || !exportLocation || exportLoading) ? '0.5' : '1'
+                  }}
+                >
+                  {exportLoading ? '⏳ Loading...' : '🔍 Preview Imported Bills'}
+                </button>
+              </div>
+
+              {showExportPreview && exportPreviewData.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
+                      📋 Found {exportPreviewData.length} imported bills to export
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#64748B' }}>
+                      From: {exportMonth} | {exportLocation}
+                    </span>
+                  </div>
+                  
+                  <div style={{ 
+                    maxHeight: '200px', 
+                    overflow: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px'
+                  }}>
+                    <table style={{ 
+                      width: '100%', 
+                      borderCollapse: 'collapse',
+                      fontSize: '12px'
+                    }}>
+                      <thead style={{ 
+                        background: '#F1F5F9', 
+                        position: 'sticky', 
+                        top: 0,
+                        zIndex: 1
+                      }}>
+                        <tr>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {exportPreviewData.slice(0, 50).map((bill) => (
+                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px' }}>
+                              <span style={{ 
+                                padding: '2px 10px', 
+                                borderRadius: '12px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
+                                color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
+                              }}>
+                                {bill.consumerType || 'N/A'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>
+                              ₱{(bill.amount || 0).toFixed(2)}
+                            </td>
+                            <td style={{ padding: '6px 12px' }}>
+                              <span style={{ 
+                                padding: '2px 10px', 
+                                borderRadius: '12px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
+                                color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
+                              }}>
+                                {bill.status || 'UNPAID'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {exportPreviewData.length > 50 && (
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        textAlign: 'center', 
+                        background: '#F8FAFC',
+                        fontSize: '12px',
+                        color: '#64748B'
+                      }}>
+                        Showing first 50 of {exportPreviewData.length} bills
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeExportModal}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmExport}
+                disabled={exportPreviewData.length === 0 || exportLoading}
+                style={{ 
+                  flex: 1,
+                  background: '#1a5e6e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: (exportPreviewData.length === 0 || exportLoading) ? '0.5' : '1'
+                }}
+              >
+                {exportLoading ? '⏳ Exporting...' : `📤 Export & Delete ${exportPreviewData.length} Bills`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Progress Modal */}
+      {showExportProgress && (
+        <div className="modal-overlay">
+          <div className="modal-content progress-modal">
+            <h3>📤 Exporting Bills to "bills" Collection</h3>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ 
+                  width: `${exportProgress.total > 0 ? (exportProgress.current / exportProgress.total) * 100 : 0}%` 
+                }}
+              />
+            </div>
+            <p className="progress-text">
+              {exportProgress.current} / {exportProgress.total} bills processed
+            </p>
+            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+              ⏳ Step 1: Exporting to bills... | Step 2: Deleting from import...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
