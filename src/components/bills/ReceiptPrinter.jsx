@@ -15,63 +15,23 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
     });
   };
 
-  const formatDateShort = (date) => {
-    return date.toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
-
-  const numberToWords = (num) => {
-    if (num === 0) return 'Zero';
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    
-    const convert = (n) => {
-      if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-      if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convert(n % 100) : '');
-      if (n < 1000000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
-      return 'Number too large';
-    };
-    
-    const parts = num.toString().split('.');
-    const whole = parseInt(parts[0]);
-    const cents = parts[1] ? parseInt(parts[1].padEnd(2, '0')) : 0;
-    
-    let result = convert(whole);
-    if (cents > 0) {
-      result += ' and ' + convert(cents) + ' Cents';
-    }
-    return result + ' Pesos Only';
-  };
-
   const handlePrint = async () => {
     try {
       const element = receiptRef.current;
       
+      // Capture the receipt as image
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: 360,
-        height: element.scrollHeight,
-        windowWidth: 360,
+        width: 776, // 205mm in pixels at 96dpi
+        height: 378, // 100mm in pixels at 96dpi
+        windowWidth: 776,
+        windowHeight: 378,
       });
       
-      const printWindow = window.open('', '_blank', 'width=400,height=600');
+      const printWindow = window.open('', '_blank', 'width=800,height=500');
       if (!printWindow) {
         alert('Please allow popups for this site to print receipts.');
         return;
@@ -85,6 +45,15 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
           <head>
             <title>Official Receipt</title>
             <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              @page {
+                size: 205mm 100mm landscape;
+                margin: 0;
+              }
               body {
                 margin: 0;
                 padding: 0;
@@ -92,19 +61,54 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
                 justify-content: center;
                 align-items: center;
                 min-height: 100vh;
-                background: #f0f4f8;
+                background: #e8ecf1;
                 font-family: 'Courier New', monospace;
               }
               .print-container {
-                width: 360px;
+                width: 205mm;
+                height: 100mm;
                 background: white;
                 padding: 0;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                margin: 0;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                overflow: hidden;
+                position: relative;
               }
               .print-container img {
                 width: 100%;
-                height: auto;
+                height: 100%;
                 display: block;
+                object-fit: fill;
+              }
+              .no-print {
+                text-align: center;
+                padding: 12px;
+                background: #f1f5f9;
+                border-top: 1px solid #e2e8f0;
+              }
+              .no-print button {
+                padding: 8px 32px;
+                margin: 0 6px;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+              }
+              .print-btn {
+                background: #1e3a5f;
+                color: white;
+              }
+              .print-btn:hover {
+                background: #2a4a7a;
+              }
+              .close-btn {
+                background: #e2e8f0;
+                color: #1e293b;
+              }
+              .close-btn:hover {
+                background: #cbd5e1;
               }
               @media print {
                 body {
@@ -114,7 +118,10 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
                 }
                 .print-container {
                   box-shadow: none;
-                  width: 100%;
+                  width: 205mm;
+                  height: 100mm;
+                  margin: 0;
+                  padding: 0;
                 }
                 .no-print {
                   display: none !important;
@@ -125,17 +132,13 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
           <body>
             <div class="print-container">
               <img src="${imgData}" alt="Official Receipt" />
-              <div class="no-print" style="text-align:center;padding:10px;background:#f0f4f8;margin:0;">
-                <button onclick="window.print()" style="padding:10px 30px;margin:5px;background:linear-gradient(135deg,#1e3a5f,#4a90d9);color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">
-                  🖨️ Print Receipt
-                </button>
-                <button onclick="window.close()" style="padding:10px 30px;margin:5px;background:#e53e3e;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">
-                  Close
-                </button>
-              </div>
+            </div>
+            <div class="no-print">
+              <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+              <button class="close-btn" onclick="window.close()">Close</button>
             </div>
             <script>
-              setTimeout(() => { window.print(); }, 1000);
+              setTimeout(() => { window.print(); }, 800);
             </script>
           </body>
         </html>
@@ -150,145 +153,167 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   };
 
   useEffect(() => {
+    // Auto-open print dialog when modal appears
     setTimeout(() => {
       handlePrint();
-    }, 500);
+    }, 600);
   }, []);
 
-  const consumerInfo = `${bill.consumerName || 'N/A'} - ${bill.location || 'N/A'}`;
-  const monthName = bill.month || 'N/A';
-  const amount = bill.amount || 0;
-  const amountInWords = numberToWords(amount);
+  const consumerName = bill?.consumerName || 'N/A';
+  const monthName = bill?.month || 'N/A';
 
   return (
     <div className="receipt-modal-overlay" onClick={onClose}>
-      <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="receipt-actions">
-          <button className="receipt-print-btn" onClick={handlePrint}>
-            🖨️ Print Receipt
+      <div 
+        className="receipt-modal-content" 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '205mm',
+          height: '100mm',
+          maxWidth: '205mm',
+          maxHeight: '100mm',
+          padding: '0',
+          margin: '0',
+          background: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative'
+        }}
+      >
+        {/* Action Buttons */}
+        <div style={{
+          padding: '6px 14px',
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          flexShrink: 0,
+          zIndex: 10
+        }}>
+          <button 
+            onClick={handlePrint}
+            style={{
+              padding: '6px 24px',
+              background: '#1e3a5f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#2a4a7a'}
+            onMouseLeave={(e) => e.target.style.background = '#1e3a5f'}
+          >
+            🖨️ Print
           </button>
-          <button className="receipt-close-btn" onClick={onClose}>
+          <button 
+            onClick={onClose}
+            style={{
+              padding: '6px 24px',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
+            onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
+          >
             Close
           </button>
         </div>
-        
-        <div ref={receiptRef} className="official-receipt" style={{ width: '360px', padding: '12px', background: 'white', fontFamily: '"Courier New", monospace', fontSize: '9px', border: '1px solid #e2e8f0' }}>
-          <div style={{ textAlign: 'center', borderBottom: '2px solid #1e3a5f', paddingBottom: '4px', marginBottom: '4px' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#1e3a5f' }}>Republic of the Philippines</div>
-            <div style={{ fontWeight: 'bold', fontSize: '10px', color: '#1e3a5f' }}>Province of Southern Leyte</div>
-            <div style={{ fontWeight: 'bold', fontSize: '12px', marginTop: '2px', color: '#1e3a5f' }}>OFFICIAL RECEIPT</div>
-            <div style={{ fontSize: '10px', marginTop: '2px', color: '#1e3a5f' }}>
-              No. <span style={{ fontWeight: 'bold', letterSpacing: '1px' }}>{referenceNumber || 'N/A'}</span>
-            </div>
+
+        {/* ============================================================
+            RECEIPT - 10cm HEIGHT × 20.5cm WEIGHT (Landscape)
+            EXACT SAME LAYOUT FOR MODAL AND PRINT
+            ============================================================ */}
+        <div 
+          ref={receiptRef} 
+          style={{ 
+            width: '205mm',
+            height: '100mm',
+            padding: '0',
+            margin: '0',
+            background: 'white',
+            fontFamily: '"Courier New", monospace',
+            fontSize: '8pt',
+            position: 'relative',
+            overflow: 'hidden',
+            flexShrink: 0,
+            border: '1px solid #e2e8f0',
+            borderRadius: '0 0 8px 8px'
+          }}
+        >
+          {/* MUNICIPAL NAME - Height: 1.8cm, Left: 4.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '1.8cm',
+            left: '4.5cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '18pt',
+            fontWeight: 'bold',
+            color: '#1a365d',
+            letterSpacing: '3px',
+            whiteSpace: 'nowrap'
+          }}>
+            LILOAN
           </div>
 
-          <div style={{ display: 'flex', borderBottom: '1px solid #1e3a5f', padding: '2px 0' }}>
-            <div style={{ flex: 1, paddingRight: '4px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>PAYOR</div>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', wordWrap: 'break-word', color: '#1e3a5f' }}>
-                {consumerInfo}
-              </div>
-            </div>
-            <div style={{ flex: 1, padding: '0 4px', borderLeft: '1px solid #1e3a5f', borderRight: '1px solid #1e3a5f' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>NATURE OF COLLECTION</div>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#1e3a5f' }}>
-                WATER FEE - {monthName}
-              </div>
-            </div>
-            <div style={{ flex: 0.6, paddingLeft: '4px', textAlign: 'right' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>AMOUNT</div>
-              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#1e3a5f' }}>
-                {formatCurrency(amount)}
-              </div>
-            </div>
+          {/* CONSUMER NAME - Height: 3cm, Left: 4.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '3cm',
+            left: '4.5cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '14pt',
+            fontWeight: 'bold',
+            color: '#1a365d',
+            whiteSpace: 'nowrap',
+            maxWidth: '8cm',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {consumerName}
           </div>
 
-          <div style={{ display: 'flex', borderBottom: '1px solid #1e3a5f', padding: '2px 0' }}>
-            <div style={{ flex: 1, paddingRight: '4px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>MUNICIPALITY</div>
-              <div style={{ fontSize: '9px', color: '#1e3a5f' }}>{bill.location || 'N/A'}</div>
-            </div>
-            <div style={{ flex: 1, padding: '0 4px', borderLeft: '1px solid #1e3a5f', borderRight: '1px solid #1e3a5f' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>FUND</div>
-              <div style={{ fontSize: '9px', color: '#1e3a5f' }}>Water Fund</div>
-            </div>
-            <div style={{ flex: 1, padding: '0 4px', borderRight: '1px solid #1e3a5f' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>ACCOUNT CODE</div>
-              <div style={{ fontSize: '9px', color: '#1e3a5f' }}>WTR-001</div>
-            </div>
-            <div style={{ flex: 0.6, paddingLeft: '4px', textAlign: 'right' }}>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#1e3a5f' }}>{formatCurrency(amount)}</div>
-            </div>
+          {/* DATE - Height: 3cm, Left: 16.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '3cm',
+            left: '16.5cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '10pt',
+            color: '#1a365d',
+            whiteSpace: 'nowrap'
+          }}>
+            {formatDate(currentDate)}
           </div>
 
-          <div style={{ display: 'flex', borderBottom: '1px solid #1e3a5f', padding: '2px 0' }}>
-            <div style={{ flex: 1, paddingRight: '4px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>VALIDATION DATE</div>
-              <div style={{ fontSize: '9px', color: '#1e3a5f' }}>{formatDateShort(currentDate)}</div>
-            </div>
-            <div style={{ flex: 1, padding: '0 4px', borderLeft: '1px solid #1e3a5f' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>DATE</div>
-              <div style={{ fontSize: '9px', color: '#1e3a5f' }}>{formatDate(currentDate)}</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0 4px 0', borderBottom: '1px solid #1e3a5f' }}>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ borderBottom: '1px solid #1e3a5f', padding: '2px 0', marginBottom: '2px' }}>
-                <span style={{ fontSize: '8px', color: '#1e3a5f' }}>_________________________________</span>
-              </div>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>PROVINCIAL MUNICIPAL TREASURER</div>
-            </div>
-            <div style={{ flex: 1, textAlign: 'center', borderLeft: '1px solid #1e3a5f', paddingLeft: '8px' }}>
-              <div style={{ borderBottom: '1px solid #1e3a5f', padding: '2px 0', marginBottom: '2px' }}>
-                <span style={{ fontSize: '8px', color: '#1e3a5f' }}>_________________________________</span>
-              </div>
-              <div style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>DEPUTY COLLECTOR</div>
-            </div>
-          </div>
-
-          <div style={{ paddingTop: '4px', borderBottom: '1px solid #1e3a5f' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '8px', color: '#1e3a5f' }}>AMOUNT IN WORDS</span>
-              <span style={{ fontSize: '8px', textTransform: 'uppercase', color: '#1e3a5f' }}>{amountInWords}</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '2px solid #1e3a5f' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '10px', color: '#1e3a5f' }}>TOTAL</span>
-            <span style={{ fontWeight: 'bold', fontSize: '10px', color: '#1e3a5f' }}>{formatCurrency(amount)}</span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '8px', borderBottom: '1px solid #1e3a5f' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', color: '#1e3a5f' }}>☐ Money Order</div>
-              <div style={{ fontWeight: 'bold', color: '#1e3a5f' }}>☐ Check</div>
-              <div style={{ fontWeight: 'bold', color: '#1e3a5f' }}>☐ Cash</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: '#1e3a5f' }}>BANK: <span style={{ fontWeight: 'bold' }}>N/A</span></div>
-              <div style={{ color: '#1e3a5f' }}>DRAWEE: <span style={{ fontWeight: 'bold' }}>N/A</span></div>
-              <div style={{ color: '#1e3a5f' }}>NUMBER: <span style={{ fontWeight: 'bold' }}>N/A</span></div>
-              <div style={{ color: '#1e3a5f' }}>DATE: <span style={{ fontWeight: 'bold' }}>{formatDateShort(currentDate)}</span></div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '8px' }}>
-            <div style={{ color: '#1e3a5f' }}>dated above</div>
-            <div style={{ color: '#1e3a5f' }}>Received the amount</div>
-          </div>
-
-          <div style={{ fontSize: '7px', paddingTop: '2px', borderTop: '1px solid #e2e8f0', marginTop: '2px', color: '#718096' }}>
-            NOTE: Write the number and date of this receipt on the back of check or money order received.
-            <div style={{ marginTop: '2px' }}>
-              Payment Code: <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{paymentCode}</span>
-              {' | '}
-              Payment Date: {formatDate(currentDate)}
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'center', fontSize: '7px', marginTop: '4px', color: '#a0aec0', borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
-            💧 WaterBill System • Generated: {formatDate(currentDate)}
+          {/* WATER FEE - Height: 4.2cm, Left: 3cm */}
+          <div style={{
+            position: 'absolute',
+            top: '4.2cm',
+            left: '3cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '10pt',
+            fontWeight: '600',
+            color: '#1a365d',
+            whiteSpace: 'nowrap'
+          }}>
+            WATER FEE: {monthName}
           </div>
         </div>
       </div>

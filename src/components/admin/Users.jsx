@@ -1,6 +1,6 @@
 // src/components/admin/Users.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -407,7 +407,6 @@ const Users = () => {
       if (successCount > 0) {
         toast.success(`✅ Successfully imported ${successCount} bills to "import" collection!`);
         closeImportModal();
-        // Refresh export filter options after import
         fetchExportFilterOptions();
       }
       
@@ -426,8 +425,7 @@ const Users = () => {
   };
 
   // ============================================================
-  // EXPORT FUNCTIONS (Import collection → Bills collection)
-  // WITH AUTO-DELETE FROM IMPORT COLLECTION
+  // EXPORT FUNCTIONS WITH OVERRIDE (REPLACE ALL)
   // ============================================================
 
   const openExportModal = () => {
@@ -476,7 +474,7 @@ const Users = () => {
       
       setExportPreviewData(importData);
       setShowExportPreview(true);
-      toast.success(`Found ${importData.length} imported bills to export to "bills" collection`);
+      toast.success(`Found ${importData.length} imported bills to export`);
       
     } catch (error) {
       console.error('Error previewing export:', error);
@@ -486,6 +484,10 @@ const Users = () => {
     setExportLoading(false);
   };
 
+  // ============================================================
+  // CONFIRM EXPORT - OVERRIDE/REPLACE ALL BILLS
+  // ============================================================
+
   const confirmExport = async () => {
     if (exportPreviewData.length === 0) {
       toast.error('No data to export');
@@ -494,20 +496,81 @@ const Users = () => {
 
     setExportLoading(true);
     setShowExportProgress(true);
-    setExportProgress({ current: 0, total: exportPreviewData.length });
+    setExportProgress({ current: 0, total: exportPreviewData.length * 3 });
 
     try {
       const billsCollectionRef = collection(db, 'bills');
       let successCount = 0;
       let errorCount = 0;
-      let deleteSuccessCount = 0;
+      let deleteCount = 0;
       let deleteErrorCount = 0;
+
+      // ========== STEP 1: Get year from export data ==========
+      const exportYear = exportPreviewData[0]?.year || new Date().getFullYear().toString();
+
+      // ========== STEP 2: Find ALL existing bills with same month/year/location ==========
+      const existingBillsQuery = query(
+        billsCollectionRef,
+        where('month', '==', exportMonth),
+        where('year', '==', exportYear),
+        where('location', '==', exportLocation)
+      );
+      const existingSnapshot = await getDocs(existingBillsQuery);
       
-      // ========== STEP 1: Export to bills collection ==========
+      // Store existing bill IDs for deletion
+      const existingBillIds = [];
+      existingSnapshot.forEach((doc) => {
+        existingBillIds.push(doc.id);
+      });
+
+      const existingCount = existingBillIds.length;
+      
+      // ========== STEP 3: Delete ALL existing bills ==========
+      if (existingCount > 0) {
+        toast(`🗑️ Found ${existingCount} existing bills in "${exportLocation}" for ${exportMonth} ${exportYear}. Replacing with new data...`, {
+          icon: '🔄',
+          duration: 4000,
+          style: {
+            background: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #F59E0B'
+          }
+        });
+
+        let deleteBatch = writeBatch(db);
+        let deleteBatchCount = 0;
+
+        for (let i = 0; i < existingBillIds.length; i++) {
+          try {
+            const docRef = doc(db, 'bills', existingBillIds[i]);
+            deleteBatch.delete(docRef);
+            deleteCount++;
+            deleteBatchCount++;
+
+            if (deleteBatchCount >= 500) {
+              await deleteBatch.commit();
+              deleteBatch = writeBatch(db);
+              deleteBatchCount = 0;
+            }
+
+          } catch (error) {
+            console.error('Error deleting existing bill:', error);
+            deleteErrorCount++;
+          }
+        }
+
+        if (deleteBatchCount > 0) {
+          await deleteBatch.commit();
+        }
+
+        toast.success(`🗑️ Deleted ${deleteCount} existing bills from "${exportLocation}" for ${exportMonth} ${exportYear}`);
+      }
+
+      // ========== STEP 4: Export new bills from import collection ==========
       let exportBatch = writeBatch(db);
       let exportBatchCount = 0;
 
-      // Store document IDs for deletion later
+      // Store document IDs for deletion from import later
       const importDocIds = [];
 
       for (let i = 0; i < exportPreviewData.length; i++) {
@@ -515,7 +578,7 @@ const Users = () => {
           const importDoc = exportPreviewData[i];
           const { id, ...importData } = importDoc;
           
-          // Store ID for deletion
+          // Store ID for deletion from import
           importDocIds.push(id);
           
           // Remove import-specific metadata
@@ -531,7 +594,7 @@ const Users = () => {
             ...cleanBillData 
           } = importData;
           
-          // Add export metadata
+          // Create bill data
           const billData = {
             ...cleanBillData,
             exportedAt: new Date().toISOString(),
@@ -543,7 +606,14 @@ const Users = () => {
             exportMonth: exportMonth,
             exportLocation: exportLocation,
             createdAt: importData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            // Mark as replacement
+            isReplacement: true,
+            replacedAt: new Date().toISOString(),
+            replacedFrom: id,
+            replacedMonth: exportMonth,
+            replacedYear: exportYear,
+            replacedLocation: exportLocation
           };
           
           const docRef = doc(billsCollectionRef);
@@ -551,7 +621,7 @@ const Users = () => {
           successCount++;
           exportBatchCount++;
           
-          setExportProgress({ current: i + 1, total: exportPreviewData.length * 2 });
+          setExportProgress({ current: i + 1, total: exportPreviewData.length * 3 });
           
           if (exportBatchCount >= 500) {
             await exportBatch.commit();
@@ -560,7 +630,7 @@ const Users = () => {
           }
           
         } catch (error) {
-          console.error('Error adding bill document:', error);
+          console.error('Error exporting bill:', error);
           errorCount++;
         }
       }
@@ -569,30 +639,29 @@ const Users = () => {
         await exportBatch.commit();
       }
 
-      // ========== STEP 2: Delete from import collection ==========
+      // ========== STEP 5: Delete from import collection ==========
       if (successCount > 0) {
-        setExportProgress({ current: exportPreviewData.length, total: exportPreviewData.length * 2 });
+        setExportProgress({ current: exportPreviewData.length, total: exportPreviewData.length * 3 });
         
-        let deleteBatch = writeBatch(db);
-        let deleteBatchCount = 0;
+        let deleteImportBatch = writeBatch(db);
+        let deleteImportBatchCount = 0;
 
         for (let i = 0; i < importDocIds.length; i++) {
           try {
             const docId = importDocIds[i];
             const docRef = doc(db, 'import', docId);
-            deleteBatch.delete(docRef);
-            deleteSuccessCount++;
-            deleteBatchCount++;
+            deleteImportBatch.delete(docRef);
+            deleteImportBatchCount++;
             
             setExportProgress({ 
               current: exportPreviewData.length + i + 1, 
-              total: exportPreviewData.length * 2 
+              total: exportPreviewData.length * 3 
             });
             
-            if (deleteBatchCount >= 500) {
-              await deleteBatch.commit();
-              deleteBatch = writeBatch(db);
-              deleteBatchCount = 0;
+            if (deleteImportBatchCount >= 500) {
+              await deleteImportBatch.commit();
+              deleteImportBatch = writeBatch(db);
+              deleteImportBatchCount = 0;
             }
             
           } catch (error) {
@@ -601,19 +670,21 @@ const Users = () => {
           }
         }
 
-        if (deleteBatchCount > 0) {
-          await deleteBatch.commit();
+        if (deleteImportBatchCount > 0) {
+          await deleteImportBatch.commit();
         }
       }
 
-      // ========== STEP 3: Show results ==========
+      // ========== STEP 6: Show results ==========
       if (successCount > 0) {
-        toast.success(`✅ Successfully exported ${successCount} bills to "bills" collection!`);
-        toast.success(`🗑️ Successfully deleted ${deleteSuccessCount} bills from "import" collection!`);
+        let message = `✅ Successfully exported ${successCount} bills to "bills" collection!`;
+        if (deleteCount > 0) {
+          message += ` 🔄 Replaced ${deleteCount} existing bills for ${exportMonth} ${exportYear} in ${exportLocation}.`;
+        }
+        toast.success(message);
+        toast.success(`🗑️ Successfully deleted ${importDocIds.length} bills from "import" collection!`);
         closeExportModal();
-        // Refresh import filter options after export
         fetchImportFilterOptions();
-        // Refresh export filter options (import collection is now empty)
         fetchExportFilterOptions();
       }
       
@@ -748,7 +819,7 @@ const Users = () => {
             className="btn btn-secondary" 
             onClick={openExportModal}
             style={{ 
-              background: '#1a5e6e', 
+              background: '#DC2626', 
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -756,7 +827,7 @@ const Users = () => {
             }}
           >
             <ExportIcon />
-            EXPORT TO BILLS
+            REPLACE BILLS
           </button>
           <button className="btn btn-secondary" onClick={fetchUsers}>
             🔄 Refresh
@@ -1160,36 +1231,24 @@ const Users = () => {
       )}
 
       {/* ============================================================
-          EXPORT MODAL (Import → Bills with Auto-Delete)
+          EXPORT MODAL - REPLACE/OVERRIDE
           ============================================================ */}
       {showExportModal && (
         <div className="modal-overlay" onClick={closeExportModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ExportIcon width={28} height={28} color="#1a5e6e" />
-                Export to "bills" Collection (Auto-Delete from Import)
+                <ExportIcon width={28} height={28} color="#DC2626" />
+                Replace Bills in "bills" Collection
               </h2>
               <button className="close-btn" onClick={closeExportModal}>✕</button>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Month</strong> and <strong>Location</strong> to export bills from the 
-                <strong> "import" </strong> collection to the <strong> "bills" </strong> collection.
+                Select a <strong>Month</strong> and <strong>Location</strong> to <strong>REPLACE</strong> bills in the 
+                <strong> "bills" </strong> collection with data from the <strong> "import" </strong> collection.
               </p>
-              <p style={{ 
-                color: '#DC2626', 
-                fontSize: '13px', 
-                marginBottom: '16px',
-                background: '#FEF2F2',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #FECACA'
-              }}>
-                ⚠️ <strong>Note:</strong> After successful export, all data will be <strong>automatically deleted</strong> from the "import" collection.
-              </p>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
@@ -1258,7 +1317,7 @@ const Users = () => {
                   style={{
                     width: '100%',
                     padding: '12px',
-                    background: '#1a5e6e',
+                    background: '#DC2626',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
@@ -1284,8 +1343,8 @@ const Users = () => {
                     <span style={{ fontWeight: '600', color: '#0F172A' }}>
                       📋 Found {exportPreviewData.length} imported bills to export
                     </span>
-                    <span style={{ fontSize: '12px', color: '#64748B' }}>
-                      From: {exportMonth} | {exportLocation}
+                    <span style={{ fontSize: '12px', color: '#DC2626' }}>
+                      Will REPLACE all existing bills for {exportMonth} in {exportLocation}
                     </span>
                   </div>
                   
@@ -1380,7 +1439,7 @@ const Users = () => {
                 disabled={exportPreviewData.length === 0 || exportLoading}
                 style={{ 
                   flex: 1,
-                  background: '#1a5e6e',
+                  background: '#DC2626',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -1392,7 +1451,7 @@ const Users = () => {
                   opacity: (exportPreviewData.length === 0 || exportLoading) ? '0.5' : '1'
                 }}
               >
-                {exportLoading ? '⏳ Exporting...' : `📤 Export & Delete ${exportPreviewData.length} Bills`}
+                {exportLoading ? '⏳ Replacing...' : `🔄 REPLACE ${exportPreviewData.length} Bills`}
               </button>
             </div>
           </div>
@@ -1403,7 +1462,7 @@ const Users = () => {
       {showExportProgress && (
         <div className="modal-overlay">
           <div className="modal-content progress-modal">
-            <h3>📤 Exporting Bills to "bills" Collection</h3>
+            <h3>🔄 Replacing Bills in "bills" Collection</h3>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
@@ -1416,7 +1475,7 @@ const Users = () => {
               {exportProgress.current} / {exportProgress.total} bills processed
             </p>
             <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-              ⏳ Step 1: Exporting to bills... | Step 2: Deleting from import...
+              ⏳ Step 1: Deleting existing bills | Step 2: Exporting new bills | Step 3: Cleaning up import
             </p>
           </div>
         </div>
