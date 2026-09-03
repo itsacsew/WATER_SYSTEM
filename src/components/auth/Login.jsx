@@ -9,7 +9,7 @@ import { loginUser, resetPassword, getUserData } from '../../firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
-import logo from '../../assets/logo.png';
+import logo from '../../assets/LOGO.png';
 
 const schema = yup.object().shape({
   username: yup.string().required('Username is required'),

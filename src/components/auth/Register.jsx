@@ -5,11 +5,11 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
-import { registerUser, getUserData } from '../../firebase/auth';
+import { registerUser } from '../../firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
-import logo from '../../assets/logo.png';
+import logo from '../../assets/LOGO.png';
 
 const schema = yup.object().shape({
   fullName: yup.string().required('Full name is required'),
@@ -26,8 +26,7 @@ const schema = yup.object().shape({
     .oneOf([yup.ref('password')], 'Passwords must match')
 });
 
-// ========== HARDCODED SVG ICONS ==========
-
+// SVG Icons
 const WaterPumpIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={28} height={28} color={"#ffffff"} fill={"none"}>
     <path d="M12.5 5.5H10.5C9.55719 5.5 9.08579 5.5 8.79289 5.79289C8.5 6.08579 8.5 6.55719 8.5 7.5V9.5C8.5 10.4428 8.5 10.9142 8.79289 11.2071C9.08579 11.5 9.55719 11.5 10.5 11.5H12.5C13.4428 11.5 13.9142 11.5 14.2071 11.2071C14.5 10.9142 14.5 10.4428 14.5 9.5V7.5C14.5 6.55719 14.5 6.08579 14.2071 5.79289C13.9142 5.5 13.4428 5.5 12.5 5.5Z" stroke="#ffffff" strokeWidth="1.5" strokeLinejoin="round"></path>
@@ -57,8 +56,6 @@ const EyeOffIcon = () => (
   </svg>
 );
 
-// ========== REGISTER COMPONENT ==========
-
 const Register = () => {
   const { user, loading } = useAuth();
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -72,7 +69,7 @@ const Register = () => {
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      role: 'user' // Default role
+      role: 'user'
     }
   });
 
@@ -88,31 +85,28 @@ const Register = () => {
     setPassword(watchPassword || '');
   }, [watchPassword]);
 
-// src/components/auth/Register.jsx - Update the onSubmit function only
-
-const onSubmit = async (data) => {
-  setLoadingSubmit(true);
-  const result = await registerUser(data.email, data.password, data.fullName, data.role);
-  if (result.success) {
-    toast.success('Account created successfully! 🎉');
-    
-    if (rememberMe) {
-      localStorage.setItem('autoLoginEmail', data.email);
-      localStorage.setItem('autoLoginPassword', data.password);
-      localStorage.setItem('rememberMe', 'true');
-    }
-    
-    // Redirect based on role
-    if (data.role === 'admin') {
-      navigate('/admin', { replace: true });
+  const onSubmit = async (data) => {
+    setLoadingSubmit(true);
+    const result = await registerUser(data.email, data.password, data.fullName, data.role);
+    if (result.success) {
+      toast.success('Account created successfully! 🎉');
+      
+      if (rememberMe) {
+        localStorage.setItem('autoLoginEmail', data.email);
+        localStorage.setItem('autoLoginPassword', data.password);
+        localStorage.setItem('rememberMe', 'true');
+      }
+      
+      if (data.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } else {
-      navigate('/dashboard', { replace: true });
+      toast.error(result.error);
     }
-  } else {
-    toast.error(result.error);
-  }
-  setLoadingSubmit(false);
-};
+    setLoadingSubmit(false);
+  };
 
   const checkRequirement = (regex) => {
     return regex.test(password);
@@ -133,16 +127,13 @@ const onSubmit = async (data) => {
 
   return (
     <div className="auth-container">
-      {/* Top Bar */}
       <div className="auth-top-bar">
         <div className="auth-top-bar-content">
           <span>SYSTEM ACCESS</span>
         </div>
       </div>
 
-      {/* Main Card */}
       <div className="auth-card">
-        {/* Left Side - Gradient Panel */}
         <div className="auth-card-left">
           <div className="auth-card-left-content">
             <div className="auth-brand">
@@ -178,7 +169,6 @@ const onSubmit = async (data) => {
           </div>
         </div>
 
-        {/* Right Side - Form */}
         <div className="auth-card-right">
           <div className="auth-form-container">
             <div className="auth-form-header">
@@ -211,7 +201,6 @@ const onSubmit = async (data) => {
                     {errors.email && <span className="error-message">{errors.email.message}</span>}
                   </div>
 
-                  {/* NEW: Role Selection */}
                   <div className="form-group">
                     <label>Role</label>
                     <select

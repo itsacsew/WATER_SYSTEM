@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { logoutUser } from '../../firebase/auth';
 import toast from 'react-hot-toast';
 import './Navbar.css';
+import logo from '../../assets/LOGO.png';
 
 const Navbar = () => {
   const { user, userData } = useAuth();
@@ -51,17 +52,23 @@ const Navbar = () => {
     setIsMobileOpen(false);
   };
 
+  // Check if user is admin
   const isAdmin = userData?.role === 'admin';
 
+  // ============================================================
+  // NAV ITEMS - BASED ON USER ROLE
+  // ============================================================
   let navItems = [];
 
   if (isAdmin) {
+    // Admin sees: Admin, Users, Profile
     navItems = [
       { path: '/admin', label: 'DASHBOARD' },
       { path: '/users', label: 'USERS' },
       { path: '/profile', label: 'PROFILE' },
     ];
   } else {
+    // Regular users see: Dashboard, Bill History, Profile
     navItems = [
       { path: '/dashboard', label: 'DASHBOARD' },
       { path: '/bills', label: 'BILL HISTORY' },
@@ -72,21 +79,33 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="nav-container">
+        {/* Brand */}
         <Link 
           to={isAdmin ? "/admin" : "/dashboard"} 
           className="nav-brand" 
           onClick={closeMobileMenu}
         >
+          <img 
+            src={logo} 
+            alt="Municipality of Liloan Official Seal" 
+            className="auth-logo-img1"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/180x180?text=LILOAN+SEAL';
+            }}
+          />
           <div className="nav-brand-text">
             <span className="nav-brand-name">WATERBILL</span>
             <span className="nav-brand-sub">Management System</span>
           </div>
         </Link>
 
+        {/* Mobile Toggle */}
         <button className="nav-toggle" onClick={toggleMobileMenu} aria-label="Toggle menu">
           {isMobileOpen ? '✕' : '☰'}
         </button>
 
+        {/* Navigation Links */}
         <div className={`nav-links ${isMobileOpen ? 'open' : ''}`}>
           {navItems.map((item) => (
             <Link
@@ -95,11 +114,20 @@ const Navbar = () => {
               className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
               onClick={closeMobileMenu}
             >
+              <span className="nav-link-icon">{item.icon}</span>
               {item.label}
+              {/* Show badge for ADMIN link */}
+              {item.path === '/admin' && isAdmin && (
+                <span></span>
+              )}
+              {item.path === '/users' && isAdmin && (
+                <span></span>
+              )}
             </Link>
           ))}
         </div>
 
+        {/* User Section */}
         <div className="nav-user">
           <div className="nav-user-info">
             <div className="nav-avatar-wrapper">
@@ -114,6 +142,7 @@ const Navbar = () => {
               </span>
               <span className="nav-user-role">
                 {getRoleLabel(userData?.role)}
+                {isAdmin && ' '}
               </span>
             </div>
           </div>
