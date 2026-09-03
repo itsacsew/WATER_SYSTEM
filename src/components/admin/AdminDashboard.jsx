@@ -62,7 +62,7 @@ const Location03Icon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
     <path d="M14.5 9C14.5 10.3807 13.3807 11.5 12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9Z" stroke="currentColor" strokeWidth="1.5"></path>
     <path d="M18.2222 17C19.6167 18.9885 20.2838 20.0475 19.8865 20.8999C19.8466 20.9854 19.7999 21.0679 19.7469 21.1467C19.1724 22 17.6875 22 14.7178 22H9.28223C6.31251 22 4.82765 22 4.25311 21.1467C4.20005 21.0679 4.15339 20.9854 4.11355 20.8999C3.71619 20.0475 4.38326 18.9885 5.77778 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 17.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="currentColor" strokeWidth="1.5"></path>
+    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 18.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="currentColor" strokeWidth="1.5"></path>
   </svg>
 );
 
@@ -97,6 +97,32 @@ const CalendarAddIcon = (props) => (
     <path d="M2.5 10H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M15.5 15H19.5M17.5 13V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M13 18C13 20.2091 14.7909 22 17 22C19.2091 22 21 20.2091 21 18C21 15.7909 19.2091 14 17 14C14.7909 14 13 15.7909 13 18Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+  </svg>
+);
+
+// ============================================================
+// EXPORT PAID ICON
+// ============================================================
+
+const ExportPaidIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 6.5C3.5 7.5 2 9.5 2 12C2 16.9706 6.02944 21 11 21C15.9706 21 20 16.9706 20 12C20 9.5 18.5 7.5 17 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 3V11M12 11L9.5 8.5M12 11L14.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="16" cy="17" r="4" stroke="#22C55E" strokeWidth="2" fill="none"/>
+    <path d="M14.5 17L15.5 18L17.5 16" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
+// DELETE ICON FOR CONFIRMATION
+// ============================================================
+
+const TrashIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M20 8L19.1584 19.2274C19.0492 20.7389 18.9946 21.4947 18.4698 21.977C18.1128 22.3077 17.6413 22.4934 17.1491 22.4953C16.5165 22.4977 15.7711 22.0834 14.2805 21.2549L12.4459 20.2399C11.8618 19.9208 11.5698 19.7612 11.2527 19.6707C10.9025 19.5708 10.536 19.537 10.1725 19.5715C9.84932 19.602 9.53378 19.7137 9.04753 19.9174L7.24729 20.6283C5.71823 21.2098 4.9537 21.5005 4.32281 21.3513C3.76215 21.2176 3.2939 20.8436 3.03622 20.3345C2.75 19.7698 2.90181 18.9988 3.20543 18.4568L3.98777 17.0655C4.24623 16.6064 4.37545 16.3768 4.44201 16.1302C4.50629 15.8913 4.52636 15.6421 4.50086 15.3952C4.47476 15.1429 4.38029 14.904 4.20274 14.4658L3.95429 13.8566C3.66088 13.1254 3.51417 12.7598 3.51584 12.3885C3.51751 12.0368 3.63388 11.6945 3.8446 11.416C4.07491 11.1126 4.42257 10.908 4.77449 10.6485L6.47063 9.39165C7.21043 8.82534 7.58033 8.54218 8.00109 8.3821C8.38478 8.23548 8.79376 8.15675 9.20673 8.15033C9.66179 8.14322 10.1125 8.23682 10.8937 8.38049L11.1435 8.42676C11.6198 8.50923 11.858 8.55047 12.093 8.55647C12.3061 8.56188 12.5189 8.53464 12.7242 8.47578C12.9527 8.41021 13.1657 8.30407 13.5554 8.12455L14.3671 7.72842C15.1346 7.35074 15.5184 7.1619 15.9338 7.07343C16.3096 6.9933 16.6978 6.97986 17.0792 7.03388C17.5009 7.09409 17.9043 7.27698 18.6479 7.61053L19.9469 8.18449C20.6312 8.48393 20.9733 8.63365 21.134 8.8914C21.3165 9.18287 21.3469 9.54928 21.2153 9.86603" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M11.5 12.5L14.5 15.5M14.5 12.5L11.5 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -285,6 +311,7 @@ const AdminDashboard = () => {
   const [paymentError, setPaymentError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingPaid, setIsExportingPaid] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   
@@ -316,6 +343,10 @@ const AdminDashboard = () => {
   const [newMonthPreview, setNewMonthPreview] = useState([]);
   const [showNewMonthPreview, setShowNewMonthPreview] = useState(false);
   const [availableLocationsForNewMonth, setAvailableLocationsForNewMonth] = useState([]);
+
+  // ========== EXPORT PAID CONFIRMATION MODAL ==========
+  const [showExportPaidConfirm, setShowExportPaidConfirm] = useState(false);
+  const [paidBillsToDelete, setPaidBillsToDelete] = useState([]);
 
   useEffect(() => {
     fetchBills();
@@ -754,7 +785,6 @@ const AdminDashboard = () => {
     setNewMonthLoading(true);
 
     try {
-      // Get all bills for the selected location and month
       const billsRef = collection(db, 'bills');
       const q = query(
         billsRef,
@@ -793,7 +823,6 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Get next month
     const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
                         'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
     const currentIndex = monthOrder.indexOf(newMonthMonth.toUpperCase());
@@ -801,7 +830,6 @@ const AdminDashboard = () => {
     const nextMonth = monthOrder[nextIndex];
     const nextYear = nextIndex === 0 ? parseInt(newMonthYear) + 1 : parseInt(newMonthYear);
 
-    // Check if next month already exists for this location
     try {
       const billsRef = collection(db, 'bills');
       const q = query(
@@ -838,18 +866,16 @@ const AdminDashboard = () => {
           const bill = newMonthPreview[i];
           const { id, ...billData } = bill;
 
-          // Get the present reading - this will become the previous reading for next month
           const presentReading = billData.presentReading || 0;
 
-          // Create new bill for next month
           const newBillData = {
             ...billData,
             month: nextMonth,
             year: nextYear.toString(),
-            previousReading: presentReading, // Current present reading becomes previous
-            presentReading: 0, // Reset present reading
-            consumption: 0, // Reset consumption
-            amount: 0, // Reset amount
+            previousReading: presentReading,
+            presentReading: 0,
+            consumption: 0,
+            amount: 0,
             status: 'unpaid',
             dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
             notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
@@ -864,7 +890,6 @@ const AdminDashboard = () => {
             previousPresentReading: presentReading
           };
 
-          // Generate new bill number
           const newBillNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
           newBillData.billNumber = newBillNumber;
 
@@ -909,7 +934,300 @@ const AdminDashboard = () => {
   };
 
   // ============================================================
-  // EXPORT FUNCTIONS
+  // EXPORT PAID BILLS FUNCTION WITH DELETE
+  // ============================================================
+
+  // Open confirmation modal
+  const openExportPaidConfirm = () => {
+    const paidBills = bills.filter(bill => bill.status === 'paid');
+    
+    if (paidBills.length === 0) {
+      toast.error('No paid bills found to export!');
+      return;
+    }
+
+    setPaidBillsToDelete(paidBills);
+    setShowExportPaidConfirm(true);
+  };
+
+  // Close confirmation modal
+  const closeExportPaidConfirm = () => {
+    setShowExportPaidConfirm(false);
+    setPaidBillsToDelete([]);
+  };
+
+  // Execute export and delete
+  const executeExportPaidAndDelete = async () => {
+    const paidBills = paidBillsToDelete;
+    
+    if (paidBills.length === 0) {
+      toast.error('No paid bills to process');
+      return;
+    }
+
+    setIsExportingPaid(true);
+    closeExportPaidConfirm();
+
+    try {
+      // ============================================================
+      // STEP 1: EXPORT TO EXCEL
+      // ============================================================
+      
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Paid Water Bills');
+
+      worksheet.columns = [
+        { header: 'WSIN', key: 'wsin', width: 15 },
+        { header: 'Consumer Name', key: 'consumerName', width: 25 },
+        { header: 'Location', key: 'location', width: 20 },
+        { header: 'Period', key: 'period', width: 15 },
+        { header: 'Consumer Type', key: 'consumerType', width: 18 },
+        { header: 'Previous Reading', key: 'previousReading', width: 18 },
+        { header: 'Present Reading', key: 'presentReading', width: 18 },
+        { header: 'Consumption', key: 'consumption', width: 15 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Defective', key: 'defective', width: 12 },
+        { header: 'Payment Code', key: 'paymentCode', width: 15 },
+        { header: 'Paid At', key: 'paidAt', width: 20 },
+        { header: 'Paid By', key: 'paidBy', width: 20 }
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF16A34A' }
+      };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      headerRow.height = 25;
+
+      const sortedForExport = sortByBillNumber(paidBills);
+      
+      sortedForExport.forEach((bill) => {
+        const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+        const isDefectiveReading = isDefective(bill.presentReading) || isDefective(bill.previousReading);
+        
+        let paidAt = 'N/A';
+        if (bill.paidAt) {
+          try {
+            const date = new Date(bill.paidAt);
+            paidAt = date.toLocaleDateString('en-PH', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch (e) {
+            paidAt = bill.paidAt || 'N/A';
+          }
+        }
+
+        worksheet.addRow({
+          wsin: bill.billNumber || 'N/A',
+          consumerName: bill.consumerName || 'N/A',
+          location: bill.location || 'N/A',
+          period: period.trim() || 'N/A',
+          consumerType: bill.consumerType || 'N/A',
+          previousReading: isDefective(bill.previousReading) ? 'DEFECTIVE' : (bill.previousReading || '0'),
+          presentReading: isDefective(bill.presentReading) ? 'DEFECTIVE' : (bill.presentReading || '0'),
+          consumption: bill.consumption || '0',
+          amount: bill.amount || '0',
+          status: 'PAID',
+          defective: isDefectiveReading ? 'YES' : 'NO',
+          paymentCode: bill.paymentCode || 'N/A',
+          paidAt: paidAt,
+          paidBy: bill.paidBy || 'N/A'
+        });
+      });
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) {
+          row.height = 22;
+          row.alignment = { vertical: 'middle' };
+          row.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFFFFF' }
+            };
+            cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
+          });
+          
+          const statusCell = row.getCell(10);
+          statusCell.font = { color: { argb: 'FF16A34A' }, bold: true };
+
+          const defectiveCell = row.getCell(11);
+          if (defectiveCell.value === 'YES') {
+            defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
+          }
+
+          const paymentCell = row.getCell(12);
+          paymentCell.font = { color: { argb: 'FF2563EB' }, bold: true };
+        }
+      });
+
+      worksheet.eachRow((row) => {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+          };
+        });
+      });
+
+      await worksheet.protect(EXCEL_PASSWORD, {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertColumns: false,
+        insertRows: false,
+        insertHyperlinks: false,
+        deleteColumns: false,
+        deleteRows: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
+      });
+
+      worksheet.eachRow((row) => {
+        row.eachCell((cell) => {
+          cell.protection = { locked: true };
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+
+      const defaultFileName = `Paid_Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Save file
+      let fileSaved = false;
+      
+      if ('showSaveFilePicker' in window) {
+        try {
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: defaultFileName,
+            types: [{
+              description: 'Excel Workbook',
+              accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+            }]
+          });
+
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          fileSaved = true;
+          
+        } catch (pickError) {
+          if (pickError.name === 'AbortError' || pickError.name === 'SecurityError') {
+            toast.error('Export cancelled');
+            setIsExportingPaid(false);
+            return;
+          } else {
+            console.error('File picker error:', pickError);
+            // Fallback download
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = defaultFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            fileSaved = true;
+          }
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = defaultFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        fileSaved = true;
+      }
+
+      if (!fileSaved) {
+        toast.error('Failed to save file');
+        setIsExportingPaid(false);
+        return;
+      }
+
+      // ============================================================
+      // STEP 2: DELETE PAID BILLS FROM FIRESTORE
+      // ============================================================
+      
+      toast.success(`✅ Exported ${paidBills.length} paid bills!`);
+
+      // Now delete the paid bills
+      let deleteSuccessCount = 0;
+      let deleteErrorCount = 0;
+
+      let deleteBatch = writeBatch(db);
+      let deleteBatchCount = 0;
+
+      for (let i = 0; i < paidBills.length; i++) {
+        try {
+          const billRef = doc(db, 'bills', paidBills[i].id);
+          deleteBatch.delete(billRef);
+          deleteSuccessCount++;
+          deleteBatchCount++;
+
+          if (deleteBatchCount >= 500) {
+            await deleteBatch.commit();
+            deleteBatch = writeBatch(db);
+            deleteBatchCount = 0;
+          }
+        } catch (error) {
+          console.error('Error deleting paid bill:', error);
+          deleteErrorCount++;
+        }
+      }
+
+      if (deleteBatchCount > 0) {
+        await deleteBatch.commit();
+      }
+
+      // ============================================================
+      // STEP 3: SHOW RESULTS
+      // ============================================================
+
+      if (deleteSuccessCount > 0) {
+        toast.success(`🗑️ Successfully deleted ${deleteSuccessCount} paid bills from Firebase!`);
+      }
+
+      if (deleteErrorCount > 0) {
+        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete`);
+      }
+
+      toast.success(`🔒 Excel Password: ${EXCEL_PASSWORD}`);
+
+      // Refresh the bills list
+      await fetchBills();
+
+    } catch (error) {
+      console.error('Export paid bills error:', error);
+      toast.error('Error processing paid bills: ' + error.message);
+    } finally {
+      setIsExportingPaid(false);
+      setPaidBillsToDelete([]);
+    }
+  };
+
+  // ============================================================
+  // EXPORT FUNCTIONS (Regular)
   // ============================================================
   
   const openExportModal = () => {
@@ -1398,12 +1716,36 @@ const AdminDashboard = () => {
           >
             {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
-          {/* ✅ NEW: Add New Month Button */}
+          {/* ✅ EXPORT PAID + DELETE BUTTON */}
+          <button 
+            className="btn btn-success" 
+            onClick={openExportPaidConfirm}
+            disabled={bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid}
+            style={{
+              background: '#16A34A',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 24px',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <ExportPaidIcon width={20} height={20} color="#ffffff" />
+            {isExportingPaid ? '⏳ Processing...' : 'EXPORT PAID'}
+          </button>
+          {/* ✅ ADD NEW MONTH BUTTON */}
           <button 
             className="btn btn-success" 
             onClick={openNewMonthModal}
             style={{
-              background: '#16A34A',
+              background: '#194752',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -1510,6 +1852,135 @@ const AdminDashboard = () => {
                 style={{ flex: 1 }}
               >
                 {isExporting ? '⏳ Exporting...' : '📥 Export Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          EXPORT PAID CONFIRMATION MODAL
+          ============================================================ */}
+      {showExportPaidConfirm && (
+        <div className="modal-overlay" onClick={closeExportPaidConfirm}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626' }}>
+                <TrashIcon width={28} height={28} color="#DC2626" />
+                Confirm Export & Delete
+              </h2>
+              <button className="close-btn" onClick={closeExportPaidConfirm}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#0F172A', fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+                ⚠️ This action will:
+              </p>
+              <ul style={{ 
+                color: '#475569', 
+                fontSize: '14px', 
+                lineHeight: '2',
+                paddingLeft: '20px',
+                marginBottom: '16px'
+              }}>
+                <li>📤 Export <strong>{paidBillsToDelete.length}</strong> paid bills to Excel</li>
+                <li>🗑️ <strong style={{ color: '#DC2626' }}>PERMANENTLY DELETE</strong> all paid bills from Firebase</li>
+                <li>🔒 File will be password protected with <strong>"Water_2026"</strong></li>
+              </ul>
+              
+              <div style={{ 
+                background: '#FEF2F2', 
+                border: '1px solid #FECACA', 
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginTop: '12px'
+              }}>
+                <p style={{ color: '#991B1B', fontSize: '13px', fontWeight: '500', margin: 0 }}>
+                  ⚠️ This action cannot be undone! Please make sure you have a backup.
+                </p>
+              </div>
+
+              {paidBillsToDelete.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '8px' }}>
+                    Preview of bills to be exported and deleted:
+                  </p>
+                  <div style={{ 
+                    maxHeight: '150px', 
+                    overflow: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    background: '#F8FAFC'
+                  }}>
+                    <table style={{ 
+                      width: '100%', 
+                      borderCollapse: 'collapse',
+                      fontSize: '12px'
+                    }}>
+                      <thead style={{ 
+                        background: '#F1F5F9', 
+                        position: 'sticky', 
+                        top: 0,
+                        zIndex: 1
+                      }}>
+                        <tr>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>WSIN</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Consumer</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paidBillsToDelete.slice(0, 20).map((bill) => (
+                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '4px 10px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '4px 10px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '4px 10px' }}>₱{(bill.amount || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {paidBillsToDelete.length > 20 && (
+                      <div style={{ 
+                        padding: '6px 10px', 
+                        textAlign: 'center', 
+                        background: '#F8FAFC',
+                        fontSize: '12px',
+                        color: '#64748B'
+                      }}>
+                        + {paidBillsToDelete.length - 20} more bills
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeExportPaidConfirm}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={executeExportPaidAndDelete}
+                style={{ 
+                  flex: 1,
+                  background: '#DC2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <TrashIcon width={18} height={18} color="#ffffff" />
+                Export & Delete {paidBillsToDelete.length} Bills
               </button>
             </div>
           </div>
@@ -1979,7 +2450,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="form-group">
-              <label>Payment Code <span className="required">*</span></label>
+              <label>OR Number <span className="required">*</span></label>
               <input
                 type="text"
                 className={`payment-input ${paymentError ? 'error' : ''}`}

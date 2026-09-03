@@ -115,6 +115,73 @@
 .admin-dashboard .stat-residential .stat-number { color: #194752; }
 .admin-dashboard .stat-commercial .stat-number { color: #194752; }
 
+/* ========== TABLE - FIXED TO BE FULLY VISIBLE ========== */
+.admin-dashboard .table-container {
+  background: #FFFFFF;
+  border: 2px solid #194752;
+  border-radius: 12px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.admin-dashboard .bills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  /* REMOVED min-width para mo-fit sa container */
+  min-width: unset;
+  table-layout: auto;
+}
+
+.admin-dashboard .bills-table thead {
+  background: #194752;
+}
+
+.admin-dashboard .bills-table th {
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.admin-dashboard .bills-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #0F172A;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.admin-dashboard .bills-table tr:hover td {
+  background: #F8FAFC;
+}
+
+.admin-dashboard .bills-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Compact columns for admin table */
+.admin-dashboard .bills-table .wsin-cell {
+  font-weight: 600;
+  color: #194752;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-dashboard .bills-table .name-cell {
+  font-weight: 500;
+  color: #194752;
+  font-size: 13px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1200px) {
   .admin-dashboard .stats-grid {
@@ -126,6 +193,16 @@
   .admin-dashboard {
     padding: 20px 24px;
     border-radius: 16px;
+  }
+  
+  .admin-dashboard .bills-table th,
+  .admin-dashboard .bills-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  
+  .admin-dashboard .bills-table .name-cell {
+    max-width: 100px;
   }
 }
 
@@ -180,6 +257,7 @@
   
   .admin-dashboard .bills-table {
     font-size: 12px;
+    /* Allow horizontal scroll on mobile only */
     min-width: 700px;
   }
   
@@ -222,5 +300,9 @@
   
   .admin-dashboard .modal-actions {
     flex-direction: column;
+  }
+  
+  .admin-dashboard .bills-table {
+    min-width: 600px;
   }
 }

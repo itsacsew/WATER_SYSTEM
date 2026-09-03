@@ -3,9 +3,9 @@
 /* ========== DASHBOARD ========== */
 .bill-dashboard {
   padding: 24px 2px 4px;
-  max-width: 100%;      /* Changed from fixed 1500px */
-  width: 100%;          /* Ensures full width */
-  overflow-x: hidden;   /* Prevents horizontal scroll */
+  max-width: 100%;
+  width: 100%;
+  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -262,7 +262,7 @@
   background: #FEE2E2;
 }
 
-/* ========== TABLE ========== */
+/* ========== TABLE - FIXED TO BE FULLY VISIBLE ========== */
 .table-container {
   background: #FFFFFF;
   border: 2px solid #194752;
@@ -275,7 +275,9 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 900px;
+  /* REMOVED min-width para mo-fit sa container */
+  min-width: unset;
+  table-layout: auto;
 }
 
 .bills-table thead {
@@ -283,21 +285,22 @@
 }
 
 .bills-table th {
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: left;
   font-weight: 600;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  
+  white-space: nowrap;
 }
 
 .bills-table td {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid #F1F5F9;
   color: #0F172A;
   vertical-align: middle;
+  font-size: 13px;
 }
 
 .bills-table tr:hover td {
@@ -311,13 +314,18 @@
 .wsin-cell {
   font-weight: 600;
   color: #194752;
-  font-size: 15px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .name-cell {
   font-weight: 500;
   color: #194752;
-   font-size: 15px;
+  font-size: 13px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ========== BADGES ========== */
@@ -325,7 +333,7 @@
   display: inline-block;
   padding: 3px 12px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -344,7 +352,7 @@
 .status-badge {
   padding: 3px 14px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -608,7 +616,6 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  
 }
 
 .spinner {
@@ -652,6 +659,16 @@
   .bill-dashboard {
     padding: 20px 24px;
     border-radius: 16px;
+  }
+  
+  .bills-table th,
+  .bills-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  
+  .bills-table .name-cell {
+    max-width: 100px;
   }
 }
 
@@ -706,6 +723,7 @@
   
   .bills-table {
     font-size: 12px;
+    /* Allow horizontal scroll on mobile only */
     min-width: 700px;
   }
   
@@ -749,7 +767,12 @@
   .modal-actions {
     flex-direction: column;
   }
+  
+  .bills-table {
+    min-width: 600px;
+  }
 }
+
 /* ========== EXPORT MODAL STYLES ========== */
 .modal-input {
   width: 100%;
@@ -778,7 +801,6 @@
   padding: 8px;
 }
 
-/* Export modal specific */
 .export-location-info {
   margin-top: 12px;
   padding: 10px 14px;
