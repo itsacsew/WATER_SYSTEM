@@ -115,7 +115,7 @@ const Profile = () => {
               onClick={() => setIsEditing(true)}
               className="profile-edit-btn"
             >
-              ✏️ Edit Profile
+              EDIT PROFILE
             </button>
           )}
         </div>

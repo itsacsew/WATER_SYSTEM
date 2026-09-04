@@ -15,6 +15,67 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
     });
   };
 
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return '₱0.00';
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
+  // ============================================================
+  // AMOUNT TO WORDS CONVERTER
+  // ============================================================
+  const amountToWords = (amount) => {
+    if (!amount && amount !== 0) return 'ZERO PESOS ONLY';
+    
+    const num = parseFloat(amount);
+    const pesos = Math.floor(num);
+    const centavos = Math.round((num - pesos) * 100);
+    
+    if (pesos === 0 && centavos === 0) return 'ZERO PESOS ONLY';
+    
+    const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 
+                  'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 
+                  'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
+    const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
+    
+    const toWords = (n) => {
+      if (n === 0) return '';
+      if (n < 20) return ones[n];
+      if (n < 100) {
+        const ten = Math.floor(n / 10);
+        const one = n % 10;
+        return one === 0 ? tens[ten] : `${tens[ten]}-${ones[one]}`;
+      }
+      if (n < 1000) {
+        const hundred = Math.floor(n / 100);
+        const remainder = n % 100;
+        if (remainder === 0) return `${ones[hundred]} HUNDRED`;
+        return `${ones[hundred]} HUNDRED ${toWords(remainder)}`;
+      }
+      if (n < 1000000) {
+        const thousands = Math.floor(n / 1000);
+        const remainder = n % 1000;
+        if (remainder === 0) return `${toWords(thousands)} THOUSAND`;
+        return `${toWords(thousands)} THOUSAND ${toWords(remainder)}`;
+      }
+      return '';
+    };
+    
+    const pesoWords = toWords(pesos);
+    const pesoLabel = pesos === 1 ? 'PESO' : 'PESOS';
+    
+    if (centavos === 0) {
+      return `${pesoWords} ${pesoLabel} ONLY`;
+    }
+    
+    const centavoStr = String(centavos).padStart(2, '0');
+    return `${pesoWords} ${pesoLabel} AND ${centavoStr}/100 PESOS ONLY`;
+  };
+
   const handlePrint = async () => {
     try {
       const element = receiptRef.current;
@@ -59,10 +120,11 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
                 padding: 0;
                 display: flex;
                 justify-content: center;
-                align-items: center;
+                align-items: flex-start;
                 min-height: 100vh;
                 background: #e8ecf1;
                 font-family: 'Courier New', monospace;
+                padding-top: 20px;
               }
               .print-container {
                 width: 205mm;
@@ -115,6 +177,8 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
                   background: white;
                   margin: 0;
                   padding: 0;
+                  align-items: flex-start;
+                  padding-top: 0;
                 }
                 .print-container {
                   box-shadow: none;
@@ -161,6 +225,12 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
 
   const consumerName = bill?.consumerName || 'N/A';
   const monthName = bill?.month || 'N/A';
+  const amount = bill?.amount || 0;
+  const amountInWords = amountToWords(amount);
+
+  // Treasurer details
+  const treasurerName = "DANNIE LYN I. VILLAFLOR";
+  const treasurerTitle = "MUNICIPAL TREASURER";
 
   return (
     <div className="receipt-modal-overlay" onClick={onClose}>
@@ -180,7 +250,9 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative'
+          position: 'relative',
+          alignSelf: 'flex-start',
+          marginTop: '20px'
         }}
       >
         {/* Action Buttons */}
@@ -234,7 +306,6 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
 
         {/* ============================================================
             RECEIPT - 10cm HEIGHT × 20.5cm WEIGHT (Landscape)
-            EXACT SAME LAYOUT FOR MODAL AND PRINT
             ============================================================ */}
         <div 
           ref={receiptRef} 
@@ -272,7 +343,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
           {/* CONSUMER NAME - Height: 3cm, Left: 4.5cm */}
           <div style={{
             position: 'absolute',
-            top: '3cm',
+            top: '2.8cm',
             left: '4.5cm',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
@@ -296,6 +367,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             textAlign: 'center',
             fontSize: '10pt',
             color: '#1a365d',
+            fontWeight: '600',
             whiteSpace: 'nowrap'
           }}>
             {formatDate(currentDate)}
@@ -304,16 +376,95 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
           {/* WATER FEE - Height: 4.2cm, Left: 3cm */}
           <div style={{
             position: 'absolute',
-            top: '4.2cm',
-            left: '3cm',
+            top: '5.1cm',
+            left: '4cm',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
-            fontSize: '10pt',
+            fontSize: '15pt',
             fontWeight: '600',
             color: '#1a365d',
             whiteSpace: 'nowrap'
           }}>
             WATER FEE: {monthName}
+          </div>
+
+          {/* AMOUNT - Height: 4.3cm, Left: 16.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '4.1cm',
+            left: '16.5cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '12pt',
+            fontWeight: '700',
+            color: '#1a365d',
+            whiteSpace: 'nowrap'
+          }}>
+            {formatCurrency(amount)}
+          </div>
+
+          {/* AMOUNT IN WORD - Height: 7.8cm, Left: 4.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '7.5cm',
+            left: '8cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '10pt',
+            fontWeight: '700',
+            color: '#1a365d',
+            whiteSpace: 'nowrap',
+            maxWidth: '9cm',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {amountInWords}
+          </div>
+
+          {/* TOTAL AMOUNT - Height: 7.3cm, Left: 16.5cm */}
+          <div style={{
+            position: 'absolute',
+            top: '7cm',
+            left: '16.5cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '14pt',
+            fontWeight: '700',
+            color: '#1a365d',
+            whiteSpace: 'nowrap'
+          }}>
+            {formatCurrency(amount)}
+          </div>
+
+          {/* ✅ TREASURER NAME - Height: 8.4cm, Left: 14.2cm */}
+          <div style={{
+            position: 'absolute',
+            top: '8.4cm',
+            left: '16.2cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '8pt',
+            fontWeight: '600',
+            color: '#1a365d',
+            whiteSpace: 'nowrap'
+          }}>
+            {treasurerName}
+          </div>
+
+          {/* ✅ TREASURER TITLE - Height: 9.1cm, Left: 14.2cm */}
+          <div style={{
+            position: 'absolute',
+            top: '9.1cm',
+            left: '16.2cm',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            fontSize: '7pt',
+            fontWeight: '600',
+            color: '#1a365d',
+            whiteSpace: 'nowrap',
+            letterSpacing: '1px'
+          }}>
+            {treasurerTitle}
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 .profile-page {
   min-height: calc(100vh - 72px);
   padding: 24px 0;
-  background: #F8F3E1;
+  
 }
 
 .profile-container {
@@ -18,7 +18,7 @@
 
 /* ========== PROFILE HEADER ========== */
 .profile-header {
-  background: linear-gradient(135deg, #37353E 0%, #44444E 100%);
+  background: linear-gradient(145deg, #194752 20%, #194752 40%, #1e5664 60%);
   padding: 32px 40px;
   display: flex;
   justify-content: space-between;
@@ -41,11 +41,11 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #715A5A, #D3DAD9);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #1e5664;
   font-family: 'Inter', sans-serif;
   font-size: 32px;
   font-weight: 700;
@@ -74,7 +74,7 @@
 .profile-email {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: rgba(211, 218, 217, 0.6);
+  color: rgb(246, 248, 247);
   margin: 0 0 4px 0;
 }
 
@@ -91,23 +91,23 @@
 
 .role-admin {
   background: rgba(211, 218, 217, 0.15);
-  color: #D3DAD9;
+  color: rgb(246, 248, 247);
 }
 
 .role-user {
   background: rgba(211, 218, 217, 0.08);
-  color: rgba(211, 218, 217, 0.6);
+  color: rgb(246, 248, 247);
 }
 
 .role-staff {
   background: rgba(211, 218, 217, 0.1);
-  color: rgba(211, 218, 217, 0.5);
+  color: rgb(246, 248, 247);
 }
 
 .profile-edit-btn {
   padding: 10px 24px;
   background: rgba(211, 218, 217, 0.08);
-  color: #D3DAD9;
+  color: rgb(246, 248, 247);
   border: 1px solid rgba(211, 218, 217, 0.1);
   border-radius: 10px;
   font-family: 'Inter', sans-serif;

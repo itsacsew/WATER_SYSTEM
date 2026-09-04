@@ -1,7 +1,9 @@
 // src/components/admin/Users.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './AdminStyles.css';
@@ -87,6 +89,39 @@ const MonthIcon = () => (
 );
 
 // ============================================================
+// ADD USER ICON
+// ============================================================
+
+const AddUserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
+    <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19 12V17M16.5 14.5H21.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
+// EYE ICONS FOR PASSWORD TOGGLE
+// ============================================================
+
+const EyeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
+    <path d="M2 8C2 8 6.47715 3 12 3C17.5228 3 22 8 22 8" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M21.544 13.045C21.848 13.4713 22 13.6845 22 14C22 14.3155 21.848 14.5287 21.544 14.955C20.1779 16.8706 16.6892 21 12 21C7.31078 21 3.8221 16.8706 2.45604 14.955C2.15201 14.5287 2 14.3155 2 14C2 13.6845 2.15201 13.4713 2.45604 13.045C3.8221 11.1294 7.31078 7 12 7C16.6892 7 20.1779 11.1294 21.544 13.045Z" stroke="#a0aec0" strokeWidth="1.5"/>
+    <path d="M15 14C15 12.3431 13.6569 11 12 11C10.3431 11 9 12.3431 9 14C9 15.6569 10.3431 17 12 17C13.6569 17 15 15.6569 15 14Z" stroke="#a0aec0" strokeWidth="1.5"/>
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
+    <path d="M6.43385 6.51953C4.22009 7.89049 2.93281 9.86457 2.31858 11.0339C2.10621 11.4382 2.00003 11.6403 2 12.0082C1.99997 12.3761 2.10584 12.5777 2.3176 12.981C3.32862 14.9066 6.16702 19.0195 11.9669 19.0195C14.2454 19.0195 16.0669 18.3848 17.5 17.4972" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9.87868 9.87868C9.33579 10.4216 9 11.1716 9 12C9 13.6569 10.3431 15 12 15C12.8284 15 13.5784 14.6642 14.1213 14.1213" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M2 2L22 22" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M10 5.14847C10.5934 5.05255 11.224 5 11.8936 5C17.7747 5 20.6528 9.05385 21.6779 10.9517C21.8927 11.3492 22 11.548 22 11.9106C22 12.2733 21.8921 12.4727 21.6765 12.8717C21.3678 13.4428 20.8916 14.2085 20.2167 15" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
 // USERS COMPONENT
 // ============================================================
 
@@ -129,6 +164,21 @@ const Users = () => {
   const [showExportProgress, setShowExportProgress] = useState(false);
   const [exportPreviewData, setExportPreviewData] = useState([]);
   const [showExportPreview, setShowExportPreview] = useState(false);
+
+  // ========== ADD USER MODAL STATE ==========
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [addUserLoading, setAddUserLoading] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'user'
+  });
+  const [addUserErrors, setAddUserErrors] = useState({});
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showAddConfirmPassword, setShowAddConfirmPassword] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -284,6 +334,160 @@ const Users = () => {
     }
     
     setFilteredUsers(filtered);
+  };
+
+  // ============================================================
+  // ADD USER FUNCTIONS - WITH FIREBASE AUTH
+  // ============================================================
+
+  const openAddUserModal = () => {
+    setAddUserForm({
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'user'
+    });
+    setAddUserErrors({});
+    setShowAddPassword(false);
+    setShowAddConfirmPassword(false);
+    setIsPasswordFocused(false);
+    setShowAddUserModal(true);
+  };
+
+  const closeAddUserModal = () => {
+    setShowAddUserModal(false);
+    setAddUserForm({
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'user'
+    });
+    setAddUserErrors({});
+    setShowAddPassword(false);
+    setShowAddConfirmPassword(false);
+    setIsPasswordFocused(false);
+  };
+
+  const validateAddUserForm = () => {
+    const errors = {};
+    
+    if (!addUserForm.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    }
+    
+    if (!addUserForm.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(addUserForm.email)) {
+      errors.email = 'Invalid email address';
+    }
+    
+    if (!addUserForm.password) {
+      errors.password = 'Password is required';
+    } else if (addUserForm.password.length < 14) {
+      errors.password = 'Password must be at least 14 characters';
+    } else if (!/[a-z]/.test(addUserForm.password)) {
+      errors.password = 'Must contain at least one lowercase letter';
+    } else if (!/[A-Z]/.test(addUserForm.password)) {
+      errors.password = 'Must contain at least one uppercase letter';
+    } else if (!/[0-9]/.test(addUserForm.password)) {
+      errors.password = 'Must contain at least one number';
+    }
+    
+    if (!addUserForm.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (addUserForm.password !== addUserForm.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setAddUserErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateAddUserForm()) {
+      return;
+    }
+    
+    setAddUserLoading(true);
+    
+    try {
+      // Check if user already exists in Firestore
+      const usersRef = collection(db, 'users');
+      const emailQuery = query(usersRef, where('email', '==', addUserForm.email));
+      const emailSnapshot = await getDocs(emailQuery);
+      
+      if (!emailSnapshot.empty) {
+        toast.error('User with this email already exists!');
+        setAddUserLoading(false);
+        return;
+      }
+      
+      // ✅ STEP 1: Create Firebase Authentication user
+      // This creates a real auth account with UID from Firebase
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        addUserForm.email,
+        addUserForm.password
+      );
+      
+      // ✅ Get the UID from Firebase Auth
+      const uid = userCredential.user.uid;
+      
+      // Get current timestamp
+      const now = new Date();
+      const timestamp = now.toISOString();
+      
+      // ✅ STEP 2: User data structure - uid matches document ID
+      const userData = {
+        createdAt: timestamp,
+        displayName: addUserForm.fullName,
+        email: addUserForm.email,
+        lastLogin: timestamp,
+        preferences: {
+          notifications: true,
+          theme: "light"
+        },
+        role: addUserForm.role,
+        uid: uid, // Same as document ID
+        updatedAt: timestamp
+      };
+      
+      // ✅ STEP 3: Save to Firestore using the Auth UID as document ID
+      await setDoc(doc(db, 'users', uid), userData);
+      
+      toast.success(`✅ User "${addUserForm.fullName}" created successfully!`);
+      toast.success(`🔑 User can now login with their email and password`);
+      
+      // Refresh users list
+      await fetchUsers();
+      
+      // Close modal
+      closeAddUserModal();
+      
+    } catch (error) {
+      console.error('Error creating user:', error);
+      
+      // Handle specific Firebase Auth errors
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('Email already in use! Please use a different email.');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password is too weak! Please use a stronger password.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email address!');
+      } else {
+        toast.error('Error creating user: ' + error.message);
+      }
+    }
+    
+    setAddUserLoading(false);
+  };
+
+  const checkRequirement = (regex) => {
+    return regex.test(addUserForm.password);
   };
 
   // ============================================================
@@ -801,6 +1005,21 @@ const Users = () => {
           <p>Manage all registered users</p>
         </div>
         <div className="header-actions">
+          {/* ✅ ADD USER BUTTON */}
+          <button 
+            className="btn btn-primary" 
+            onClick={openAddUserModal}
+            style={{ 
+              background: '#194752', 
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <AddUserIcon />
+            ADD USER
+          </button>
           <button 
             className="btn btn-secondary" 
             onClick={openImportModal}
@@ -977,6 +1196,373 @@ const Users = () => {
           </table>
         )}
       </div>
+
+      {/* ============================================================
+          ADD USER MODAL
+          ============================================================ */}
+      {showAddUserModal && (
+        <div className="modal-overlay" onClick={closeAddUserModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AddUserIcon width={28} height={28} color="#194752" />
+                Create New User Account
+              </h2>
+              <button className="close-btn" onClick={closeAddUserModal}>✕</button>
+            </div>
+
+            <form onSubmit={handleAddUserSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {/* Left Column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
+                      Full Name <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter full name"
+                      value={addUserForm.fullName}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, fullName: e.target.value })}
+                      className={`modal-input ${addUserErrors.fullName ? 'error' : ''}`}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: '#F8FAFC',
+                        border: `2px solid ${addUserErrors.fullName ? '#DC2626' : '#E2E8F0'}`,
+                        borderRadius: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {addUserErrors.fullName && (
+                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
+                        {addUserErrors.fullName}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
+                      Email Address <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="name@company.com"
+                      value={addUserForm.email}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                      className={`modal-input ${addUserErrors.email ? 'error' : ''}`}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: '#F8FAFC',
+                        border: `2px solid ${addUserErrors.email ? '#DC2626' : '#E2E8F0'}`,
+                        borderRadius: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {addUserErrors.email && (
+                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
+                        {addUserErrors.email}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
+                      Role <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <select
+                      value={addUserForm.role}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
+                      className="modal-input"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        background: '#F8FAFC',
+                        border: '2px solid #E2E8F0',
+                        borderRadius: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                        boxSizing: 'border-box',
+                        appearance: 'auto'
+                      }}
+                    >
+                      <option value="user">👤 User</option>
+                      <option value="admin">👑 Administrator</option>
+                      <option value="staff">👔 Staff</option>
+                    </select>
+                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                      Select the role for this user. Admin has full access.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
+                      Password <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                      <input
+                        type={showAddPassword ? 'text' : 'password'}
+                        placeholder="Create a strong password"
+                        value={addUserForm.password}
+                        onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        onBlur={() => setIsPasswordFocused(false)}
+                        className={`modal-input ${addUserErrors.password ? 'error' : ''}`}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          paddingRight: '44px',
+                          background: '#F8FAFC',
+                          border: `2px solid ${addUserErrors.password ? '#DC2626' : '#E2E8F0'}`,
+                          borderRadius: '8px',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '14px',
+                          color: '#0F172A',
+                          outline: 'none',
+                          transition: 'all 0.2s',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowAddPassword(!showAddPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: '#94A3B8'
+                        }}
+                      >
+                        {showAddPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                    {addUserErrors.password && (
+                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
+                        {addUserErrors.password}
+                      </span>
+                    )}
+                    
+                    {/* Password Requirements */}
+                    <div className={`password-requirements ${isPasswordFocused || addUserForm.password.length > 0 ? 'visible' : ''}`} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '2px 16px',
+                      marginTop: '4px',
+                      maxHeight: (isPasswordFocused || addUserForm.password.length > 0) ? '100px' : '0',
+                      overflow: 'hidden',
+                      opacity: (isPasswordFocused || addUserForm.password.length > 0) ? '1' : '0',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <div className={`requirement ${checkRequirement(/[a-z]/) ? 'met' : ''}`} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: checkRequirement(/[a-z]/) ? '#194752' : '#94A3B8',
+                        transition: 'all 0.3s'
+                      }}>
+                        <span className="dot" style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: checkRequirement(/[a-z]/) ? '#194752' : '#E2E8F0',
+                          flexShrink: 0,
+                          transition: 'all 0.3s'
+                        }}></span>
+                        Lowercase
+                      </div>
+                      <div className={`requirement ${checkRequirement(/[A-Z]/) ? 'met' : ''}`} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: checkRequirement(/[A-Z]/) ? '#194752' : '#94A3B8',
+                        transition: 'all 0.3s'
+                      }}>
+                        <span className="dot" style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: checkRequirement(/[A-Z]/) ? '#194752' : '#E2E8F0',
+                          flexShrink: 0,
+                          transition: 'all 0.3s'
+                        }}></span>
+                        Uppercase
+                      </div>
+                      <div className={`requirement ${checkRequirement(/[0-9]/) ? 'met' : ''}`} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: checkRequirement(/[0-9]/) ? '#194752' : '#94A3B8',
+                        transition: 'all 0.3s'
+                      }}>
+                        <span className="dot" style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: checkRequirement(/[0-9]/) ? '#194752' : '#E2E8F0',
+                          flexShrink: 0,
+                          transition: 'all 0.3s'
+                        }}></span>
+                        Number
+                      </div>
+                      <div className={`requirement ${addUserForm.password.length >= 14 ? 'met' : ''}`} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: addUserForm.password.length >= 14 ? '#194752' : '#94A3B8',
+                        transition: 'all 0.3s'
+                      }}>
+                        <span className="dot" style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: addUserForm.password.length >= 14 ? '#194752' : '#E2E8F0',
+                          flexShrink: 0,
+                          transition: 'all 0.3s'
+                        }}></span>
+                        14+ characters
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
+                      Confirm Password <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                      <input
+                        type={showAddConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm password"
+                        value={addUserForm.confirmPassword}
+                        onChange={(e) => setAddUserForm({ ...addUserForm, confirmPassword: e.target.value })}
+                        className={`modal-input ${addUserErrors.confirmPassword ? 'error' : ''}`}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          paddingRight: '44px',
+                          background: '#F8FAFC',
+                          border: `2px solid ${addUserErrors.confirmPassword ? '#DC2626' : '#E2E8F0'}`,
+                          borderRadius: '8px',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '14px',
+                          color: '#0F172A',
+                          outline: 'none',
+                          transition: 'all 0.2s',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: '#94A3B8'
+                        }}
+                      >
+                        {showAddConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                    {addUserErrors.confirmPassword && (
+                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
+                        {addUserErrors.confirmPassword}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-actions" style={{ display: 'flex', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={closeAddUserModal}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={addUserLoading}
+                  style={{ 
+                    flex: 1,
+                    background: '#194752',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {addUserLoading ? (
+                    <>
+                      <span className="btn-spinner-small" style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#FFFFFF',
+                        borderRadius: '50%',
+                        animation: 'spin 0.6s linear infinite'
+                      }}></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <AddUserIcon width={18} height={18} color="#ffffff" />
+                      Create User
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================
           IMPORT MODAL

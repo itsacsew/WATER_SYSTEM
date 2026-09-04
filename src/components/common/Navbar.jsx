@@ -71,7 +71,7 @@ const Navbar = () => {
     // Regular users see: Dashboard, Bill History, Profile
     navItems = [
       { path: '/dashboard', label: 'DASHBOARD' },
-      { path: '/bills', label: 'BILL HISTORY' },
+      
       { path: '/profile', label: 'PROFILE' },
     ];
   }

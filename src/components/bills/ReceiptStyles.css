@@ -6,11 +6,12 @@
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Changed from center to flex-start */
   justify-content: center;
   z-index: 9999;
   padding: 20px;
   animation: fadeIn 0.3s ease;
+  overflow-y: auto; /* Allow scrolling if needed */
 }
 
 .receipt-modal-content {
@@ -21,6 +22,7 @@
   max-height: 100mm;
   padding: 0;
   margin: 0;
+  margin-top: 20px; /* Add space from top */
   background: white;
   border-radius: 4px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -103,6 +105,7 @@
     backdrop-filter: none !important;
     padding: 0 !important;
     position: absolute !important;
+    align-items: flex-start !important; /* Keep at top when printing */
   }
   .receipt-modal-content {
     box-shadow: none !important;
@@ -112,6 +115,7 @@
     border-radius: 0 !important;
     width: 205mm !important;
     height: 100mm !important;
+    margin-top: 0 !important; /* Remove margin when printing */
   }
   .receipt-actions {
     display: none !important;
