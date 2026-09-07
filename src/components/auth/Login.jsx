@@ -235,9 +235,6 @@ const Login = () => {
 
             <div className="auth-form-footer">
               <p>
-                Don't have an account? <Link to="/register">Sign up</Link>
-              </p>
-              <p className="auth-help-text">
                 Trouble signing in? Contact your system administrator.
               </p>
             </div>
