@@ -89,6 +89,19 @@ const MonthIcon = () => (
 );
 
 // ============================================================
+// YEAR ICON (NEW)
+// ============================================================
+
+const YearIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
+    <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8 15L10 17.5L16 14" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
 // ADD USER ICON
 // ============================================================
 
@@ -144,9 +157,11 @@ const Users = () => {
   // ========== IMPORT MODAL STATE ==========
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMonth, setImportMonth] = useState('');
+  const [importYear, setImportYear] = useState(''); // NEW
   const [importLocation, setImportLocation] = useState('');
   const [availableImportLocations, setAvailableImportLocations] = useState([]);
   const [availableImportMonths, setAvailableImportMonths] = useState([]);
+  const [availableImportYears, setAvailableImportYears] = useState([]); // NEW
   const [importLoading, setImportLoading] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [showImportProgress, setShowImportProgress] = useState(false);
@@ -191,7 +206,7 @@ const Users = () => {
   }, [users, searchTerm, filterRole]);
 
   // ============================================================
-  // FETCH FILTER OPTIONS FOR IMPORT MODAL
+  // FETCH FILTER OPTIONS FOR IMPORT MODAL (NOW WITH YEARS)
   // ============================================================
 
   const fetchImportFilterOptions = async () => {
@@ -201,6 +216,7 @@ const Users = () => {
       
       const locations = new Set();
       const months = new Set();
+      const years = new Set(); // NEW
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -210,6 +226,9 @@ const Users = () => {
         if (data.month && data.month !== 'N/A') {
           months.add(data.month);
         }
+        if (data.year && data.year !== 'N/A') {
+          years.add(data.year.toString()); // NEW
+        }
       });
       
       const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
@@ -217,6 +236,7 @@ const Users = () => {
       
       setAvailableImportLocations(Array.from(locations).sort());
       setAvailableImportMonths(Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
+      setAvailableImportYears(Array.from(years).sort((a, b) => Number(b) - Number(a))); // NEW — newest first
       
     } catch (error) {
       console.error('Error fetching import filter options:', error);
@@ -427,7 +447,6 @@ const Users = () => {
       }
       
       // ✅ STEP 1: Create Firebase Authentication user
-      // This creates a real auth account with UID from Firebase
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         addUserForm.email,
@@ -437,7 +456,6 @@ const Users = () => {
       // ✅ Get the UID from Firebase Auth
       const uid = userCredential.user.uid;
       
-      // Get current timestamp
       const now = new Date();
       const timestamp = now.toISOString();
       
@@ -452,7 +470,7 @@ const Users = () => {
           theme: "light"
         },
         role: addUserForm.role,
-        uid: uid, // Same as document ID
+        uid: uid,
         updatedAt: timestamp
       };
       
@@ -462,16 +480,12 @@ const Users = () => {
       toast.success(`✅ User "${addUserForm.fullName}" created successfully!`);
       toast.success(`🔑 User can now login with their email and password`);
       
-      // Refresh users list
       await fetchUsers();
-      
-      // Close modal
       closeAddUserModal();
       
     } catch (error) {
       console.error('Error creating user:', error);
       
-      // Handle specific Firebase Auth errors
       if (error.code === 'auth/email-already-in-use') {
         toast.error('Email already in use! Please use a different email.');
       } else if (error.code === 'auth/weak-password') {
@@ -491,11 +505,12 @@ const Users = () => {
   };
 
   // ============================================================
-  // IMPORT FUNCTIONS
+  // IMPORT FUNCTIONS (NOW WITH YEAR)
   // ============================================================
 
   const openImportModal = () => {
     setImportMonth('');
+    setImportYear(''); // NEW
     setImportLocation('');
     setImportPreviewData([]);
     setShowImportPreview(false);
@@ -505,14 +520,16 @@ const Users = () => {
   const closeImportModal = () => {
     setShowImportModal(false);
     setImportMonth('');
+    setImportYear(''); // NEW
     setImportLocation('');
     setImportPreviewData([]);
     setShowImportPreview(false);
   };
 
   const previewImport = async () => {
-    if (!importMonth || !importLocation) {
-      toast.error('Please select both Month and Location');
+    // ✅ YEAR IS NOW REQUIRED
+    if (!importMonth || !importYear || !importLocation) {
+      toast.error('Please select Month, Year, and Location');
       return;
     }
 
@@ -520,9 +537,11 @@ const Users = () => {
     
     try {
       const billsRef = collection(db, 'bills');
+      // ✅ FILTER BY MONTH + YEAR + LOCATION
       const q = query(
         billsRef,
         where('month', '==', importMonth),
+        where('year', '==', importYear),
         where('location', '==', importLocation)
       );
       const querySnapshot = await getDocs(q);
@@ -533,7 +552,7 @@ const Users = () => {
       });
       
       if (billsData.length === 0) {
-        toast.error(`No bills found for ${importMonth} in ${importLocation}`);
+        toast.error(`No bills found for ${importMonth} ${importYear} in ${importLocation}`);
         setImportLoading(false);
         return;
       }
@@ -579,8 +598,9 @@ const Users = () => {
             importedBy: user?.email || 'Unknown',
             importedByUid: user?.uid || 'unknown',
             originalBillId: id,
-            importBatch: `${importMonth}_${importLocation}_${Date.now()}`,
+            importBatch: `${importMonth}_${importYear}_${importLocation}_${Date.now()}`, // ✅ includes year
             importMonth: importMonth,
+            importYear: importYear, // ✅ NEW
             importLocation: importLocation,
             sourceCollection: 'bills'
           };
@@ -721,7 +741,6 @@ const Users = () => {
       );
       const existingSnapshot = await getDocs(existingBillsQuery);
       
-      // Store existing bill IDs for deletion
       const existingBillIds = [];
       existingSnapshot.forEach((doc) => {
         existingBillIds.push(doc.id);
@@ -774,7 +793,6 @@ const Users = () => {
       let exportBatch = writeBatch(db);
       let exportBatchCount = 0;
 
-      // Store document IDs for deletion from import later
       const importDocIds = [];
 
       for (let i = 0; i < exportPreviewData.length; i++) {
@@ -782,10 +800,8 @@ const Users = () => {
           const importDoc = exportPreviewData[i];
           const { id, ...importData } = importDoc;
           
-          // Store ID for deletion from import
           importDocIds.push(id);
           
-          // Remove import-specific metadata
           const { 
             importedAt, 
             importedBy, 
@@ -793,12 +809,12 @@ const Users = () => {
             originalBillId, 
             importBatch, 
             importMonth: impMonth, 
+            importYear: impYear, // ✅ NEW
             importLocation: impLocation, 
             sourceCollection,
             ...cleanBillData 
           } = importData;
           
-          // Create bill data
           const billData = {
             ...cleanBillData,
             exportedAt: new Date().toISOString(),
@@ -811,7 +827,6 @@ const Users = () => {
             exportLocation: exportLocation,
             createdAt: importData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            // Mark as replacement
             isReplacement: true,
             replacedAt: new Date().toISOString(),
             replacedFrom: id,
@@ -1005,7 +1020,6 @@ const Users = () => {
           <p>Manage all registered users</p>
         </div>
         <div className="header-actions">
-          {/* ✅ ADD USER BUTTON */}
           <button 
             className="btn btn-primary" 
             onClick={openAddUserModal}
@@ -1565,11 +1579,11 @@ const Users = () => {
       )}
 
       {/* ============================================================
-          IMPORT MODAL
+          IMPORT MODAL (NOW WITH YEAR)
           ============================================================ */}
       {showImportModal && (
         <div className="modal-overlay" onClick={closeImportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <ImportIcon width={28} height={28} color="#194752" />
@@ -1580,14 +1594,15 @@ const Users = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Month</strong> and <strong>Location</strong> to import bills from the 
+                Select a <strong>Month</strong>, <strong>Year</strong>, and <strong>Location</strong> to import bills from the 
                 <strong> "bills" </strong> collection to the <strong> "import" </strong> collection in Firebase.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* ✅ 3-COLUMN GRID: Month | Year | Location */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                    <MonthIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
                     Month <span className="required" style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
@@ -1596,12 +1611,12 @@ const Users = () => {
                     className="modal-input"
                     style={{
                       width: '100%',
-                      padding: '12px 16px',
+                      padding: '10px 12px',
                       background: '#F8FAFC',
                       border: '2px solid #E2E8F0',
                       borderRadius: '8px',
                       fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
+                      fontSize: '14px',
                       color: '#0F172A',
                       outline: 'none',
                       transition: 'all 0.2s'
@@ -1614,9 +1629,39 @@ const Users = () => {
                   </select>
                 </div>
 
+                {/* ✅ NEW: YEAR DROPDOWN */}
                 <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                    <YearIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
+                    Year <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={importYear}
+                    onChange={(e) => setImportYear(e.target.value)}
+                    className="modal-input"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      background: '#F8FAFC',
+                      border: '2px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '14px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <option value="">Select Year...</option>
+                    {availableImportYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                    <LocationIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
                     Location <span className="required" style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
@@ -1625,12 +1670,12 @@ const Users = () => {
                     className="modal-input"
                     style={{
                       width: '100%',
-                      padding: '12px 16px',
+                      padding: '10px 12px',
                       background: '#F8FAFC',
                       border: '2px solid #E2E8F0',
                       borderRadius: '8px',
                       fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
+                      fontSize: '14px',
                       color: '#0F172A',
                       outline: 'none',
                       transition: 'all 0.2s'
@@ -1648,7 +1693,7 @@ const Users = () => {
                 <button
                   className="btn btn-secondary"
                   onClick={previewImport}
-                  disabled={!importMonth || !importLocation || importLoading}
+                  disabled={!importMonth || !importYear || !importLocation || importLoading}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -1660,7 +1705,7 @@ const Users = () => {
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    opacity: (!importMonth || !importLocation || importLoading) ? '0.5' : '1'
+                    opacity: (!importMonth || !importYear || !importLocation || importLoading) ? '0.5' : '1'
                   }}
                 >
                   {importLoading ? '⏳ Loading...' : '🔍 Preview Bills'}
@@ -1679,7 +1724,7 @@ const Users = () => {
                       📋 Found {importPreviewData.length} bills to import
                     </span>
                     <span style={{ fontSize: '12px', color: '#64748B' }}>
-                      From: {importMonth} | {importLocation}
+                      From: {importMonth} {importYear} | {importLocation}
                     </span>
                   </div>
                   

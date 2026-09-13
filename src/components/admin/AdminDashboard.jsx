@@ -1,7 +1,7 @@
 // src/components/admin/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, SERVER_CONFIGS } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import BillForm from '../bills/BillForm';
@@ -62,7 +62,7 @@ const Location03Icon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
     <path d="M14.5 9C14.5 10.3807 13.3807 11.5 12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9Z" stroke="currentColor" strokeWidth="1.5"></path>
     <path d="M18.2222 17C19.6167 18.9885 20.2838 20.0475 19.8865 20.8999C19.8466 20.9854 19.7999 21.0679 19.7469 21.1467C19.1724 22 17.6875 22 14.7178 22H9.28223C6.31251 22 4.82765 22 4.25311 21.1467C4.20005 21.0679 4.15339 20.9854 4.11355 20.8999C3.71619 20.0475 4.38326 18.9885 5.77778 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 18.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="currentColor" strokeWidth="1.5"></path>
+    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 17.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="currentColor" strokeWidth="1.5"></path>
   </svg>
 );
 
@@ -86,10 +86,6 @@ const ApartmentIcon = (props) => (
   </svg>
 );
 
-// ============================================================
-// ADD NEW MONTH ICON
-// ============================================================
-
 const CalendarAddIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
     <path d="M15.5 2V6M7.5 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
@@ -99,10 +95,6 @@ const CalendarAddIcon = (props) => (
     <path d="M13 18C13 20.2091 14.7909 22 17 22C19.2091 22 21 20.2091 21 18C21 15.7909 19.2091 14 17 14C14.7909 14 13 15.7909 13 18Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
-
-// ============================================================
-// EXPORT PAID ICON
-// ============================================================
 
 const ExportPaidIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
@@ -115,14 +107,36 @@ const ExportPaidIcon = (props) => (
   </svg>
 );
 
-// ============================================================
-// DELETE ICON FOR CONFIRMATION
-// ============================================================
-
 const TrashIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
     <path d="M20 8L19.1584 19.2274C19.0492 20.7389 18.9946 21.4947 18.4698 21.977C18.1128 22.3077 17.6413 22.4934 17.1491 22.4953C16.5165 22.4977 15.7711 22.0834 14.2805 21.2549L12.4459 20.2399C11.8618 19.9208 11.5698 19.7612 11.2527 19.6707C10.9025 19.5708 10.536 19.537 10.1725 19.5715C9.84932 19.602 9.53378 19.7137 9.04753 19.9174L7.24729 20.6283C5.71823 21.2098 4.9537 21.5005 4.32281 21.3513C3.76215 21.2176 3.2939 20.8436 3.03622 20.3345C2.75 19.7698 2.90181 18.9988 3.20543 18.4568L3.98777 17.0655C4.24623 16.6064 4.37545 16.3768 4.44201 16.1302C4.50629 15.8913 4.52636 15.6421 4.50086 15.3952C4.47476 15.1429 4.38029 14.904 4.20274 14.4658L3.95429 13.8566C3.66088 13.1254 3.51417 12.7598 3.51584 12.3885C3.51751 12.0368 3.63388 11.6945 3.8446 11.416C4.07491 11.1126 4.42257 10.908 4.77449 10.6485L6.47063 9.39165C7.21043 8.82534 7.58033 8.54218 8.00109 8.3821C8.38478 8.23548 8.79376 8.15675 9.20673 8.15033C9.66179 8.14322 10.1125 8.23682 10.8937 8.38049L11.1435 8.42676C11.6198 8.50923 11.858 8.55047 12.093 8.55647C12.3061 8.56188 12.5189 8.53464 12.7242 8.47578C12.9527 8.41021 13.1657 8.30407 13.5554 8.12455L14.3671 7.72842C15.1346 7.35074 15.5184 7.1619 15.9338 7.07343C16.3096 6.9933 16.6978 6.97986 17.0792 7.03388C17.5009 7.09409 17.9043 7.27698 18.6479 7.61053L19.9469 8.18449C20.6312 8.48393 20.9733 8.63365 21.134 8.8914C21.3165 9.18287 21.3469 9.54928 21.2153 9.86603" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M11.5 12.5L14.5 15.5M14.5 12.5L11.5 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const PayAllIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M6.5 12L9.5 15L17.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+    <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2"/>
+  </svg>
+);
+
+const RegularTableIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={18} height={18} color="currentColor" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M3 9H21" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M3 15H21" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M9 3V21" stroke="currentColor" strokeWidth="1.5"/>
+  </svg>
+);
+
+const CutoffTableIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={18} height={18} color="currentColor" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M3 9H21" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M3 15H21" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M15 3V21" stroke="currentColor" strokeWidth="1.5"/>
   </svg>
 );
 
@@ -132,15 +146,17 @@ const TrashIcon = (props) => (
 
 const calculateBillAmount = (consumerType, consumption) => {
   const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
+  const consumptionNum = Number(consumption) || 0;
   
   if (type === 'RESIDENTIAL') {
     const FIRST_5_RATE = 62.50;
     const EXCESS_RATE = 12.50;
     
-    if (consumption <= 0) return 0;
-    if (consumption <= 5) return FIRST_5_RATE;
+    if (consumptionNum <= 5) {
+      return FIRST_5_RATE;
+    }
     
-    const excess = consumption - 5;
+    const excess = consumptionNum - 5;
     return FIRST_5_RATE + (excess * EXCESS_RATE);
     
   } else if (type === 'COMMERCIAL') {
@@ -150,23 +166,21 @@ const calculateBillAmount = (consumerType, consumption) => {
     const TIER1_LIMIT = 10;
     const TIER2_LIMIT = 20;
     
-    if (consumption <= 0) return 0;
-    
-    if (consumption <= TIER1_LIMIT) {
-      return consumption * TIER1_RATE;
-    } else if (consumption <= TIER2_LIMIT) {
+    if (consumptionNum <= TIER1_LIMIT) {
+      return 150;
+    } else if (consumptionNum <= TIER2_LIMIT) {
       const tier1Amount = TIER1_LIMIT * TIER1_RATE;
-      const tier2Consumption = consumption - TIER1_LIMIT;
+      const tier2Consumption = consumptionNum - TIER1_LIMIT;
       return tier1Amount + (tier2Consumption * TIER2_RATE);
     } else {
       const tier1Amount = TIER1_LIMIT * TIER1_RATE;
       const tier2Amount = (TIER2_LIMIT - TIER1_LIMIT) * TIER2_RATE;
-      const tier3Consumption = consumption - TIER2_LIMIT;
+      const tier3Consumption = consumptionNum - TIER2_LIMIT;
       return tier1Amount + tier2Amount + (tier3Consumption * TIER3_RATE);
     }
   }
   
-  return consumption * 15;
+  return 0;
 };
 
 const calculateConsumption = (presentReading, previousReading) => {
@@ -175,19 +189,32 @@ const calculateConsumption = (presentReading, previousReading) => {
   return Math.max(0, present - previous);
 };
 
-// ============================================================
-// DEFECTIVE HANDLING FUNCTIONS
-// ============================================================
-
 const isDefective = (reading) => {
   if (!reading && reading !== 0) return false;
   const str = String(reading).toUpperCase().trim();
   return str === 'DEFECTIVE' || str === 'D' || str === 'DEF' || str.includes('DEFECTIVE');
 };
 
-const getReadingValue = (reading) => {
-  if (isDefective(reading)) return 0;
-  return Number(reading) || 0;
+const isNAReading = (reading) => {
+  if (!reading && reading !== 0) return false;
+  const str = String(reading).toUpperCase().trim();
+  return str === 'N/A' || str === 'NA' || str === 'N\\A' || str === 'NULL' || str === '-';
+};
+
+const isCutoffBill = (bill) => {
+  const statusStr = String(bill.status || '').toUpperCase().trim();
+  if (statusStr === 'CUTOFF' || statusStr === 'CUT-OFF' || statusStr === 'CUT OFF') {
+    return true;
+  }
+  
+  const presentNA = isNAReading(bill.presentReading);
+  const previousNA = isNAReading(bill.previousReading);
+  
+  if (presentNA && previousNA) {
+    return true;
+  }
+  
+  return false;
 };
 
 const calculateWithDefective = (presentReading, previousReading, consumerType) => {
@@ -223,10 +250,6 @@ const calculateWithDefective = (presentReading, previousReading, consumerType) =
   };
 };
 
-// ============================================================
-// OVERDUE CHECKING HELPER FUNCTIONS
-// ============================================================
-
 const getCurrentPeriod = () => {
   const now = new Date();
   const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
@@ -238,14 +261,13 @@ const getCurrentPeriod = () => {
   };
 };
 
+const MONTH_ORDER = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
 const getMonthIndex = (monthName) => {
   if (!monthName) return -1;
-  const months = {
-    'JANUARY': 0, 'FEBRUARY': 1, 'MARCH': 2, 'APRIL': 3,
-    'MAY': 4, 'JUNE': 5, 'JULY': 6, 'AUGUST': 7,
-    'SEPTEMBER': 8, 'OCTOBER': 9, 'NOVEMBER': 10, 'DECEMBER': 11
-  };
-  return months[monthName.toUpperCase()] !== undefined ? months[monthName.toUpperCase()] : -1;
+  const idx = MONTH_ORDER.indexOf(monthName.toUpperCase());
+  return idx !== -1 ? idx : -1;
 };
 
 const isBillOverdue = (billMonth, billYear) => {
@@ -265,6 +287,7 @@ const isBillOverdue = (billMonth, billYear) => {
 
 const determineBillStatus = (bill) => {
   if (bill.status === 'paid') return 'paid';
+  if (isCutoffBill(bill)) return 'cutoff';
   const isOverdue = isBillOverdue(bill.month, bill.year);
   if (isOverdue) return 'overdue';
   return 'unpaid';
@@ -273,17 +296,66 @@ const determineBillStatus = (bill) => {
 const processBillsWithStatus = (billsData) => {
   return billsData.map(bill => {
     if (bill.status === 'paid') return bill;
+    if (isCutoffBill(bill)) {
+      return { ...bill, status: 'cutoff' };
+    }
     const computedStatus = determineBillStatus(bill);
     return { ...bill, status: computedStatus };
   });
 };
 
-const sortByBillNumber = (data) => {
+const sortByConsumerPeriod = (data) => {
   return [...data].sort((a, b) => {
+    const nameA = (a.consumerName || '').toUpperCase().trim();
+    const nameB = (b.consumerName || '').toUpperCase().trim();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB);
+    }
+
+    const yearA = parseInt(a.year) || 0;
+    const yearB = parseInt(b.year) || 0;
+    if (yearA !== yearB) {
+      return yearA - yearB;
+    }
+
+    const monthA = getMonthIndex(a.month);
+    const monthB = getMonthIndex(b.month);
+    if (monthA !== monthB) {
+      return monthA - monthB;
+    }
+
     const numA = Number(a.billNumber) || 0;
     const numB = Number(b.billNumber) || 0;
     return numA - numB;
   });
+};
+
+const getConsumerPeriodOptions = (billsData) => {
+  const periodSet = new Set();
+  
+  billsData.forEach(bill => {
+    if (bill.consumerName && bill.month && bill.year) {
+      const key = `${bill.consumerName.toUpperCase()}|${bill.month.toUpperCase()}|${bill.year}`;
+      periodSet.add(key);
+    }
+  });
+  
+  const periods = Array.from(periodSet).map(key => {
+    const [consumerName, month, year] = key.split('|');
+    return { consumerName, month, year, key };
+  });
+  
+  periods.sort((a, b) => {
+    if (a.consumerName !== b.consumerName) {
+      return a.consumerName.localeCompare(b.consumerName);
+    }
+    if (a.year !== b.year) {
+      return Number(a.year) - Number(b.year);
+    }
+    return MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month);
+  });
+  
+  return periods;
 };
 
 // ============================================================
@@ -305,6 +377,8 @@ const AdminDashboard = () => {
   const [filterLocation, setFilterLocation] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
+  const [filterConsumerPeriod, setFilterConsumerPeriod] = useState('all');
+  const [filterServer, setFilterServer] = useState('all');
   const [selectedBill, setSelectedBill] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentCode, setPaymentCode] = useState('');
@@ -315,6 +389,21 @@ const AdminDashboard = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   
+  const [tableType, setTableType] = useState('regular');
+  
+  const [showPayAllModal, setShowPayAllModal] = useState(false);
+  const [payAllBills, setPayAllBills] = useState([]);
+  const [payAllConsumerName, setPayAllConsumerName] = useState('');
+  const [payAllPaymentCode, setPayAllPaymentCode] = useState('');
+  const [payAllPaymentError, setPayAllPaymentError] = useState('');
+  const [isPayingAll, setIsPayingAll] = useState(false);
+  
+  const [showCutoffPayModal, setShowCutoffPayModal] = useState(false);
+  const [cutoffBillToPay, setCutoffBillToPay] = useState(null);
+  const [cutoffPaymentCode, setCutoffPaymentCode] = useState('');
+  const [cutoffPaymentError, setCutoffPaymentError] = useState('');
+  const [isPayingCutoff, setIsPayingCutoff] = useState(false);
+  
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportLocation, setSelectedExportLocation] = useState('all');
   const [exportLocations, setExportLocations] = useState([]);
@@ -322,6 +411,7 @@ const AdminDashboard = () => {
   const [locations, setLocations] = useState([]);
   const [months, setMonths] = useState([]);
   const [years, setYears] = useState([]);
+  const [consumerPeriods, setConsumerPeriods] = useState([]);
   
   const [stats, setStats] = useState({
     total: 0,
@@ -334,7 +424,6 @@ const AdminDashboard = () => {
     location: ''
   });
 
-  // ========== ADD NEW MONTH STATE ==========
   const [showNewMonthModal, setShowNewMonthModal] = useState(false);
   const [newMonthLocation, setNewMonthLocation] = useState('');
   const [newMonthMonth, setNewMonthMonth] = useState('');
@@ -344,9 +433,12 @@ const AdminDashboard = () => {
   const [showNewMonthPreview, setShowNewMonthPreview] = useState(false);
   const [availableLocationsForNewMonth, setAvailableLocationsForNewMonth] = useState([]);
 
-  // ========== EXPORT PAID CONFIRMATION MODAL ==========
   const [showExportPaidConfirm, setShowExportPaidConfirm] = useState(false);
   const [paidBillsToDelete, setPaidBillsToDelete] = useState([]);
+
+  // ========== SERVER SELECTION FOR IMPORT ==========
+  const [showServerSelectModal, setShowServerSelectModal] = useState(false);
+  const [selectedImportServer, setSelectedImportServer] = useState(null);
 
   useEffect(() => {
     fetchBills();
@@ -354,7 +446,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     filterBills();
-  }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear]);
+  }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, filterServer, tableType]);
 
   useEffect(() => {
     if (showPayModal) {
@@ -362,6 +454,20 @@ const AdminDashboard = () => {
       setPaymentError('');
     }
   }, [showPayModal]);
+
+  useEffect(() => {
+    if (showPayAllModal) {
+      setPayAllPaymentCode('');
+      setPayAllPaymentError('');
+    }
+  }, [showPayAllModal]);
+
+  useEffect(() => {
+    if (showCutoffPayModal) {
+      setCutoffPaymentCode('');
+      setCutoffPaymentError('');
+    }
+  }, [showCutoffPayModal]);
 
   useEffect(() => {
     const locationSet = new Set();
@@ -392,14 +498,15 @@ const AdminDashboard = () => {
     });
     
     setLocations(Array.from(locationSet).sort());
-    
-    const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-    setMonths(Array.from(monthSet).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
-    
+    setMonths(Array.from(monthSet).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
     setYears(Array.from(yearSet).sort((a, b) => Number(b) - Number(a)));
+    
+    setConsumerPeriods(getConsumerPeriodOptions(billsData));
   };
 
+  // ============================================================
+  // FETCH BILLS FROM ALL 5 FIRESTORES
+  // ============================================================
   const fetchBills = async () => {
     if (!user) {
       setLoading(false);
@@ -409,16 +516,30 @@ const AdminDashboard = () => {
     setLoading(true);
     
     try {
-      const billsRef = collection(db, 'bills');
-      const q = query(billsRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
+      const allBills = [];
+
+      // Loop through all 5 servers
+      for (const serverConfig of SERVER_CONFIGS) {
+        try {
+          const billsRef = collection(serverConfig.db, 'bills');
+          const q = query(billsRef, orderBy('createdAt', 'desc'));
+          const snap = await getDocs(q);
+          snap.forEach((docSnap) => {
+            allBills.push({ 
+              id: docSnap.id, 
+              ...docSnap.data(),
+              serverSource: serverConfig.key,
+              _server: serverConfig.key
+            });
+          });
+          console.log(`✅ Fetched from ${serverConfig.label}`);
+        } catch (e) {
+          console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
+        }
+      }
       
-      const processedBills = processBillsWithStatus(billsData);
-      const sortedBills = sortByBillNumber(processedBills);
+      const processedBills = processBillsWithStatus(allBills);
+      const sortedBills = sortByConsumerPeriod(processedBills);
       
       setBills(sortedBills);
       setFilteredBills(sortedBills);
@@ -426,7 +547,7 @@ const AdminDashboard = () => {
       extractFilterOptions(sortedBills);
       
     } catch (error) {
-      console.error('Error fetching bills from Firebase:', error);
+      console.error('Error fetching bills:', error);
       toast.error('Error loading bills from database');
     }
     setLoading(false);
@@ -434,6 +555,18 @@ const AdminDashboard = () => {
 
   const filterBills = () => {
     let filtered = [...bills];
+    
+    if (tableType === 'regular') {
+      filtered = filtered.filter(bill => !isCutoffBill(bill));
+    } else {
+      filtered = filtered.filter(bill => isCutoffBill(bill));
+    }
+
+    if (filterServer !== 'all') {
+      filtered = filtered.filter(bill => 
+        (bill.serverSource || 'server1') === filterServer
+      );
+    }
     
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
@@ -467,13 +600,25 @@ const AdminDashboard = () => {
       );
     }
     
-    filtered = processBillsWithStatus(filtered);
-    filtered = sortByBillNumber(filtered);
+    if (filterConsumerPeriod !== 'all') {
+      const [consumerName, month, year] = filterConsumerPeriod.split('|');
+      filtered = filtered.filter(bill => 
+        bill.consumerName?.toUpperCase() === consumerName?.toUpperCase() &&
+        bill.month?.toUpperCase() === month?.toUpperCase() &&
+        bill.year === year
+      );
+    }
+    
+    if (tableType === 'regular') {
+      filtered = processBillsWithStatus(filtered);
+    }
+    filtered = sortByConsumerPeriod(filtered);
     setFilteredBills(filtered);
   };
 
   const calculateStats = (billsData) => {
-    const processed = processBillsWithStatus(billsData);
+    const regularBills = billsData.filter(b => !isCutoffBill(b));
+    const processed = processBillsWithStatus(regularBills);
     
     const total = processed.length;
     const paid = processed.filter(b => b.status === 'paid').length;
@@ -516,16 +661,22 @@ const AdminDashboard = () => {
     setFilterLocation('all');
     setFilterMonth('all');
     setFilterYear('all');
+    setFilterConsumerPeriod('all');
+    setFilterServer('all');
   };
 
   const handleDelete = async (billId) => {
     if (!confirm('Are you sure you want to delete this bill?')) return;
     
+    const bill = bills.find(b => b.id === billId);
+    const targetDb = getDbByServer(bill?.serverSource || 'server1');
+    
     try {
-      await deleteDoc(doc(db, 'bills', billId));
-      toast.success('Bill deleted successfully');
+      await deleteDoc(doc(targetDb, 'bills', billId));
+      toast.success(`Bill deleted from ${getServerLabel(bill?.serverSource)}`);
       fetchBills();
     } catch (error) {
+      console.error('Delete error:', error);
       toast.error('Error deleting bill');
     }
   };
@@ -548,6 +699,13 @@ const AdminDashboard = () => {
     setShowPayModal(true);
   };
 
+  const handleCutoffPay = (bill) => {
+    setCutoffBillToPay(bill);
+    setCutoffPaymentCode('');
+    setCutoffPaymentError('');
+    setShowCutoffPayModal(true);
+  };
+
   const handlePaymentCodeChange = (e) => {
     const value = e.target.value;
     if (value === '' || /^\d+$/.test(value)) {
@@ -556,10 +714,263 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // PAYMENT CONFIRMATION WITH DEFECTIVE HANDLING
-  // ============================================================
+  const handleCutoffPaymentCodeChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+$/.test(value)) {
+      setCutoffPaymentCode(value);
+      setCutoffPaymentError('');
+    }
+  };
 
+  // ============================================================
+  // CUTOFF PAYMENT CONFIRMATION - WITH SERVER TARGETING
+  // ============================================================
+  const confirmCutoffPay = async () => {
+    if (!cutoffPaymentCode || cutoffPaymentCode.length !== 7) {
+      setCutoffPaymentError('Please enter a valid 7-digit payment code.');
+      return;
+    }
+
+    if (!cutoffBillToPay) return;
+
+    setIsPayingCutoff(true);
+
+    try {
+      const referenceNumber = `CUTOFF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const amountToPay = cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0;
+
+      const targetDb = getDbByServer(cutoffBillToPay.serverSource || 'server1');
+      const billRef = doc(targetDb, 'bills', cutoffBillToPay.id);
+      
+      await updateDoc(billRef, {
+        status: 'paid',
+        paidAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        paymentCode: cutoffPaymentCode,
+        referenceNumber: referenceNumber,
+        paidBy: user?.email || 'Unknown',
+        amount: amountToPay,
+        amountCalculated: true,
+        isCutoff: true,
+        paidVia: 'CUTOFF_PAY',
+        calculationDetails: {
+          consumerType: cutoffBillToPay.consumerType || cutoffBillToPay.type || 'RESIDENTIAL',
+          collectableAmount: amountToPay,
+          calculatedAmount: amountToPay,
+          calculatedAt: new Date().toISOString(),
+          isCutoff: true
+        }
+      });
+
+      toast.success(`✅ Cut-off bill ${cutoffBillToPay.billNumber} marked as paid!`);
+      toast.success(`💰 Amount: ₱${amountToPay.toFixed(2)}`);
+
+      setShowCutoffPayModal(false);
+
+      setReceiptData({
+        bill: {
+          ...cutoffBillToPay,
+          consumption: 'CUT-OFF',
+          amount: amountToPay,
+          isDefective: false,
+          isCutoff: true
+        },
+        paymentCode: cutoffPaymentCode,
+        referenceNumber: referenceNumber
+      });
+      setShowReceipt(true);
+
+      setCutoffBillToPay(null);
+      setCutoffPaymentCode('');
+      setCutoffPaymentError('');
+      fetchBills();
+    } catch (error) {
+      console.error('❌ Cutoff payment error:', error);
+      
+      if (error.code === 'permission-denied') {
+        toast.error('Permission denied. Please check your Firestore rules.');
+      } else {
+        toast.error('Error updating bill status: ' + error.message);
+      }
+    } finally {
+      setIsPayingCutoff(false);
+    }
+  };
+
+  const handlePayAll = (consumerName) => {
+    const unpaidBills = bills.filter(bill => 
+      bill.consumerName?.toLowerCase() === consumerName.toLowerCase() &&
+      bill.status !== 'paid' &&
+      !isCutoffBill(bill)
+    );
+    
+    if (unpaidBills.length === 0) {
+      toast.error(`No unpaid bills found for ${consumerName}`);
+      return;
+    }
+    
+    const sortedUnpaid = [...unpaidBills].sort((a, b) => {
+      const aIndex = MONTH_ORDER.indexOf(a.month?.toUpperCase());
+      const bIndex = MONTH_ORDER.indexOf(b.month?.toUpperCase());
+      if (a.year !== b.year) return Number(a.year) - Number(b.year);
+      return aIndex - bIndex;
+    });
+    
+    setPayAllBills(sortedUnpaid);
+    setPayAllConsumerName(consumerName);
+    setPayAllPaymentCode('');
+    setPayAllPaymentError('');
+    setShowPayAllModal(true);
+  };
+
+  const handlePayAllPaymentCodeChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+$/.test(value)) {
+      setPayAllPaymentCode(value);
+      setPayAllPaymentError('');
+    }
+  };
+
+  // ============================================================
+  // PAY ALL CONFIRMATION - WITH SERVER TARGETING
+  // ============================================================
+  const confirmPayAll = async () => {
+    if (!payAllPaymentCode || payAllPaymentCode.length !== 7) {
+      setPayAllPaymentError('Please enter a valid 7-digit payment code.');
+      return;
+    }
+
+    if (payAllBills.length === 0) {
+      toast.error('No bills to pay');
+      return;
+    }
+
+    setIsPayingAll(true);
+
+    try {
+      const referenceNumber = `PAYALL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      let successCount = 0;
+      let errorCount = 0;
+      let totalAmount = 0;
+      let paymentDetails = [];
+
+      for (const bill of payAllBills) {
+        try {
+          const isPresentDefective = isDefective(bill.presentReading);
+          const isPreviousDefective = isDefective(bill.previousReading);
+          const isDefectiveReading = isPresentDefective || isPreviousDefective;
+          
+          let consumption = 0;
+          let calculatedAmount = 0;
+          
+          if (isDefectiveReading) {
+            consumption = 0;
+            calculatedAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+          } else {
+            consumption = calculateConsumption(
+              bill.presentReading,
+              bill.previousReading
+            );
+            calculatedAmount = calculateBillAmount(
+              bill.consumerType,
+              consumption
+            );
+          }
+
+          const targetDb = getDbByServer(bill.serverSource || 'server1');
+          const billRef = doc(targetDb, 'bills', bill.id);
+          
+          await updateDoc(billRef, {
+            status: 'paid',
+            paidAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            paymentCode: payAllPaymentCode,
+            referenceNumber: referenceNumber,
+            paidBy: user?.email || 'Unknown',
+            consumption: consumption,
+            amount: calculatedAmount,
+            amountCalculated: true,
+            isDefective: isDefectiveReading,
+            isPresentDefective,
+            isPreviousDefective,
+            paidVia: 'PAY_ALL',
+            calculationDetails: {
+              consumerType: bill.consumerType || 'RESIDENTIAL',
+              previousReading: bill.previousReading || 0,
+              presentReading: bill.presentReading || 0,
+              consumption: consumption,
+              calculatedAmount: calculatedAmount,
+              calculatedAt: new Date().toISOString(),
+              isDefective: isDefectiveReading
+            }
+          });
+
+          totalAmount += calculatedAmount;
+          successCount++;
+          
+          paymentDetails.push({
+            month: bill.month,
+            year: bill.year,
+            billNumber: bill.billNumber,
+            amount: calculatedAmount,
+            consumption: consumption,
+            isDefective: isDefectiveReading
+          });
+
+        } catch (error) {
+          console.error('Error processing bill:', error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
+        toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
+        toast.success(`📋 OR Number: ${payAllPaymentCode}`);
+        
+        setReceiptData({
+          bill: {
+            ...payAllBills[0],
+            consumerName: payAllConsumerName,
+            consumption: 'Multiple Bills',
+            amount: totalAmount,
+            isDefective: false,
+            isPayAll: true,
+            payAllCount: successCount,
+            payAllDetails: paymentDetails,
+            paymentCode: payAllPaymentCode,
+            referenceNumber: referenceNumber
+          },
+          paymentCode: payAllPaymentCode,
+          referenceNumber: referenceNumber,
+          isPayAll: true,
+          payAllDetails: paymentDetails
+        });
+        setShowReceipt(true);
+      }
+
+      if (errorCount > 0) {
+        toast.error(`⚠️ ${errorCount} bills failed to process`);
+      }
+
+      setShowPayAllModal(false);
+      setPayAllBills([]);
+      setPayAllPaymentCode('');
+      setPayAllPaymentError('');
+      fetchBills();
+
+    } catch (error) {
+      console.error('❌ Pay All error:', error);
+      toast.error('Error processing payment: ' + error.message);
+    } finally {
+      setIsPayingAll(false);
+    }
+  };
+
+  // ============================================================
+  // SINGLE PAY CONFIRMATION - WITH SERVER TARGETING
+  // ============================================================
   const confirmPayBill = async () => {
     if (!paymentCode || paymentCode.length < 7) {
       setPaymentError('Please enter a valid 7-digit payment code.');
@@ -599,7 +1010,8 @@ const AdminDashboard = () => {
         );
       }
 
-      const billRef = doc(db, 'bills', selectedBill.id);
+      const targetDb = getDbByServer(selectedBill.serverSource || 'server1');
+      const billRef = doc(targetDb, 'bills', selectedBill.id);
       
       await updateDoc(billRef, {
         status: 'paid',
@@ -669,29 +1081,23 @@ const AdminDashboard = () => {
   };
 
   // ============================================================
-  // AUTO-CREATE NEXT MONTH BILL
+  // CREATE NEXT MONTH BILL - WITH SERVER TARGETING
   // ============================================================
-
   const createNextMonthBill = async (paidBill) => {
     try {
-      console.log('🔄 Creating next month bill for:', paidBill.consumerName);
-      
       const currentMonth = paidBill.month;
       const currentYear = parseInt(paidBill.year);
 
-      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-      const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
-      if (currentIndex === -1) {
-        console.warn('Invalid month:', currentMonth);
-        return;
-      }
+      const currentIndex = MONTH_ORDER.indexOf(currentMonth?.toUpperCase());
+      if (currentIndex === -1) return;
 
       const nextIndex = (currentIndex + 1) % 12;
-      const nextMonth = monthOrder[nextIndex];
+      const nextMonth = MONTH_ORDER[nextIndex];
       const nextYear = nextIndex === 0 ? currentYear + 1 : currentYear;
 
-      const billsRef = collection(db, 'bills');
+      const targetDb = getDbByServer(paidBill.serverSource || 'server1');
+
+      const billsRef = collection(targetDb, 'bills');
       const q = query(
         billsRef,
         where('month', '==', nextMonth),
@@ -706,7 +1112,7 @@ const AdminDashboard = () => {
         const existingData = existingDoc.data();
         
         if (!existingData.previousReading || existingData.previousReading === 0 || existingData.previousReading === '0') {
-          const existingRef = doc(db, 'bills', existingDoc.id);
+          const existingRef = doc(targetDb, 'bills', existingDoc.id);
           await updateDoc(existingRef, {
             previousReading: paidBill.presentReading || 0,
             updatedAt: new Date().toISOString()
@@ -738,25 +1144,19 @@ const AdminDashboard = () => {
         generatedFrom: paidBill.id,
         generatedFromBillNumber: paidBill.billNumber,
         previousAmount: paidBill.amount || 0,
-        previousConsumption: paidBill.consumption || 0
+        previousConsumption: paidBill.consumption || 0,
+        serverSource: paidBill.serverSource || 'server1'
       };
 
-      const docRef = await addDoc(collection(db, 'bills'), newBillData);
-      console.log(`✅ Auto-created ${nextMonth} ${nextYear} bill with ID: ${docRef.id}`);
-
+      const docRef = await addDoc(collection(targetDb, 'bills'), newBillData);
       toast.success(`📋 Auto-created bill for ${nextMonth} ${nextYear}`);
 
       return docRef.id;
 
     } catch (error) {
       console.error('Error creating next month bill:', error);
-      toast.error('Error creating next month bill: ' + error.message);
     }
   };
-
-  // ============================================================
-  // ADD NEW MONTH FUNCTIONS
-  // ============================================================
 
   const openNewMonthModal = () => {
     setNewMonthLocation('');
@@ -785,29 +1185,35 @@ const AdminDashboard = () => {
     setNewMonthLoading(true);
 
     try {
-      const billsRef = collection(db, 'bills');
-      const q = query(
-        billsRef,
-        where('location', '==', newMonthLocation),
-        where('month', '==', newMonthMonth),
-        where('year', '==', newMonthYear)
-      );
-      const querySnapshot = await getDocs(q);
+      const allBills = [];
 
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
+      for (const serverConfig of SERVER_CONFIGS) {
+        try {
+          const billsRef = collection(serverConfig.db, 'bills');
+          const q = query(
+            billsRef,
+            where('location', '==', newMonthLocation),
+            where('month', '==', newMonthMonth),
+            where('year', '==', newMonthYear)
+          );
+          const snap = await getDocs(q);
+          snap.forEach((doc) => {
+            allBills.push({ id: doc.id, ...doc.data(), serverSource: serverConfig.key });
+          });
+        } catch (e) {
+          console.error(`Error previewing from ${serverConfig.label}:`, e);
+        }
+      }
 
-      if (billsData.length === 0) {
+      if (allBills.length === 0) {
         toast.error(`No bills found for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
         setNewMonthLoading(false);
         return;
       }
 
-      setNewMonthPreview(billsData);
+      setNewMonthPreview(allBills);
       setShowNewMonthPreview(true);
-      toast.success(`Found ${billsData.length} bills for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
+      toast.success(`Found ${allBills.length} bills for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
 
     } catch (error) {
       console.error('Error previewing new month:', error);
@@ -823,100 +1229,92 @@ const AdminDashboard = () => {
       return;
     }
 
-    const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-                        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-    const currentIndex = monthOrder.indexOf(newMonthMonth.toUpperCase());
+    const currentIndex = MONTH_ORDER.indexOf(newMonthMonth.toUpperCase());
     const nextIndex = (currentIndex + 1) % 12;
-    const nextMonth = monthOrder[nextIndex];
+    const nextMonth = MONTH_ORDER[nextIndex];
     const nextYear = nextIndex === 0 ? parseInt(newMonthYear) + 1 : parseInt(newMonthYear);
-
-    try {
-      const billsRef = collection(db, 'bills');
-      const q = query(
-        billsRef,
-        where('location', '==', newMonthLocation),
-        where('month', '==', nextMonth),
-        where('year', '==', nextYear.toString())
-      );
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        toast.error(`Bills for ${nextMonth} ${nextYear} in ${newMonthLocation} already exist!`);
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking existing bills:', error);
-      toast.error('Error checking existing bills');
-      return;
-    }
 
     setNewMonthLoading(true);
     setShowNewMonthPreview(false);
 
     try {
-      const billsCollectionRef = collection(db, 'bills');
       let successCount = 0;
       let errorCount = 0;
-      
-      let batch = writeBatch(db);
-      let batchCount = 0;
 
-      for (let i = 0; i < newMonthPreview.length; i++) {
-        try {
-          const bill = newMonthPreview[i];
-          const { id, ...billData } = bill;
+      // Group by server
+      const groupedByServer = {};
+      for (const bill of newMonthPreview) {
+        const serverKey = bill.serverSource || 'server1';
+        if (!groupedByServer[serverKey]) {
+          groupedByServer[serverKey] = [];
+        }
+        groupedByServer[serverKey].push(bill);
+      }
 
-          const presentReading = billData.presentReading || 0;
+      // Process each server group
+      for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
+        const targetDb = getDbByServer(serverKey);
+        const billsCollectionRef = collection(targetDb, 'bills');
+        let batch = writeBatch(targetDb);
+        let batchCount = 0;
 
-          const newBillData = {
-            ...billData,
-            month: nextMonth,
-            year: nextYear.toString(),
-            previousReading: presentReading,
-            presentReading: 0,
-            consumption: 0,
-            amount: 0,
-            status: 'unpaid',
-            dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
-            notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
-            userId: user?.uid || billData.userId || 'unknown',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isRollover: true,
-            rolloverFrom: id,
-            rolloverFromMonth: newMonthMonth,
-            rolloverFromYear: newMonthYear,
-            rolloverLocation: newMonthLocation,
-            previousPresentReading: presentReading
-          };
+        for (let i = 0; i < serverBills.length; i++) {
+          try {
+            const bill = serverBills[i];
+            const { id, ...billData } = bill;
 
-          const newBillNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
-          newBillData.billNumber = newBillNumber;
+            const presentReading = billData.presentReading || 0;
 
-          const docRef = doc(billsCollectionRef);
-          batch.set(docRef, newBillData);
-          successCount++;
-          batchCount++;
+            const newBillData = {
+              ...billData,
+              month: nextMonth,
+              year: nextYear.toString(),
+              previousReading: presentReading,
+              presentReading: 0,
+              consumption: 0,
+              amount: 0,
+              status: 'unpaid',
+              dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
+              notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
+              userId: user?.uid || billData.userId || 'unknown',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              isRollover: true,
+              rolloverFrom: id,
+              rolloverFromMonth: newMonthMonth,
+              rolloverFromYear: newMonthYear,
+              rolloverLocation: newMonthLocation,
+              previousPresentReading: presentReading,
+              serverSource: serverKey
+            };
 
-          if (batchCount >= 500) {
-            await batch.commit();
-            batch = writeBatch(db);
-            batchCount = 0;
+            const newBillNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
+            newBillData.billNumber = newBillNumber;
+
+            const docRef = doc(billsCollectionRef);
+            batch.set(docRef, newBillData);
+            successCount++;
+            batchCount++;
+
+            if (batchCount >= 500) {
+              await batch.commit();
+              batch = writeBatch(targetDb);
+              batchCount = 0;
+            }
+
+          } catch (error) {
+            console.error(`Error creating new month bill (${serverKey}):`, error);
+            errorCount++;
           }
+        }
 
-        } catch (error) {
-          console.error('Error creating new month bill:', error);
-          errorCount++;
+        if (batchCount > 0) {
+          await batch.commit();
         }
       }
 
-      if (batchCount > 0) {
-        await batch.commit();
-      }
-
       if (successCount > 0) {
-        toast.success(`✅ Successfully created ${successCount} bills for ${nextMonth} ${nextYear} in ${newMonthLocation}!`);
-        toast.success(`📋 Previous readings set from ${newMonthMonth} ${newMonthYear}`);
+        toast.success(`✅ Created ${successCount} bills for ${nextMonth} ${nextYear} in ${newMonthLocation}!`);
         closeNewMonthModal();
         fetchBills();
       }
@@ -933,11 +1331,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // EXPORT PAID BILLS FUNCTION WITH DELETE
-  // ============================================================
-
-  // Open confirmation modal
   const openExportPaidConfirm = () => {
     const paidBills = bills.filter(bill => bill.status === 'paid');
     
@@ -950,13 +1343,14 @@ const AdminDashboard = () => {
     setShowExportPaidConfirm(true);
   };
 
-  // Close confirmation modal
   const closeExportPaidConfirm = () => {
     setShowExportPaidConfirm(false);
     setPaidBillsToDelete([]);
   };
 
-  // Execute export and delete
+  // ============================================================
+  // EXPORT PAID AND DELETE - WITH SERVER TARGETING
+  // ============================================================
   const executeExportPaidAndDelete = async () => {
     const paidBills = paidBillsToDelete;
     
@@ -969,15 +1363,12 @@ const AdminDashboard = () => {
     closeExportPaidConfirm();
 
     try {
-      // ============================================================
-      // STEP 1: EXPORT TO EXCEL
-      // ============================================================
-      
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Paid Water Bills');
 
       worksheet.columns = [
         { header: 'WSIN', key: 'wsin', width: 15 },
+        { header: 'Server', key: 'server', width: 12 },
         { header: 'Consumer Name', key: 'consumerName', width: 25 },
         { header: 'Location', key: 'location', width: 20 },
         { header: 'Period', key: 'period', width: 15 },
@@ -1003,7 +1394,7 @@ const AdminDashboard = () => {
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      const sortedForExport = sortByBillNumber(paidBills);
+      const sortedForExport = sortByConsumerPeriod(paidBills);
       
       sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
@@ -1027,6 +1418,7 @@ const AdminDashboard = () => {
 
         worksheet.addRow({
           wsin: bill.billNumber || 'N/A',
+          server: getServerLabel(bill.serverSource),
           consumerName: bill.consumerName || 'N/A',
           location: bill.location || 'N/A',
           period: period.trim() || 'N/A',
@@ -1056,15 +1448,15 @@ const AdminDashboard = () => {
             cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
           });
           
-          const statusCell = row.getCell(10);
+          const statusCell = row.getCell(11);
           statusCell.font = { color: { argb: 'FF16A34A' }, bold: true };
 
-          const defectiveCell = row.getCell(11);
+          const defectiveCell = row.getCell(12);
           if (defectiveCell.value === 'YES') {
             defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
           }
 
-          const paymentCell = row.getCell(12);
+          const paymentCell = row.getCell(13);
           paymentCell.font = { color: { argb: 'FF2563EB' }, bold: true };
         }
       });
@@ -1110,7 +1502,6 @@ const AdminDashboard = () => {
 
       const defaultFileName = `Paid_Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-      // Save file
       let fileSaved = false;
       
       if ('showSaveFilePicker' in window) {
@@ -1134,8 +1525,6 @@ const AdminDashboard = () => {
             setIsExportingPaid(false);
             return;
           } else {
-            console.error('File picker error:', pickError);
-            // Fallback download
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -1165,44 +1554,48 @@ const AdminDashboard = () => {
         return;
       }
 
-      // ============================================================
-      // STEP 2: DELETE PAID BILLS FROM FIRESTORE
-      // ============================================================
-      
       toast.success(`✅ Exported ${paidBills.length} paid bills!`);
 
-      // Now delete the paid bills
+      // ========== DELETE FROM RESPECTIVE SERVERS ==========
+      const groupedByServer = {};
+      for (const bill of paidBills) {
+        const serverKey = bill.serverSource || 'server1';
+        if (!groupedByServer[serverKey]) {
+          groupedByServer[serverKey] = [];
+        }
+        groupedByServer[serverKey].push(bill);
+      }
+
       let deleteSuccessCount = 0;
       let deleteErrorCount = 0;
 
-      let deleteBatch = writeBatch(db);
-      let deleteBatchCount = 0;
+      for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
+        const targetDb = getDbByServer(serverKey);
+        let deleteBatch = writeBatch(targetDb);
+        let deleteBatchCount = 0;
 
-      for (let i = 0; i < paidBills.length; i++) {
-        try {
-          const billRef = doc(db, 'bills', paidBills[i].id);
-          deleteBatch.delete(billRef);
-          deleteSuccessCount++;
-          deleteBatchCount++;
+        for (let i = 0; i < serverBills.length; i++) {
+          try {
+            const billRef = doc(targetDb, 'bills', serverBills[i].id);
+            deleteBatch.delete(billRef);
+            deleteSuccessCount++;
+            deleteBatchCount++;
 
-          if (deleteBatchCount >= 500) {
-            await deleteBatch.commit();
-            deleteBatch = writeBatch(db);
-            deleteBatchCount = 0;
+            if (deleteBatchCount >= 500) {
+              await deleteBatch.commit();
+              deleteBatch = writeBatch(targetDb);
+              deleteBatchCount = 0;
+            }
+          } catch (error) {
+            console.error(`Error deleting paid bill (${serverKey}):`, error);
+            deleteErrorCount++;
           }
-        } catch (error) {
-          console.error('Error deleting paid bill:', error);
-          deleteErrorCount++;
+        }
+
+        if (deleteBatchCount > 0) {
+          await deleteBatch.commit();
         }
       }
-
-      if (deleteBatchCount > 0) {
-        await deleteBatch.commit();
-      }
-
-      // ============================================================
-      // STEP 3: SHOW RESULTS
-      // ============================================================
 
       if (deleteSuccessCount > 0) {
         toast.success(`🗑️ Successfully deleted ${deleteSuccessCount} paid bills from Firebase!`);
@@ -1214,7 +1607,6 @@ const AdminDashboard = () => {
 
       toast.success(`🔒 Excel Password: ${EXCEL_PASSWORD}`);
 
-      // Refresh the bills list
       await fetchBills();
 
     } catch (error) {
@@ -1226,10 +1618,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // EXPORT FUNCTIONS (Regular)
-  // ============================================================
-  
   const openExportModal = () => {
     if (bills.length === 0) {
       toast.error('No bills to export!');
@@ -1267,6 +1655,7 @@ const AdminDashboard = () => {
 
       worksheet.columns = [
         { header: 'WSIN', key: 'wsin', width: 15 },
+        { header: 'Server', key: 'server', width: 12 },
         { header: 'Consumer Name', key: 'consumerName', width: 25 },
         { header: 'Location', key: 'location', width: 20 },
         { header: 'Period', key: 'period', width: 15 },
@@ -1289,22 +1678,24 @@ const AdminDashboard = () => {
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
-      const sortedForExport = sortByBillNumber(billsToExport);
+      const sortedForExport = sortByConsumerPeriod(billsToExport);
       
       sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
         const isDefectiveReading = isDefective(bill.presentReading) || isDefective(bill.previousReading);
+        const isCutoff = isCutoffBill(bill);
         worksheet.addRow({
           wsin: bill.billNumber || 'N/A',
+          server: getServerLabel(bill.serverSource),
           consumerName: bill.consumerName || 'N/A',
           location: bill.location || 'N/A',
           period: period.trim() || 'N/A',
           consumerType: bill.consumerType || 'N/A',
-          previousReading: isDefective(bill.previousReading) ? 'DEFECTIVE' : (bill.previousReading || '0'),
-          presentReading: isDefective(bill.presentReading) ? 'DEFECTIVE' : (bill.presentReading || '0'),
-          consumption: bill.consumption || '0',
+          previousReading: isCutoff ? 'N/A' : (isDefective(bill.previousReading) ? 'DEFECTIVE' : (bill.previousReading || '0')),
+          presentReading: isCutoff ? 'N/A' : (isDefective(bill.presentReading) ? 'DEFECTIVE' : (bill.presentReading || '0')),
+          consumption: isCutoff ? 'N/A' : (bill.consumption || '0'),
           amount: bill.amount || '0',
-          status: bill.status?.toUpperCase() || 'UNPAID',
+          status: isCutoff ? 'CUT-OFF' : (bill.status?.toUpperCase() || 'UNPAID'),
           defective: isDefectiveReading ? 'YES' : 'NO'
         });
       });
@@ -1322,7 +1713,7 @@ const AdminDashboard = () => {
             cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
           });
           
-          const statusCell = row.getCell(10);
+          const statusCell = row.getCell(11);
           const statusValue = statusCell.value?.toString().toLowerCase() || '';
           if (statusValue === 'paid') {
             statusCell.font = { color: { argb: 'FF059669' }, bold: true };
@@ -1330,9 +1721,11 @@ const AdminDashboard = () => {
             statusCell.font = { color: { argb: 'FFD97706' }, bold: true };
           } else if (statusValue === 'overdue') {
             statusCell.font = { color: { argb: 'FFDC2626' }, bold: true };
+          } else if (statusValue === 'cut-off' || statusValue === 'cutoff') {
+            statusCell.font = { color: { argb: 'FFDC2626' }, bold: true };
           }
 
-          const defectiveCell = row.getCell(11);
+          const defectiveCell = row.getCell(12);
           if (defectiveCell.value === 'YES') {
             defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
           }
@@ -1434,43 +1827,92 @@ const AdminDashboard = () => {
     toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
   };
 
-  // ============================================================
-  // IMPORT FUNCTIONS WITH DEFECTIVE HANDLING
-  // ============================================================
+  const detectExcelFormat = (jsonData) => {
+    if (!jsonData || jsonData.length === 0) return 'unknown';
+    
+    const firstRow = jsonData[0];
+    const keys = Object.keys(firstRow).map(k => k.toLowerCase().trim());
+    
+    const hasCollectableAmount = keys.some(k => 
+      k === 'collectable amount' || k === 'collectableamount' || k === 'collectable_amount'
+    );
+    
+    const hasPresentReading = keys.some(k => k === 'present reading' || k === 'presentreading');
+    const hasPreviousReading = keys.some(k => k === 'previous reading' || k === 'previousreading');
+    
+    if (hasCollectableAmount) {
+      return 'cutoff_format';
+    }
+    
+    if (hasPresentReading && hasPreviousReading) {
+      return 'calian_format';
+    }
+    
+    return 'unknown';
+  };
+
+  const getRowValue = (row, ...possibleKeys) => {
+    for (const key of possibleKeys) {
+      if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+        return row[key].toString().trim();
+      }
+    }
+    const rowKeys = Object.keys(row);
+    for (const key of possibleKeys) {
+      const lowerKey = key.toLowerCase().trim();
+      const matchedKey = rowKeys.find(k => k.toLowerCase().trim() === lowerKey);
+      if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null && row[matchedKey] !== '') {
+        return row[matchedKey].toString().trim();
+      }
+    }
+    return '';
+  };
 
   const parseExcelData = (jsonData) => {
     const parsedData = [];
+    const format = detectExcelFormat(jsonData);
+    
+    console.log('📊 Detected Excel format:', format);
     
     jsonData.forEach((row, index) => {
-      const wsin = row['WSIN']?.toString().trim() || '';
-      const consumerName = row['Consumer Name']?.toString().trim() || '';
-      const location = row['Location']?.toString().trim() || '';
-      const type = row['Type']?.toString().trim() || 'OLD';
-      const consumerType = row['Consumer Type']?.toString().trim()?.toUpperCase() || '';
-      const year = row['Year']?.toString() || '2026';
-      const month = row['Month']?.toString()?.toUpperCase() || 'APRIL';
-      const status = row['Status']?.toString().trim() || '';
-      const presentReading = row['Present Reading']?.toString().trim() || '0';
-      const previousReading = row['Previous Reading']?.toString().trim() || '0';
-      const consumption = row['Consumption']?.toString().trim() || '0';
-      const waterCharge = row['Water Charge']?.toString().trim() || '0';
-      const surcharge = row['Surcharge']?.toString().trim() || '0';
-      const overallTotal = row['Overall Total']?.toString().trim() || '0';
-      const paymentStatus = row['Payment Status']?.toString().trim()?.toLowerCase() || 'unpaid';
-      const officialReceipt = row['Official Receipt']?.toString().trim() || '';
-      const processedBy = row['Processed By']?.toString().trim() || '';
+      const wsin = getRowValue(row, 'WSIN', 'wsin');
+      const consumerName = getRowValue(row, 'Consumer Name', 'consumerName', 'Consumer');
+      const location = getRowValue(row, 'Location', 'location');
+      const month = getRowValue(row, 'month', 'Month').toUpperCase();
+      const year = getRowValue(row, 'year', 'Year');
+      const type = getRowValue(row, 'type', 'Type') || 'OLD';
+      const consumerType = getRowValue(row, 'Consumer Type', 'consumerType', 'Type').toUpperCase() || 'RESIDENTIAL';
+      const status = getRowValue(row, 'status', 'Status');
+      const presentReading = getRowValue(row, 'Present Reading', 'presentReading');
+      const previousReading = getRowValue(row, 'Previous Reading', 'previousReading');
+      const collectableAmount = getRowValue(row, 'collectable amount', 'Collectable Amount', 'collectableAmount');
       
       if (!consumerName || consumerName === '') {
         return;
       }
       
+      const statusUpper = status.toUpperCase().trim();
+      const isStatusCutoff = statusUpper === 'CUTOFF' || statusUpper === 'CUT-OFF' || statusUpper === 'CUT OFF';
+      
+      const presentNA = isNAReading(presentReading);
+      const previousNA = isNAReading(previousReading);
+      const isReadingsNA = presentNA && previousNA;
+      
+      let isCutoff = false;
+      
+      if (format === 'cutoff_format') {
+        isCutoff = isStatusCutoff || isReadingsNA;
+      } else {
+        isCutoff = isStatusCutoff;
+      }
+      
       let billStatus = 'unpaid';
-      if (paymentStatus === 'paid' || status === 'paid') {
+      if (isCutoff) {
+        billStatus = 'cutoff';
+      } else if (statusUpper === 'PAID') {
         billStatus = 'paid';
-      } else if (paymentStatus === 'overdue' || status === 'overdue') {
+      } else if (statusUpper === 'OVERDUE') {
         billStatus = 'overdue';
-      } else if (status === 'PAID') {
-        billStatus = 'paid';
       }
       
       const billNumber = wsin || `WB-${year}-${String(index + 1).padStart(3, '0')}`;
@@ -1481,19 +1923,36 @@ const AdminDashboard = () => {
         return parseFloat(cleaned) || 0;
       };
       
-      const isPresentDefective = isDefective(presentReading);
-      const isPreviousDefective = isDefective(previousReading);
-      const isDefectiveReading = isPresentDefective || isPreviousDefective;
+      let consumptionValue = 0;
+      let amountValue = 0;
+      let finalPresentReading = presentReading;
+      let finalPreviousReading = previousReading;
       
-      let consumptionValue = parseAmount(consumption);
-      let amountValue = parseAmount(overallTotal) || parseAmount(waterCharge) || 0;
-      
-      if (isDefectiveReading) {
+      if (isCutoff) {
+        finalPresentReading = 'N/A';
+        finalPreviousReading = 'N/A';
         consumptionValue = 0;
-        if (consumerType === 'COMMERCIAL') {
-          amountValue = 150;
+        amountValue = parseAmount(collectableAmount);
+      } else {
+        const isPresentDefective = isDefective(presentReading);
+        const isPreviousDefective = isDefective(previousReading);
+        const isDefectiveReading = isPresentDefective || isPreviousDefective;
+        
+        if (isDefectiveReading) {
+          consumptionValue = 0;
+          amountValue = consumerType === 'COMMERCIAL' ? 150 : 75;
+        } else if (presentNA || previousNA) {
+          consumptionValue = 0;
+          amountValue = 0;
         } else {
-          amountValue = 75;
+          const presentNum = Number(presentReading) || 0;
+          const previousNum = Number(previousReading) || 0;
+          consumptionValue = Math.max(0, presentNum - previousNum);
+          amountValue = calculateBillAmount(consumerType, consumptionValue);
+        }
+        
+        if (amountValue === 0 && collectableAmount) {
+          amountValue = parseAmount(collectableAmount);
         }
       }
       
@@ -1503,24 +1962,20 @@ const AdminDashboard = () => {
         location: location || 'N/A',
         type: type || 'OLD',
         consumerType: consumerType || 'RESIDENTIAL',
-        year: year || '2026',
-        month: month || 'APRIL',
+        year: year || new Date().getFullYear().toString(),
+        month: month || 'JANUARY',
         status: billStatus,
-        presentReading: presentReading,
-        previousReading: previousReading,
+        presentReading: finalPresentReading,
+        previousReading: finalPreviousReading,
         consumption: consumptionValue,
-        waterCharge: parseAmount(waterCharge),
-        surcharge: parseAmount(surcharge),
         amount: amountValue,
-        dueDate: `${year || '2026'}-${getMonthNumber(month || 'APRIL')}-15`,
-        officialReceipt: officialReceipt || '',
-        processedBy: processedBy || '',
-        notes: isDefectiveReading ? 'DEFECTIVE METER' : '',
+        collectableAmount: parseAmount(collectableAmount),
+        dueDate: `${year || new Date().getFullYear()}-${getMonthNumber(month || 'JANUARY')}-15`,
+        notes: isCutoff ? 'CUT-OFF ACCOUNT' : '',
         isImported: true,
         importDate: new Date().toISOString(),
-        isDefective: isDefectiveReading,
-        isPresentDefective,
-        isPreviousDefective
+        isCutoff: isCutoff,
+        excelFormat: format
       });
     });
     
@@ -1533,10 +1988,13 @@ const AdminDashboard = () => {
       'MAY': '05', 'JUNE': '06', 'JULY': '07', 'AUGUST': '08',
       'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'
     };
-    return months[month] || '04';
+    return months[month] || '01';
   };
 
-  const handleFileUpload = async (event) => {
+  // ============================================================
+  // FILE UPLOAD HANDLER - WITH SERVER CHOICE
+  // ============================================================
+  const handleFileUpload = async (event, serverChoice) => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -1550,6 +2008,9 @@ const AdminDashboard = () => {
       event.target.value = '';
       return;
     }
+
+    const targetDb = getDbByServer(serverChoice);
+    const serverLabel = getServerLabel(serverChoice);
 
     setUploading(true);
     setShowProgress(true);
@@ -1580,10 +2041,11 @@ const AdminDashboard = () => {
 
           setUploadProgress({ current: 0, total: parsedBills.length });
 
-          const batch = writeBatch(db);
-          const billsRef = collection(db, 'bills');
+          let batch = writeBatch(targetDb);
+          const billsRef = collection(targetDb, 'bills');
           let successCount = 0;
           let errorCount = 0;
+          let batchCount = 0;
 
           for (let i = 0; i < parsedBills.length; i++) {
             try {
@@ -1592,6 +2054,7 @@ const AdminDashboard = () => {
                 userId: user.uid,
                 importedBy: user?.email || user?.uid || 'Unknown User',
                 importedByName: user?.displayName || 'Unknown',
+                serverSource: serverChoice,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               };
@@ -1599,11 +2062,14 @@ const AdminDashboard = () => {
               const docRef = doc(billsRef);
               batch.set(docRef, billData);
               successCount++;
+              batchCount++;
               
               setUploadProgress({ current: i + 1, total: parsedBills.length });
               
-              if (i % 500 === 499) {
+              if (batchCount >= 500) {
                 await batch.commit();
+                batch = writeBatch(targetDb);
+                batchCount = 0;
               }
             } catch (error) {
               console.error('Error adding bill:', error);
@@ -1611,21 +2077,39 @@ const AdminDashboard = () => {
             }
           }
 
-          if (successCount > 0) {
+          if (batchCount > 0) {
             await batch.commit();
           }
 
-          toast.success(`✅ Successfully imported ${successCount} bills to Firebase! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
+          const cutoffCount = parsedBills.filter(b => b.isCutoff).length;
+          
+          toast.success(`✅ Imported ${successCount} bills to ${serverLabel}! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
+          if (cutoffCount > 0) {
+            toast.success(`🔴 ${cutoffCount} cut-off accounts detected.`);
+          }
           fetchBills();
           
         } catch (error) {
           console.error('Error parsing Excel file:', error);
-          toast.error('Error parsing Excel file. Please check the format.');
+          
+          let errorMsg = 'Error processing Excel file.';
+          if (error?.code === 'permission-denied') {
+            errorMsg = `❌ Permission denied sa ${serverLabel}. Check Firestore rules!`;
+          } else if (error?.code === 'unavailable') {
+            errorMsg = `❌ Cannot connect to ${serverLabel}. Check internet!`;
+          } else if (error?.code === 'not-found') {
+            errorMsg = `❌ Firestore sa ${serverLabel} wala pa na-setup!`;
+          } else if (error?.message) {
+            errorMsg = `Error: ${error.message}`;
+          }
+          
+          toast.error(errorMsg, { duration: 8000 });
         } finally {
           setUploading(false);
           setShowProgress(false);
           setUploadProgress({ current: 0, total: 0 });
           event.target.value = '';
+          setSelectedImportServer(null);
         }
       };
 
@@ -1669,17 +2153,41 @@ const AdminDashboard = () => {
     const statusMap = {
       paid: { label: 'Paid', class: 'status-paid' },
       unpaid: { label: 'Unpaid', class: 'status-unpaid' },
-      overdue: { label: 'Overdue', class: 'status-overdue' }
+      overdue: { label: 'Overdue', class: 'status-overdue' },
+      cutoff: { label: 'Cut-off', class: 'status-cutoff' }
     };
     return statusMap[status] || statusMap.unpaid;
+  };
+
+  // Helper function to get server color
+  const getServerColor = (serverKey) => {
+    const config = SERVER_CONFIGS.find(s => s.key === serverKey);
+    return config ? config.color : '#194752';
   };
 
   const activeFilterCount = [
     filterType !== 'all',
     filterLocation !== 'all',
     filterMonth !== 'all',
-    filterYear !== 'all'
+    filterYear !== 'all',
+    filterConsumerPeriod !== 'all',
+    filterServer !== 'all'
   ].filter(Boolean).length;
+
+  const getConsumersWithUnpaid = () => {
+    const consumerMap = new Map();
+    filteredBills.forEach(bill => {
+      if (bill.status !== 'paid' && !isCutoffBill(bill) && bill.consumerName) {
+        if (!consumerMap.has(bill.consumerName)) {
+          consumerMap.set(bill.consumerName, []);
+        }
+        consumerMap.get(bill.consumerName).push(bill);
+      }
+    });
+    return consumerMap;
+  };
+
+  const consumersWithUnpaid = getConsumersWithUnpaid();
 
   if (loading) {
     return (
@@ -1699,12 +2207,29 @@ const AdminDashboard = () => {
           <p>Manage all water bill records</p>
         </div>
         <div className="header-actions">
+          <div className="table-type-toggle">
+            <button
+              className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`}
+              onClick={() => setTableType('regular')}
+            >
+              <RegularTableIcon />
+              REGULAR
+            </button>
+            <button
+              className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`}
+              onClick={() => setTableType('cutoff')}
+            >
+              <CutoffTableIcon />
+              CUT-OFF
+            </button>
+          </div>
+
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             ADD BILL
           </button>
           <button 
             className="btn btn-secondary" 
-            onClick={() => document.getElementById('fileInput').click()}
+            onClick={() => setShowServerSelectModal(true)}
             disabled={uploading}
           >
             IMPORT
@@ -1716,7 +2241,6 @@ const AdminDashboard = () => {
           >
             {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
-          {/* ✅ EXPORT PAID + DELETE BUTTON */}
           <button 
             className="btn btn-success" 
             onClick={openExportPaidConfirm}
@@ -1740,7 +2264,6 @@ const AdminDashboard = () => {
             <ExportPaidIcon width={20} height={20} color="#ffffff" />
             {isExportingPaid ? '⏳ Processing...' : 'EXPORT PAID'}
           </button>
-          {/* ✅ ADD NEW MONTH BUTTON */}
           <button 
             className="btn btn-success" 
             onClick={openNewMonthModal}
@@ -1772,8 +2295,254 @@ const AdminDashboard = () => {
         id="fileInput"
         accept=".xlsx,.xls"
         style={{ display: 'none' }}
-        onChange={handleFileUpload}
+        onChange={(e) => handleFileUpload(e, selectedImportServer)}
       />
+
+      {/* ============================================================ */}
+      {/* SERVER SELECTION MODAL FOR IMPORT - 5 SERVERS */}
+      {/* ============================================================ */}
+      {showServerSelectModal && (
+        <div className="modal-overlay" onClick={() => setShowServerSelectModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                🌐 Select Server
+              </h2>
+              <button className="close-btn" onClick={() => setShowServerSelectModal(false)}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '20px', textAlign: 'center' }}>
+                Pilia asa nga <strong>Firebase Firestore</strong> nimo e-store ang gi-import nga Excel data.
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '14px'
+              }}>
+                {SERVER_CONFIGS.map((server) => (
+                  <button
+                    key={server.key}
+                    onClick={() => {
+                      setSelectedImportServer(server.key);
+                      setShowServerSelectModal(false);
+                      setTimeout(() => {
+                        document.getElementById('fileInput').click();
+                      }, 150);
+                    }}
+                    style={{
+                      padding: '20px 12px',
+                      background: `linear-gradient(135deg, ${server.color}, ${server.color}dd)`,
+                      color: '#ffffff',
+                      border: `3px solid ${server.color}`,
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.25s ease',
+                      boxShadow: `0 6px 20px ${server.color}40`
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                      e.currentTarget.style.boxShadow = `0 12px 30px ${server.color}66`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      e.currentTarget.style.boxShadow = `0 6px 20px ${server.color}40`;
+                    }}
+                  >
+                    <span style={{ fontSize: '30px' }}>🗄️</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '0.5px' }}>
+                      {server.label.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: '10px', opacity: 0.9, textAlign: 'center', wordBreak: 'break-all' }}>
+                      {server.project}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowServerSelectModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* CUTOFF PAY MODAL */}
+      {/* ============================================================ */}
+      {showCutoffPayModal && cutoffBillToPay && (
+        <div className="modal-overlay" onClick={() => setShowCutoffPayModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CutoffTableIcon />
+                Cut-off Payment
+              </h2>
+              <button className="close-btn" onClick={() => setShowCutoffPayModal(false)}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
+                Confirm payment for this cut-off account. The <strong>Collectable Amount</strong> will be used as the payment amount.
+              </p>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                <span style={{
+                  padding: '4px 16px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  background: `${getServerColor(cutoffBillToPay.serverSource)}22`,
+                  color: getServerColor(cutoffBillToPay.serverSource)
+                }}>
+                  🗄️ FROM {getServerLabel(cutoffBillToPay.serverSource).toUpperCase()}
+                </span>
+              </div>
+
+              <div style={{ 
+                border: '2px solid #DC2626', 
+                borderRadius: '12px',
+                overflow: 'hidden',
+                marginBottom: '16px'
+              }}>
+                <table style={{ 
+                  width: '100%', 
+                  borderCollapse: 'collapse',
+                  fontSize: '14px'
+                }}>
+                  <thead>
+                    <tr style={{ background: '#DC2626' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
+                        Bill Number (WSIN)
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
+                        Consumer Name
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
+                        Type
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
+                        Year
+                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
+                        Collectable Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ background: '#FFF5F5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: '600', color: '#194752' }}>
+                        {cutoffBillToPay.billNumber || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>
+                        {cutoffBillToPay.consumerName || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span className={`type-badge ${cutoffBillToPay.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
+                          {cutoffBillToPay.type || cutoffBillToPay.consumerType || 'N/A'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>
+                        {cutoffBillToPay.year || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '700', fontSize: '18px', color: '#DC2626' }}>
+                        {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ 
+                background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
+                border: '2px solid #FECACA',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '500' }}>
+                    AMOUNT TO PAY
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '28px', fontWeight: '800', color: '#DC2626' }}>
+                    {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '500' }}>
+                    STATUS
+                  </p>
+                  <span className="status-badge status-cutoff" style={{ fontSize: '14px', padding: '6px 18px' }}>
+                    CUT-OFF
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>OR Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  className={`payment-input ${cutoffPaymentError ? 'error' : ''}`}
+                  placeholder="Enter 7-digit code"
+                  value={cutoffPaymentCode}
+                  onChange={handleCutoffPaymentCodeChange}
+                  maxLength="7"
+                  autoFocus
+                />
+                {cutoffPaymentError && <span className="error-text">{cutoffPaymentError}</span>}
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setShowCutoffPayModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmCutoffPay}
+                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff}
+                style={{ 
+                  flex: 1,
+                  background: '#DC2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff) ? '0.5' : '1'
+                }}
+              >
+                {isPayingCutoff ? '⏳ Processing...' : `✅ Confirm Payment`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Location Modal */}
       {showExportModal && (
@@ -1858,9 +2627,147 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ============================================================
-          EXPORT PAID CONFIRMATION MODAL
-          ============================================================ */}
+      {/* PAY ALL MODAL */}
+      {showPayAllModal && payAllBills.length > 0 && (
+        <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PayAllIcon width={28} height={28} color="#16A34A" />
+                Pay All - {payAllConsumerName}
+              </h2>
+              <button className="close-btn" onClick={() => setShowPayAllModal(false)}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '12px' }}>
+                You are about to pay <strong>{payAllBills.length}</strong> unpaid bills for <strong>{payAllConsumerName}</strong>.
+              </p>
+
+              <div style={{ 
+                border: '1px solid #E2E8F0', 
+                borderRadius: '8px',
+                overflow: 'hidden',
+                marginBottom: '16px'
+              }}>
+                <table style={{ 
+                  width: '100%', 
+                  borderCollapse: 'collapse',
+                  fontSize: '13px'
+                }}>
+                  <thead style={{ background: '#F8FAFC' }}>
+                    <tr>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Period</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>WSIN</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center', borderBottom: '1px solid #E2E8F0' }}>Server</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Consumption</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payAllBills.map((bill, index) => {
+                      const { consumption, amount, isDefective: isDef } = calculateWithDefective(
+                        bill.presentReading,
+                        bill.previousReading,
+                        bill.consumerType
+                      );
+                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      return (
+                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{ borderBottom: index < payAllBills.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                          <td style={{ padding: '8px 14px' }}>{period.trim()}</td>
+                          <td style={{ padding: '8px 14px', fontWeight: '500' }}>{bill.billNumber || 'N/A'}</td>
+                          <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              background: `${getServerColor(bill.serverSource)}22`,
+                              color: getServerColor(bill.serverSource)
+                            }}>
+                              {getServerLabel(bill.serverSource).replace('Server ', 'S')}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 14px', textAlign: 'right' }}>
+                            {consumption} m³
+                            {isDef && <span style={{ color: '#DC2626', fontSize: '10px', marginLeft: '4px' }}>⚠️</span>}
+                          </td>
+                          <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '600' }}>
+                            {formatCurrency(amount)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot style={{ background: '#F8FAFC', borderTop: '2px solid #194752' }}>
+                    <tr>
+                      <td colSpan="4" style={{ padding: '12px 14px', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>
+                        OVERALL TOTAL:
+                      </td>
+                      <td style={{ padding: '12px 14px', fontWeight: '700', fontSize: '18px', textAlign: 'right', color: '#194752' }}>
+                        {formatCurrency(payAllBills.reduce((sum, bill) => {
+                          const { amount } = calculateWithDefective(
+                            bill.presentReading,
+                            bill.previousReading,
+                            bill.consumerType
+                          );
+                          return sum + amount;
+                        }, 0))}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="form-group">
+                <label>OR Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  className={`payment-input ${payAllPaymentError ? 'error' : ''}`}
+                  placeholder="Enter 7-digit code (will be used for all bills)"
+                  value={payAllPaymentCode}
+                  onChange={handlePayAllPaymentCodeChange}
+                  maxLength="7"
+                  autoFocus
+                />
+                {payAllPaymentError && <span className="error-text">{payAllPaymentError}</span>}
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setShowPayAllModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmPayAll}
+                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll}
+                style={{ 
+                  flex: 1,
+                  background: '#16A34A',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll) ? '0.5' : '1'
+                }}
+              >
+                {isPayingAll ? '⏳ Processing...' : `✅ Pay All (${payAllBills.length} Bills)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPORT PAID CONFIRMATION MODAL */}
       {showExportPaidConfirm && (
         <div className="modal-overlay" onClick={closeExportPaidConfirm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -1884,7 +2791,7 @@ const AdminDashboard = () => {
                 marginBottom: '16px'
               }}>
                 <li>📤 Export <strong>{paidBillsToDelete.length}</strong> paid bills to Excel</li>
-                <li>🗑️ <strong style={{ color: '#DC2626' }}>PERMANENTLY DELETE</strong> all paid bills from Firebase</li>
+                <li>🗑️ <strong style={{ color: '#DC2626' }}>PERMANENTLY DELETE</strong> all paid bills from all servers</li>
                 <li>🔒 File will be password protected with <strong>"Water_2026"</strong></li>
               </ul>
               
@@ -1899,60 +2806,6 @@ const AdminDashboard = () => {
                   ⚠️ This action cannot be undone! Please make sure you have a backup.
                 </p>
               </div>
-
-              {paidBillsToDelete.length > 0 && (
-                <div style={{ marginTop: '16px' }}>
-                  <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '8px' }}>
-                    Preview of bills to be exported and deleted:
-                  </p>
-                  <div style={{ 
-                    maxHeight: '150px', 
-                    overflow: 'auto',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px',
-                    background: '#F8FAFC'
-                  }}>
-                    <table style={{ 
-                      width: '100%', 
-                      borderCollapse: 'collapse',
-                      fontSize: '12px'
-                    }}>
-                      <thead style={{ 
-                        background: '#F1F5F9', 
-                        position: 'sticky', 
-                        top: 0,
-                        zIndex: 1
-                      }}>
-                        <tr>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>WSIN</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Consumer</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paidBillsToDelete.slice(0, 20).map((bill) => (
-                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                            <td style={{ padding: '4px 10px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
-                            <td style={{ padding: '4px 10px' }}>{bill.consumerName || 'N/A'}</td>
-                            <td style={{ padding: '4px 10px' }}>₱{(bill.amount || 0).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {paidBillsToDelete.length > 20 && (
-                      <div style={{ 
-                        padding: '6px 10px', 
-                        textAlign: 'center', 
-                        background: '#F8FAFC',
-                        fontSize: '12px',
-                        color: '#64748B'
-                      }}>
-                        + {paidBillsToDelete.length - 20} more bills
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
@@ -1987,9 +2840,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ============================================================
-          ADD NEW MONTH MODAL
-          ============================================================ */}
+      {/* ADD NEW MONTH MODAL */}
       {showNewMonthModal && (
         <div className="modal-overlay" onClick={closeNewMonthModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
@@ -2026,8 +2877,7 @@ const AdminDashboard = () => {
                       fontFamily: 'Inter, sans-serif',
                       fontSize: '15px',
                       color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
+                      outline: 'none'
                     }}
                   >
                     <option value="">Select Location...</option>
@@ -2055,8 +2905,7 @@ const AdminDashboard = () => {
                       fontFamily: 'Inter, sans-serif',
                       fontSize: '15px',
                       color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
+                      outline: 'none'
                     }}
                   >
                     <option value="">Select Month...</option>
@@ -2084,8 +2933,7 @@ const AdminDashboard = () => {
                       fontFamily: 'Inter, sans-serif',
                       fontSize: '15px',
                       color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
+                      outline: 'none'
                     }}
                   >
                     <option value="">Select Year...</option>
@@ -2128,10 +2976,7 @@ const AdminDashboard = () => {
                     marginBottom: '8px'
                   }}>
                     <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                      📋 Found {newMonthPreview.length} bills for {newMonthMonth} {newMonthYear} in {newMonthLocation}
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#16A34A' }}>
-                      Will rollover to next month
+                      📋 Found {newMonthPreview.length} bills
                     </span>
                   </div>
                   
@@ -2141,50 +2986,39 @@ const AdminDashboard = () => {
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px'
                   }}>
-                    <table style={{ 
-                      width: '100%', 
-                      borderCollapse: 'collapse',
-                      fontSize: '12px'
-                    }}>
-                      <thead style={{ 
-                        background: '#F1F5F9', 
-                        position: 'sticky', 
-                        top: 0,
-                        zIndex: 1
-                      }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 1 }}>
                         <tr>
                           <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
                           <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Present Reading</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>→ New Previous</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center' }}>Server</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Present</th>
                         </tr>
                       </thead>
                       <tbody>
                         {newMonthPreview.slice(0, 50).map((bill) => (
-                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <tr key={`${bill.serverSource}-${bill.id}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
                             <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
                             <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                background: `${getServerColor(bill.serverSource)}22`,
+                                color: getServerColor(bill.serverSource)
+                              }}>
+                                {getServerLabel(bill.serverSource).replace('Server ', 'S')}
+                              </span>
+                            </td>
                             <td style={{ padding: '6px 12px', fontWeight: '600', color: '#16A34A' }}>
                               {bill.presentReading || '0'}
-                            </td>
-                            <td style={{ padding: '6px 12px', fontWeight: '600', color: '#2563EB' }}>
-                              → {bill.presentReading || '0'}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    {newMonthPreview.length > 50 && (
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        textAlign: 'center', 
-                        background: '#F8FAFC',
-                        fontSize: '12px',
-                        color: '#64748B'
-                      }}>
-                        Showing first 50 of {newMonthPreview.length} bills
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -2223,146 +3057,487 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <span className="stat-icon">
-            <SummationCircleIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Total Bills</p>
-            <p className="stat-number">{stats.total}</p>
+      {/* ============================================================ */}
+      {/* REGULAR TABLE VIEW */}
+      {/* ============================================================ */}
+      {tableType === 'regular' && (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-icon">
+                <SummationCircleIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Total Bills</p>
+                <p className="stat-number">{stats.total}</p>
+              </div>
+            </div>
+            <div className="stat-card stat-paid">
+              <span className="stat-icon">
+                <PhilippinePesoIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Paid</p>
+                <p className="stat-number">{stats.paid}</p>
+              </div>
+            </div>
+            <div className="stat-card stat-unpaid">
+              <span className="stat-icon">
+                <CalendarClockIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Unpaid</p>
+                <p className="stat-number">{stats.unpaid}</p>
+              </div>
+            </div>
+            <div className="stat-card stat-overdue">
+              <span className="stat-icon">
+                <SecurityWarningIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Overdue</p>
+                <p className="stat-number">{stats.overdue}</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">
+                <User02Icon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Consumers</p>
+                <p className="stat-number">{stats.totalConsumers}</p>
+              </div>
+            </div>
+            <div className="stat-card stat-residential">
+              <span className="stat-icon">
+                <ApartmentIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Residential</p>
+                <p className="stat-number">{stats.residential}</p>
+              </div>
+            </div>
+            <div className="stat-card stat-commercial">
+              <span className="stat-icon">
+                <DuplexIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Commercial</p>
+                <p className="stat-number">{stats.commercial}</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">
+                <Location03Icon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Location</p>
+                <p className="stat-number stat-location">{stats.location || 'N/A'}</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="stat-card stat-paid">
-          <span className="stat-icon">
-            <PhilippinePesoIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Paid</p>
-            <p className="stat-number">{stats.paid}</p>
-          </div>
-        </div>
-        <div className="stat-card stat-unpaid">
-          <span className="stat-icon">
-            <CalendarClockIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Unpaid</p>
-            <p className="stat-number">{stats.unpaid}</p>
-          </div>
-        </div>
-        <div className="stat-card stat-overdue">
-          <span className="stat-icon">
-            <SecurityWarningIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Overdue</p>
-            <p className="stat-number">{stats.overdue}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <span className="stat-icon">
-            <User02Icon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Consumers</p>
-            <p className="stat-number">{stats.totalConsumers}</p>
-          </div>
-        </div>
-        <div className="stat-card stat-residential">
-          <span className="stat-icon">
-            <ApartmentIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Residential</p>
-            <p className="stat-number">{stats.residential}</p>
-          </div>
-        </div>
-        <div className="stat-card stat-commercial">
-          <span className="stat-icon">
-            <DuplexIcon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Commercial</p>
-            <p className="stat-number">{stats.commercial}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <span className="stat-icon">
-            <Location03Icon width={28} height={28} color="#194752" />
-          </span>
-          <div>
-            <p className="stat-label">Location</p>
-            <p className="stat-number stat-location">{stats.location || 'N/A'}</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="search-filter-container">
-        <div className="search-wrapper">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search by name or WSIN..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select 
-            className="filter-select"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="all">All Types</option>
-            <option value="RESIDENTIAL">Residential</option>
-            <option value="COMMERCIAL">Commercial</option>
-          </select>
-          <select 
-            className="filter-select"
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
-          >
-            <option value="all">All Locations</option>
-            {locations.map(location => (
-              <option key={location} value={location}>{location}</option>
-            ))}
-          </select>
-          <select 
-            className="filter-select"
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-          >
-            <option value="all">All Months</option>
-            {months.map(month => (
-              <option key={month} value={month}>{month}</option>
-            ))}
-          </select>
-          <select 
-            className="filter-select"
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-          >
-            <option value="all">All Years</option>
-            {years.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-actions">
-          {activeFilterCount > 0 && (
-            <button className="btn-clear" onClick={resetFilters}>
-              ✕ Clear Filters
-            </button>
+          <div className="search-filter-container">
+            <div className="search-wrapper">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search by name or WSIN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select 
+                className="filter-select"
+                value={filterServer}
+                onChange={(e) => setFilterServer(e.target.value)}
+                style={{ minWidth: '130px', fontWeight: '600' }}
+              >
+                <option value="all">🌐 All Servers</option>
+                {SERVER_CONFIGS.map(s => (
+                  <option key={s.key} value={s.key}>🗄️ {s.label}</option>
+                ))}
+              </select>
+              <select 
+                className="filter-select"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="RESIDENTIAL">Residential</option>
+                <option value="COMMERCIAL">Commercial</option>
+              </select>
+              <select 
+                className="filter-select"
+                value={filterLocation}
+                onChange={(e) => setFilterLocation(e.target.value)}
+              >
+                <option value="all">All Locations</option>
+                {locations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+              <select 
+                className="filter-select"
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+              >
+                <option value="all">All Months</option>
+                {months.map(month => (
+                  <option key={month} value={month}>{month}</option>
+                ))}
+              </select>
+              <select 
+                className="filter-select"
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+              >
+                <option value="all">All Years</option>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-actions">
+              {activeFilterCount > 0 && (
+                <button className="btn-clear" onClick={resetFilters}>
+                  ✕ Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {searchTerm.trim() && consumersWithUnpaid.size === 1 && (
+            <div style={{ 
+              marginBottom: '16px',
+              padding: '12px 20px',
+              background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
+              borderRadius: '12px',
+              border: '2px solid #86EFAC',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <span style={{ fontWeight: '600', color: '#166534' }}>
+                  <PayAllIcon width={20} height={20} color="#16A34A" style={{ display: 'inline', marginRight: '8px' }} />
+                  {Array.from(consumersWithUnpaid.keys())[0]} has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills
+                </span>
+                <span style={{ fontSize: '13px', color: '#15803D', marginLeft: '12px' }}>
+                  Total: {formatCurrency(Array.from(consumersWithUnpaid.values())[0].reduce((sum, bill) => {
+                    const { amount } = calculateWithDefective(
+                      bill.presentReading,
+                      bill.previousReading,
+                      bill.consumerType
+                    );
+                    return sum + amount;
+                  }, 0))}
+                </span>
+              </div>
+              <button
+                className="btn btn-success"
+                onClick={() => handlePayAll(Array.from(consumersWithUnpaid.keys())[0])}
+                style={{
+                  background: '#16A34A',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 24px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <PayAllIcon width={20} height={20} color="#ffffff" />
+                PAY ALL
+              </button>
+            </div>
           )}
-        </div>
-      </div>
+
+          <div className="table-container">
+            {filteredBills.length === 0 ? (
+              <div className="empty-state">
+                <p>No bills found. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill or import from Excel!'}</p>
+              </div>
+            ) : (
+              <table className="bills-table">
+                <thead>
+                  <tr>
+                    <th>WSIN</th>
+                    <th>Server</th>
+                    <th>Consumer</th>
+                    <th>Location</th>
+                    <th>Period</th>
+                    <th>Type</th>
+                    <th>Previous</th>
+                    <th>Present</th>
+                    <th>Consumption</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBills.map((bill) => {
+                    let displayStatus;
+                    if (bill.status === 'paid') {
+                      displayStatus = 'paid';
+                    } else {
+                      displayStatus = determineBillStatus(bill);
+                    }
+                    
+                    const status = getStatusBadge(displayStatus);
+                    const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                    
+                    const isPresentDefective = isDefective(bill.presentReading);
+                    const isPreviousDefective = isDefective(bill.previousReading);
+                    const isDefectiveReading = isPresentDefective || isPreviousDefective;
+                    
+                    const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
+                    const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
+                    
+                    const { consumption, amount } = calculateWithDefective(
+                      bill.presentReading,
+                      bill.previousReading,
+                      bill.consumerType
+                    );
+                    
+                    return (
+                      <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
+                        <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                        <td>
+                          <span style={{
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            background: `${getServerColor(bill.serverSource)}22`,
+                            color: getServerColor(bill.serverSource),
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {getServerLabel(bill.serverSource).toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                        <td className="name-cell">{bill.location || 'N/A'}</td>
+                        <td className="name-cell">{period.trim() || 'N/A'}</td>
+                        <td>
+                          <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
+                            {bill.consumerType || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="name-cell">{displayPrevious}</td>
+                        <td className="name-cell">{displayPresent}</td>
+                        <td className="name-cell" style={{ fontWeight: '600' }}>
+                          {consumption} m³
+                          {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
+                        </td>
+                        <td className="name-cell" style={{ fontWeight: '600' }}>
+                          {formatCurrency(amount)}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${status.class}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="admin-action-buttons">
+                            {displayStatus !== 'paid' && (
+                              <button className="action-btn pay" onClick={() => handlePayBill(bill)}>
+                                PAY
+                              </button>
+                            )}
+                            <button className="action-btn edit" onClick={() => handleEdit(bill)}>
+                              EDIT
+                            </button>
+                            <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>
+                              DELETE
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/* CUT-OFF TABLE VIEW */}
+      {/* ============================================================ */}
+      {tableType === 'cutoff' && (
+        <>
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="stat-card" style={{ borderColor: '#DC2626' }}>
+              <span className="stat-icon">
+                <SummationCircleIcon width={28} height={28} color="#DC2626" />
+              </span>
+              <div>
+                <p className="stat-label">Cut-off Accounts</p>
+                <p className="stat-number" style={{ color: '#DC2626' }}>{filteredBills.length}</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">
+                <User02Icon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Consumers</p>
+                <p className="stat-number">
+                  {new Set(filteredBills.map(b => b.consumerName)).size}
+                </p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <span className="stat-icon">
+                <PhilippinePesoIcon width={28} height={28} color="#194752" />
+              </span>
+              <div>
+                <p className="stat-label">Total Collectable</p>
+                <p className="stat-number" style={{ color: '#DC2626' }}>
+                  {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="search-filter-container">
+            <div className="search-wrapper">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search by name or WSIN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select 
+                className="filter-select"
+                value={filterServer}
+                onChange={(e) => setFilterServer(e.target.value)}
+                style={{ minWidth: '130px', fontWeight: '600' }}
+              >
+                <option value="all">🌐 All Servers</option>
+                {SERVER_CONFIGS.map(s => (
+                  <option key={s.key} value={s.key}>🗄️ {s.label}</option>
+                ))}
+              </select>
+              <select 
+                className="filter-select"
+                value={filterLocation}
+                onChange={(e) => setFilterLocation(e.target.value)}
+              >
+                <option value="all">All Locations</option>
+                {locations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-actions">
+              {activeFilterCount > 0 && (
+                <button className="btn-clear" onClick={resetFilters}>
+                  ✕ Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="table-container">
+            {filteredBills.length === 0 ? (
+              <div className="empty-state">
+                <p>No cut-off accounts found.</p>
+              </div>
+            ) : (
+              <table className="bills-table">
+                <thead>
+                  <tr>
+                    <th>WSIN</th>
+                    <th>Server</th>
+                    <th>Consumer</th>
+                    <th>Location</th>
+                    <th>Period</th>
+                    <th>Type</th>
+                    <th>Collectable Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBills.map((bill) => {
+                    const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                    const amount = bill.amount || bill.collectableAmount || 0;
+                    const isPaid = bill.status === 'paid';
+                    
+                    return (
+                      <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
+                        <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                        <td>
+                          <span style={{
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            background: `${getServerColor(bill.serverSource)}22`,
+                            color: getServerColor(bill.serverSource),
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {getServerLabel(bill.serverSource).toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                        <td className="name-cell">{bill.location || 'N/A'}</td>
+                        <td className="name-cell">{period.trim() || 'N/A'}</td>
+                        <td>
+                          <span className={`type-badge ${bill.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
+                            {bill.type || bill.consumerType || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="name-cell" style={{ fontWeight: '600', color: '#DC2626' }}>
+                          {formatCurrency(amount)}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${isPaid ? 'status-paid' : 'status-cutoff'}`}>
+                            {isPaid ? 'PAID' : 'CUT-OFF'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="admin-action-buttons">
+                            {!isPaid && (
+                              <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>
+                                PAY
+                              </button>
+                            )}
+                            <button className="action-btn edit" onClick={() => handleEdit(bill)}>
+                              EDIT
+                            </button>
+                            <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>
+                              DELETE
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Progress Modal */}
       {showProgress && (
         <div className="modal-overlay">
           <div className="modal-content progress-modal">
-            <h3>Importing Bills to Firebase</h3>
+            <h3>Importing Bills to {getServerLabel(selectedImportServer)}</h3>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
@@ -2378,7 +3553,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Pay Modal with Defective Handling */}
+      {/* Pay Modal */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2386,6 +3561,20 @@ const AdminDashboard = () => {
               <h2>Confirm Payment</h2>
               <button className="close-btn" onClick={() => setShowPayModal(false)}>✕</button>
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <span style={{
+                padding: '4px 16px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '700',
+                background: `${getServerColor(selectedBill.serverSource)}22`,
+                color: getServerColor(selectedBill.serverSource)
+              }}>
+                🗄️ FROM {getServerLabel(selectedBill.serverSource).toUpperCase()}
+              </span>
+            </div>
+
             <div className="pay-details">
               <div className="pay-row">
                 <span className="pay-label">Bill Number</span>
@@ -2398,18 +3587,6 @@ const AdminDashboard = () => {
               <div className="pay-row">
                 <span className="pay-label">Type</span>
                 <span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span>
-              </div>
-              <div className="pay-row">
-                <span className="pay-label">Previous Reading</span>
-                <span className="pay-value">
-                  {isDefective(selectedBill.previousReading) ? 'DEFECTIVE ⚠️' : (selectedBill.previousReading || '0')}
-                </span>
-              </div>
-              <div className="pay-row">
-                <span className="pay-label">Present Reading</span>
-                <span className="pay-value">
-                  {isDefective(selectedBill.presentReading) ? 'DEFECTIVE ⚠️' : (selectedBill.presentReading || '0')}
-                </span>
               </div>
               <div className="pay-row" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px' }}>
                 <span className="pay-label" style={{ fontWeight: 'bold' }}>Consumption</span>
@@ -2433,17 +3610,12 @@ const AdminDashboard = () => {
                 <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
                 <span className="pay-value amount" style={{ fontSize: '22px' }}>
                   {(() => {
-                    const { amount, isDefective: isDef } = calculateWithDefective(
+                    const { amount } = calculateWithDefective(
                       selectedBill.presentReading,
                       selectedBill.previousReading,
                       selectedBill.consumerType
                     );
-                    return (
-                      <>
-                        {formatCurrency(amount)}
-                        {isDef && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
-                      </>
-                    );
+                    return formatCurrency(amount);
                   })()}
                 </span>
               </div>
@@ -2492,109 +3664,6 @@ const AdminDashboard = () => {
         />
       )}
 
-      {/* Table with Defective Display */}
-      <div className="table-container">
-        {filteredBills.length === 0 ? (
-          <div className="empty-state">
-            <p>No bills found. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill or import from Excel!'}</p>
-          </div>
-        ) : (
-          <table className="bills-table">
-            <thead>
-              <tr>
-                <th>WSIN</th>
-                <th>Consumer</th>
-                <th>Location</th>
-                <th>Period</th>
-                <th>Type</th>
-                <th>Previous</th>
-                <th>Present</th>
-                <th>Consumption</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBills.map((bill) => {
-                let displayStatus;
-                if (bill.status === 'paid') {
-                  displayStatus = 'paid';
-                } else {
-                  displayStatus = determineBillStatus(bill);
-                }
-                
-                const status = getStatusBadge(displayStatus);
-                const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                
-                const isPresentDefective = isDefective(bill.presentReading);
-                const isPreviousDefective = isDefective(bill.previousReading);
-                const isDefectiveReading = isPresentDefective || isPreviousDefective;
-                
-                const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
-                const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
-                
-                const { consumption, amount } = calculateWithDefective(
-                  bill.presentReading,
-                  bill.previousReading,
-                  bill.consumerType
-                );
-                
-                return (
-                  <tr key={bill.id}>
-                    <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                    <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                    <td className="name-cell">{bill.location || 'N/A'}</td>
-                    <td className="name-cell">{period.trim() || 'N/A'}</td>
-                    <td>
-                      <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
-                        {bill.consumerType || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="name-cell">
-                      {displayPrevious}
-                      {isPreviousDefective && <span className="defective-badge">⚠️</span>}
-                    </td>
-                    <td className="name-cell">
-                      {displayPresent}
-                      {isPresentDefective && <span className="defective-badge">⚠️</span>}
-                    </td>
-                    <td className="name-cell" style={{ fontWeight: '600' }}>
-                      {consumption} m³
-                      {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
-                    </td>
-                    <td className="name-cell" style={{ fontWeight: '600' }}>
-                      {formatCurrency(amount)}
-                      {isDefectiveReading && <span className="defective-badge fixed-rate"> FIXED RATE</span>}
-                    </td>
-                    <td>
-                      <span className={`status-badge ${status.class}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="admin-action-buttons">
-                        {displayStatus !== 'paid' && (
-                          <button className="action-btn pay" onClick={() => handlePayBill(bill)}>
-                            PAY
-                          </button>
-                        )}
-                        <button className="action-btn edit" onClick={() => handleEdit(bill)}>
-                          EDIT
-                        </button>
-                        <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>
-                          DELETE
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
       {/* Bill Form */}
       {showForm && (
         <BillForm
@@ -2612,18 +3681,14 @@ const AdminDashboard = () => {
 // ============================================================
 
 const getNextMonth = (currentMonth) => {
-  const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-                      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-  const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
+  const currentIndex = MONTH_ORDER.indexOf(currentMonth?.toUpperCase());
   if (currentIndex === -1) return '';
   const nextIndex = (currentIndex + 1) % 12;
-  return monthOrder[nextIndex];
+  return MONTH_ORDER[nextIndex];
 };
 
 const getNextYear = (currentMonth, currentYear) => {
-  const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-                      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-  const currentIndex = monthOrder.indexOf(currentMonth?.toUpperCase());
+  const currentIndex = MONTH_ORDER.indexOf(currentMonth?.toUpperCase());
   if (currentIndex === -1) return currentYear;
   const nextIndex = (currentIndex + 1) % 12;
   if (nextIndex === 0) {

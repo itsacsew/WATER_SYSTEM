@@ -76,6 +76,65 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
     return `${pesoWords} ${pesoLabel} AND ${centavoStr}/100 PESOS ONLY`;
   };
 
+  // ============================================================
+  // WATER FEE PERIOD FORMATTER - WITH MONTH RANGE & YEAR
+  // ============================================================
+  const formatWaterFeePeriod = () => {
+    const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                        'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    
+    // Check if this is a PAY ALL transaction (multiple bills)
+    if (bill?.isPayAll && bill?.payAllDetails && bill.payAllDetails.length > 0) {
+      // Extract all months and years from payAllDetails
+      const details = bill.payAllDetails;
+      
+      // Get unique month-year combos, sorted
+      const sortedPeriods = [...details].sort((a, b) => {
+        const aYear = parseInt(a.year) || 0;
+        const bYear = parseInt(b.year) || 0;
+        if (aYear !== bYear) return aYear - bYear;
+        const aIdx = monthOrder.indexOf(a.month?.toUpperCase());
+        const bIdx = monthOrder.indexOf(b.month?.toUpperCase());
+        return aIdx - bIdx;
+      });
+      
+      const firstPeriod = sortedPeriods[0];
+      const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
+      
+      const firstMonth = firstPeriod.month?.toUpperCase() || '';
+      const lastMonth = lastPeriod.month?.toUpperCase() || '';
+      const firstYear = firstPeriod.year || '';
+      const lastYear = lastPeriod.year || '';
+      
+      // If only one bill in pay all
+      if (sortedPeriods.length === 1) {
+        return `${firstMonth} ${firstYear}`;
+      }
+      
+      // If same month and year
+      if (firstMonth === lastMonth && firstYear === lastYear) {
+        return `${firstMonth} ${firstYear}`;
+      }
+      
+      // If same year, different months - use range: APRIL - JUNE 2026
+      if (firstYear === lastYear) {
+        return `${firstMonth} - ${lastMonth} ${firstYear}`;
+      }
+      
+      // If different years - use: DECEMBER 2025 - FEBRUARY 2026
+      return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
+    }
+    
+    // Single bill
+    const month = bill?.month || 'N/A';
+    const year = bill?.year || '';
+    
+    if (year) {
+      return `${month} ${year}`;
+    }
+    return month;
+  };
+
   const handlePrint = async () => {
     try {
       const element = receiptRef.current;
@@ -224,7 +283,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   }, []);
 
   const consumerName = bill?.consumerName || 'N/A';
-  const monthName = bill?.month || 'N/A';
+  const waterFeePeriod = formatWaterFeePeriod();
   const amount = bill?.amount || 0;
   const amountInWords = amountToWords(amount);
 
@@ -324,7 +383,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             borderRadius: '0 0 8px 8px'
           }}
         >
-          {/* MUNICIPAL NAME - Height: 1.8cm, Left: 4.5cm */}
+          {/* MUNICIPAL NAME */}
           <div style={{
             position: 'absolute',
             top: '1.8cm',
@@ -340,7 +399,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             LILOAN
           </div>
 
-          {/* CONSUMER NAME - Height: 3cm, Left: 4.5cm */}
+          {/* CONSUMER NAME */}
           <div style={{
             position: 'absolute',
             top: '2.8cm',
@@ -358,7 +417,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {consumerName}
           </div>
 
-          {/* DATE - Height: 3cm, Left: 16.5cm */}
+          {/* DATE */}
           <div style={{
             position: 'absolute',
             top: '3cm',
@@ -373,7 +432,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {formatDate(currentDate)}
           </div>
 
-          {/* WATER FEE - Height: 4.2cm, Left: 3cm */}
+          {/* WATER FEE - WITH MONTH RANGE & YEAR */}
           <div style={{
             position: 'absolute',
             top: '5.1cm',
@@ -385,10 +444,10 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             color: '#1a365d',
             whiteSpace: 'nowrap'
           }}>
-            WATER FEE: {monthName}
+            WATER FEE: {waterFeePeriod}
           </div>
 
-          {/* AMOUNT - Height: 4.3cm, Left: 16.5cm */}
+          {/* AMOUNT */}
           <div style={{
             position: 'absolute',
             top: '4.1cm',
@@ -403,7 +462,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {formatCurrency(amount)}
           </div>
 
-          {/* AMOUNT IN WORD - Height: 7.8cm, Left: 4.5cm */}
+          {/* AMOUNT IN WORD */}
           <div style={{
             position: 'absolute',
             top: '7.5cm',
@@ -421,7 +480,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {amountInWords}
           </div>
 
-          {/* TOTAL AMOUNT - Height: 7.3cm, Left: 16.5cm */}
+          {/* TOTAL AMOUNT */}
           <div style={{
             position: 'absolute',
             top: '7cm',
@@ -436,7 +495,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {formatCurrency(amount)}
           </div>
 
-          {/* ✅ TREASURER NAME - Height: 8.4cm, Left: 14.2cm */}
+          {/* TREASURER NAME */}
           <div style={{
             position: 'absolute',
             top: '8.4cm',
@@ -451,7 +510,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {treasurerName}
           </div>
 
-          {/* ✅ TREASURER TITLE - Height: 9.1cm, Left: 14.2cm */}
+          {/* TREASURER TITLE */}
           <div style={{
             position: 'absolute',
             top: '9.1cm',

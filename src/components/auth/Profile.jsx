@@ -110,7 +110,14 @@ const Profile = () => {
               </span>
             </div>
           </div>
-          
+          {/* {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="profile-edit-btn"
+            >
+              EDIT PROFILE
+            </button>
+          )}   */}
         </div>
 
         {/* Content */}

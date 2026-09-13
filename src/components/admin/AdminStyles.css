@@ -306,3 +306,70 @@
     min-width: 600px;
   }
 }
+/* ========== STATUS CUTOFF ========== */
+.status-badge.status-cutoff {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+/* ========== TABLE TYPE TOGGLE ========== */
+.table-type-toggle {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 4px;
+  border: 2px solid #E2E8F0;
+}
+
+.table-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-type-btn:hover {
+  background: #E2E8F0;
+  color: #194752;
+}
+
+.table-type-btn.active {
+  background: #194752;
+  color: #ffffff;
+}
+
+.table-type-btn.cutoff-btn.active {
+  background: #DC2626;
+  color: #ffffff;
+}
+
+.table-type-btn.cutoff-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* ========== RESPONSIVE TABLE TOGGLE ========== */
+@media (max-width: 768px) {
+  .table-type-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .table-type-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
