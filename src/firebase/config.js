@@ -117,16 +117,37 @@ export const getServerLabel = (server) => {
 };
 
 // ============================================================
-// HELPER: List of all servers para sa loops
+// HELPER: Get server color (para sa UI)
+// ============================================================
+export const getServerColor = (server) => {
+  switch (server) {
+    case 'server2': return '#DC2626';
+    case 'server3': return '#7C3AED';
+    case 'server4': return '#059669';
+    case 'server5': return '#D97706';
+    case 'server1':
+    default:
+      return '#194752';
+  }
+};
+
+// ============================================================
+// HELPER: List of all servers
 // ============================================================
 export const ALL_SERVERS = ['server1', 'server2', 'server3', 'server4', 'server5'];
 
+// Default server (Server 1 ra ang i-load inig mount)
+export const DEFAULT_SERVER = 'server1';
+
+// ============================================================
+// SERVER CONFIGS - Para sa loops ug dropdown
+// ============================================================
 export const SERVER_CONFIGS = [
   { key: 'server1', label: 'Server 1', db: db,  project: 'watersystem-bb153', color: '#194752' },
-  { key: 'server2', label: 'Server 2', db: db2, project: 'payroll-e3cc5',       color: '#DC2626' },
-  { key: 'server3', label: 'Server 3', db: db3, project: 'water-4af97',         color: '#7C3AED' },
-  { key: 'server4', label: 'Server 4', db: db4, project: 'water-42455',         color: '#059669' },
-  { key: 'server5', label: 'Server 5', db: db5, project: 'water-4c611',         color: '#D97706' },
+  { key: 'server2', label: 'Server 2', db: db2, project: 'payroll-e3cc5',       color: '#194752' },
+  { key: 'server3', label: 'Server 3', db: db3, project: 'water-4af97',         color: '#194752' },
+  { key: 'server4', label: 'Server 4', db: db4, project: 'water-42455',         color: '#194752' },
+  { key: 'server5', label: 'Server 5', db: db5, project: 'water-4c611',         color: '#194752' },
 ];
 
 export { app1, app2, app3, app4, app5 };

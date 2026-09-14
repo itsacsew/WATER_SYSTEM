@@ -1,7 +1,7 @@
 // src/components/admin/AdminDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc } from 'firebase/firestore';
-import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, SERVER_CONFIGS } from '../../firebase/config';
+import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, getServerColor, SERVER_CONFIGS } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import BillForm from '../bills/BillForm';
@@ -122,6 +122,18 @@ const PayAllIcon = (props) => (
   </svg>
 );
 
+const ChevronLeftIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ChevronRightIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const RegularTableIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={18} height={18} color="currentColor" fill="none">
     <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
@@ -140,6 +152,17 @@ const CutoffTableIcon = () => (
   </svg>
 );
 
+const ServerIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <rect x="2" y="3" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="2" y="14" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+    <circle cx="6" cy="6.5" r="1" fill="currentColor"/>
+    <circle cx="6" cy="17.5" r="1" fill="currentColor"/>
+    <circle cx="10" cy="6.5" r="1" fill="currentColor"/>
+    <circle cx="10" cy="17.5" r="1" fill="currentColor"/>
+  </svg>
+);
+
 // ============================================================
 // BILL CALCULATION FUNCTIONS
 // ============================================================
@@ -151,35 +174,21 @@ const calculateBillAmount = (consumerType, consumption) => {
   if (type === 'RESIDENTIAL') {
     const FIRST_5_RATE = 62.50;
     const EXCESS_RATE = 12.50;
-    
-    if (consumptionNum <= 5) {
-      return FIRST_5_RATE;
-    }
-    
+    if (consumptionNum <= 5) return FIRST_5_RATE;
     const excess = consumptionNum - 5;
     return FIRST_5_RATE + (excess * EXCESS_RATE);
-    
   } else if (type === 'COMMERCIAL') {
     const TIER1_RATE = 15;
     const TIER2_RATE = 20;
     const TIER3_RATE = 30;
     const TIER1_LIMIT = 10;
     const TIER2_LIMIT = 20;
-    
-    if (consumptionNum <= TIER1_LIMIT) {
-      return 150;
-    } else if (consumptionNum <= TIER2_LIMIT) {
-      const tier1Amount = TIER1_LIMIT * TIER1_RATE;
-      const tier2Consumption = consumptionNum - TIER1_LIMIT;
-      return tier1Amount + (tier2Consumption * TIER2_RATE);
-    } else {
-      const tier1Amount = TIER1_LIMIT * TIER1_RATE;
-      const tier2Amount = (TIER2_LIMIT - TIER1_LIMIT) * TIER2_RATE;
-      const tier3Consumption = consumptionNum - TIER2_LIMIT;
-      return tier1Amount + tier2Amount + (tier3Consumption * TIER3_RATE);
+    if (consumptionNum <= TIER1_LIMIT) return 150;
+    if (consumptionNum <= TIER2_LIMIT) {
+      return (TIER1_LIMIT * TIER1_RATE) + ((consumptionNum - TIER1_LIMIT) * TIER2_RATE);
     }
+    return (TIER1_LIMIT * TIER1_RATE) + ((TIER2_LIMIT - TIER1_LIMIT) * TIER2_RATE) + ((consumptionNum - TIER2_LIMIT) * TIER3_RATE);
   }
-  
   return 0;
 };
 
@@ -203,17 +212,10 @@ const isNAReading = (reading) => {
 
 const isCutoffBill = (bill) => {
   const statusStr = String(bill.status || '').toUpperCase().trim();
-  if (statusStr === 'CUTOFF' || statusStr === 'CUT-OFF' || statusStr === 'CUT OFF') {
-    return true;
-  }
-  
+  if (statusStr === 'CUTOFF' || statusStr === 'CUT-OFF' || statusStr === 'CUT OFF') return true;
   const presentNA = isNAReading(bill.presentReading);
   const previousNA = isNAReading(bill.previousReading);
-  
-  if (presentNA && previousNA) {
-    return true;
-  }
-  
+  if (presentNA && previousNA) return true;
   return false;
 };
 
@@ -221,9 +223,7 @@ const calculateWithDefective = (presentReading, previousReading, consumerType) =
   const isPresentDefective = isDefective(presentReading);
   const isPreviousDefective = isDefective(previousReading);
   const isDefectiveReading = isPresentDefective || isPreviousDefective;
-  
   let consumption = 0;
-  
   if (isDefectiveReading) {
     consumption = 0;
   } else {
@@ -231,23 +231,14 @@ const calculateWithDefective = (presentReading, previousReading, consumerType) =
     const previous = Number(previousReading) || 0;
     consumption = Math.max(0, present - previous);
   }
-  
   let amount = 0;
   const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
-  
   if (isDefectiveReading) {
     amount = type === 'RESIDENTIAL' ? 75 : 150;
   } else {
     amount = calculateBillAmount(consumerType, consumption);
   }
-  
-  return {
-    consumption,
-    isDefective: isDefectiveReading,
-    amount,
-    isPresentDefective,
-    isPreviousDefective
-  };
+  return { consumption, isDefective: isDefectiveReading, amount, isPresentDefective, isPreviousDefective };
 };
 
 const getCurrentPeriod = () => {
@@ -273,15 +264,11 @@ const getMonthIndex = (monthName) => {
 const isBillOverdue = (billMonth, billYear) => {
   const { currentMonthIndex, currentYear } = getCurrentPeriod();
   const billMonthIndex = getMonthIndex(billMonth);
-  
   if (billMonthIndex === -1) return false;
-  
   const billYearNum = parseInt(billYear);
   if (isNaN(billYearNum)) return false;
-  
   if (billYearNum < currentYear) return true;
   if (billYearNum > currentYear) return false;
-  
   return billMonthIndex < currentMonthIndex;
 };
 
@@ -308,22 +295,13 @@ const sortByConsumerPeriod = (data) => {
   return [...data].sort((a, b) => {
     const nameA = (a.consumerName || '').toUpperCase().trim();
     const nameB = (b.consumerName || '').toUpperCase().trim();
-    if (nameA !== nameB) {
-      return nameA.localeCompare(nameB);
-    }
-
+    if (nameA !== nameB) return nameA.localeCompare(nameB);
     const yearA = parseInt(a.year) || 0;
     const yearB = parseInt(b.year) || 0;
-    if (yearA !== yearB) {
-      return yearA - yearB;
-    }
-
+    if (yearA !== yearB) return yearA - yearB;
     const monthA = getMonthIndex(a.month);
     const monthB = getMonthIndex(b.month);
-    if (monthA !== monthB) {
-      return monthA - monthB;
-    }
-
+    if (monthA !== monthB) return monthA - monthB;
     const numA = Number(a.billNumber) || 0;
     const numB = Number(b.billNumber) || 0;
     return numA - numB;
@@ -332,29 +310,21 @@ const sortByConsumerPeriod = (data) => {
 
 const getConsumerPeriodOptions = (billsData) => {
   const periodSet = new Set();
-  
   billsData.forEach(bill => {
     if (bill.consumerName && bill.month && bill.year) {
       const key = `${bill.consumerName.toUpperCase()}|${bill.month.toUpperCase()}|${bill.year}`;
       periodSet.add(key);
     }
   });
-  
   const periods = Array.from(periodSet).map(key => {
     const [consumerName, month, year] = key.split('|');
     return { consumerName, month, year, key };
   });
-  
   periods.sort((a, b) => {
-    if (a.consumerName !== b.consumerName) {
-      return a.consumerName.localeCompare(b.consumerName);
-    }
-    if (a.year !== b.year) {
-      return Number(a.year) - Number(b.year);
-    }
+    if (a.consumerName !== b.consumerName) return a.consumerName.localeCompare(b.consumerName);
+    if (a.year !== b.year) return Number(a.year) - Number(b.year);
     return MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month);
   });
-  
   return periods;
 };
 
@@ -366,7 +336,19 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [bills, setBills] = useState([]);
   const [filteredBills, setFilteredBills] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  
+  // ============================================================
+  // DEFAULT SERVER = SERVER 1
+  // ============================================================
+  const [selectedServer, setSelectedServer] = useState('server1');
+  
+  // ============================================================
+  // PAGINATION STATE (10 rows per page)
+  // ============================================================
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+  
   const [showForm, setShowForm] = useState(false);
   const [editingBill, setEditingBill] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -378,7 +360,6 @@ const AdminDashboard = () => {
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
   const [filterConsumerPeriod, setFilterConsumerPeriod] = useState('all');
-  const [filterServer, setFilterServer] = useState('all');
   const [selectedBill, setSelectedBill] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentCode, setPaymentCode] = useState('');
@@ -414,14 +395,8 @@ const AdminDashboard = () => {
   const [consumerPeriods, setConsumerPeriods] = useState([]);
   
   const [stats, setStats] = useState({
-    total: 0,
-    paid: 0,
-    unpaid: 0,
-    overdue: 0,
-    totalConsumers: 0,
-    residential: 0,
-    commercial: 0,
-    location: ''
+    total: 0, paid: 0, unpaid: 0, overdue: 0,
+    totalConsumers: 0, residential: 0, commercial: 0, location: ''
   });
 
   const [showNewMonthModal, setShowNewMonthModal] = useState(false);
@@ -436,17 +411,95 @@ const AdminDashboard = () => {
   const [showExportPaidConfirm, setShowExportPaidConfirm] = useState(false);
   const [paidBillsToDelete, setPaidBillsToDelete] = useState([]);
 
-  // ========== SERVER SELECTION FOR IMPORT ==========
   const [showServerSelectModal, setShowServerSelectModal] = useState(false);
   const [selectedImportServer, setSelectedImportServer] = useState(null);
 
+  // Reset current page inig mag-usab ang filters, server, o table type
   useEffect(() => {
-    fetchBills();
+    setCurrentPage(1);
+  }, [searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, selectedServer, tableType]);
+
+  // ============================================================
+  // FETCH BILLS - LAZY LOAD per server
+  // ============================================================
+  const fetchBills = useCallback(async (serverKey) => {
+    if (!user) return;
+    
+    setLoading(true);
+    console.log('🔍 Admin: Fetching bills from:', serverKey);
+    
+    try {
+      const allBills = [];
+
+      if (serverKey === 'all') {
+        for (const serverConfig of SERVER_CONFIGS) {
+          try {
+            const billsRef = collection(serverConfig.db, 'bills');
+            const q = query(billsRef, orderBy('createdAt', 'desc'));
+            const snap = await getDocs(q);
+            snap.forEach((docSnap) => {
+              allBills.push({ 
+                id: docSnap.id, 
+                ...docSnap.data(),
+                serverSource: serverConfig.key,
+                _server: serverConfig.key
+              });
+            });
+          } catch (e) {
+            console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
+          }
+        }
+      } else {
+        const serverConfig = SERVER_CONFIGS.find(s => s.key === serverKey);
+        if (!serverConfig) {
+          toast.error(`Server not found: ${serverKey}`);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const billsRef = collection(serverConfig.db, 'bills');
+          const q = query(billsRef, orderBy('createdAt', 'desc'));
+          const snap = await getDocs(q);
+          snap.forEach((docSnap) => {
+            allBills.push({ 
+              id: docSnap.id, 
+              ...docSnap.data(),
+              serverSource: serverConfig.key,
+              _server: serverConfig.key
+            });
+          });
+          console.log(`✅ Admin: Fetched ${allBills.length} bills from ${serverConfig.label}`);
+        } catch (e) {
+          console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
+          toast.error(`Error loading from ${serverConfig.label}`);
+        }
+      }
+      
+      const processedBills = processBillsWithStatus(allBills);
+      const sortedBills = sortByConsumerPeriod(processedBills);
+      
+      setBills(sortedBills);
+      setFilteredBills(sortedBills);
+      calculateStats(sortedBills);
+      extractFilterOptions(sortedBills);
+      
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+      toast.error('Error loading bills from database');
+    }
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
+    if (user) {
+      fetchBills(selectedServer);
+    }
+  }, [user, selectedServer, fetchBills]);
+
+  useEffect(() => {
     filterBills();
-  }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, filterServer, tableType]);
+  }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, tableType]);
 
   useEffect(() => {
     if (showPayModal) {
@@ -486,71 +539,15 @@ const AdminDashboard = () => {
     const yearSet = new Set();
     
     billsData.forEach(bill => {
-      if (bill.location && bill.location !== 'N/A') {
-        locationSet.add(bill.location);
-      }
-      if (bill.month && bill.month !== 'N/A') {
-        monthSet.add(bill.month);
-      }
-      if (bill.year && bill.year !== 'N/A') {
-        yearSet.add(bill.year);
-      }
+      if (bill.location && bill.location !== 'N/A') locationSet.add(bill.location);
+      if (bill.month && bill.month !== 'N/A') monthSet.add(bill.month);
+      if (bill.year && bill.year !== 'N/A') yearSet.add(bill.year);
     });
     
     setLocations(Array.from(locationSet).sort());
     setMonths(Array.from(monthSet).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
     setYears(Array.from(yearSet).sort((a, b) => Number(b) - Number(a)));
-    
     setConsumerPeriods(getConsumerPeriodOptions(billsData));
-  };
-
-  // ============================================================
-  // FETCH BILLS FROM ALL 5 FIRESTORES
-  // ============================================================
-  const fetchBills = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const allBills = [];
-
-      // Loop through all 5 servers
-      for (const serverConfig of SERVER_CONFIGS) {
-        try {
-          const billsRef = collection(serverConfig.db, 'bills');
-          const q = query(billsRef, orderBy('createdAt', 'desc'));
-          const snap = await getDocs(q);
-          snap.forEach((docSnap) => {
-            allBills.push({ 
-              id: docSnap.id, 
-              ...docSnap.data(),
-              serverSource: serverConfig.key,
-              _server: serverConfig.key
-            });
-          });
-          console.log(`✅ Fetched from ${serverConfig.label}`);
-        } catch (e) {
-          console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
-        }
-      }
-      
-      const processedBills = processBillsWithStatus(allBills);
-      const sortedBills = sortByConsumerPeriod(processedBills);
-      
-      setBills(sortedBills);
-      setFilteredBills(sortedBills);
-      calculateStats(sortedBills);
-      extractFilterOptions(sortedBills);
-      
-    } catch (error) {
-      console.error('Error fetching bills:', error);
-      toast.error('Error loading bills from database');
-    }
-    setLoading(false);
   };
 
   const filterBills = () => {
@@ -560,12 +557,6 @@ const AdminDashboard = () => {
       filtered = filtered.filter(bill => !isCutoffBill(bill));
     } else {
       filtered = filtered.filter(bill => isCutoffBill(bill));
-    }
-
-    if (filterServer !== 'all') {
-      filtered = filtered.filter(bill => 
-        (bill.serverSource || 'server1') === filterServer
-      );
     }
     
     if (searchTerm.trim()) {
@@ -577,27 +568,19 @@ const AdminDashboard = () => {
     }
     
     if (filterType !== 'all') {
-      filtered = filtered.filter(bill => 
-        bill.consumerType?.toUpperCase() === filterType.toUpperCase()
-      );
+      filtered = filtered.filter(bill => bill.consumerType?.toUpperCase() === filterType.toUpperCase());
     }
     
     if (filterLocation !== 'all') {
-      filtered = filtered.filter(bill => 
-        bill.location === filterLocation
-      );
+      filtered = filtered.filter(bill => bill.location === filterLocation);
     }
     
     if (filterMonth !== 'all') {
-      filtered = filtered.filter(bill => 
-        bill.month?.toUpperCase() === filterMonth.toUpperCase()
-      );
+      filtered = filtered.filter(bill => bill.month?.toUpperCase() === filterMonth.toUpperCase());
     }
     
     if (filterYear !== 'all') {
-      filtered = filtered.filter(bill => 
-        bill.year === filterYear
-      );
+      filtered = filtered.filter(bill => bill.year === filterYear);
     }
     
     if (filterConsumerPeriod !== 'all') {
@@ -630,24 +613,17 @@ const AdminDashboard = () => {
     const commercialCount = processed.filter(b => b.consumerType?.toUpperCase() === 'COMMERCIAL').length;
     
     processed.forEach(b => {
-      if (b.consumerName) {
-        uniqueConsumers.add(b.consumerName);
-      }
+      if (b.consumerName) uniqueConsumers.add(b.consumerName);
     });
     
     const locationSet = new Set();
     processed.forEach(b => {
-      if (b.location) {
-        locationSet.add(b.location);
-      }
+      if (b.location) locationSet.add(b.location);
     });
     const locationString = Array.from(locationSet).join(', ') || 'N/A';
     
     setStats({ 
-      total, 
-      paid, 
-      unpaid, 
-      overdue,
+      total, paid, unpaid, overdue,
       totalConsumers: uniqueConsumers.size || total,
       residential: residentialCount,
       commercial: commercialCount,
@@ -662,19 +638,73 @@ const AdminDashboard = () => {
     setFilterMonth('all');
     setFilterYear('all');
     setFilterConsumerPeriod('all');
-    setFilterServer('all');
+  };
+
+  // ============================================================
+  // SERVER CHANGE
+  // ============================================================
+  const handleServerChange = (e) => {
+    const newServer = e.target.value;
+    setSelectedServer(newServer);
+    setCurrentPage(1);
+    
+    setSearchTerm('');
+    setFilterType('all');
+    setFilterLocation('all');
+    setFilterMonth('all');
+    setFilterYear('all');
+    setFilterConsumerPeriod('all');
+    
+    if (newServer === 'all') {
+      toast.loading('Loading all servers...', { duration: 2000 });
+    }
+  };
+
+  // ============================================================
+  // PAGINATION HELPERS
+  // ============================================================
+  const getCurrentPageData = () => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return filteredBills.slice(startIndex, endIndex);
+  };
+
+  const totalPages = Math.ceil(filteredBills.length / rowsPerPage);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const getPaginationInfo = () => {
+    const start = (currentPage - 1) * rowsPerPage + 1;
+    const end = Math.min(currentPage * rowsPerPage, filteredBills.length);
+    return `Showing ${start} - ${end} of ${filteredBills.length} bills`;
   };
 
   const handleDelete = async (billId) => {
     if (!confirm('Are you sure you want to delete this bill?')) return;
     
     const bill = bills.find(b => b.id === billId);
-    const targetDb = getDbByServer(bill?.serverSource || 'server1');
+    const targetDb = getDbByServer(bill?.serverSource || selectedServer);
     
     try {
       await deleteDoc(doc(targetDb, 'bills', billId));
       toast.success(`Bill deleted from ${getServerLabel(bill?.serverSource)}`);
-      fetchBills();
+      fetchBills(selectedServer);
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Error deleting bill');
@@ -689,7 +719,7 @@ const AdminDashboard = () => {
   const handleFormClose = () => {
     setShowForm(false);
     setEditingBill(null);
-    fetchBills();
+    fetchBills(selectedServer);
   };
 
   const handlePayBill = (bill) => {
@@ -722,25 +752,19 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CUTOFF PAYMENT CONFIRMATION - WITH SERVER TARGETING
-  // ============================================================
   const confirmCutoffPay = async () => {
     if (!cutoffPaymentCode || cutoffPaymentCode.length !== 7) {
       setCutoffPaymentError('Please enter a valid 7-digit payment code.');
       return;
     }
-
     if (!cutoffBillToPay) return;
 
     setIsPayingCutoff(true);
 
     try {
       const referenceNumber = `CUTOFF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
       const amountToPay = cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0;
-
-      const targetDb = getDbByServer(cutoffBillToPay.serverSource || 'server1');
+      const targetDb = getDbByServer(cutoffBillToPay.serverSource || selectedServer);
       const billRef = doc(targetDb, 'bills', cutoffBillToPay.id);
       
       await updateDoc(billRef, {
@@ -748,7 +772,7 @@ const AdminDashboard = () => {
         paidAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         paymentCode: cutoffPaymentCode,
-        referenceNumber: referenceNumber,
+        referenceNumber,
         paidBy: user?.email || 'Unknown',
         amount: amountToPay,
         amountCalculated: true,
@@ -769,25 +793,18 @@ const AdminDashboard = () => {
       setShowCutoffPayModal(false);
 
       setReceiptData({
-        bill: {
-          ...cutoffBillToPay,
-          consumption: 'CUT-OFF',
-          amount: amountToPay,
-          isDefective: false,
-          isCutoff: true
-        },
+        bill: { ...cutoffBillToPay, consumption: 'CUT-OFF', amount: amountToPay, isDefective: false, isCutoff: true },
         paymentCode: cutoffPaymentCode,
-        referenceNumber: referenceNumber
+        referenceNumber
       });
       setShowReceipt(true);
 
       setCutoffBillToPay(null);
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
-      fetchBills();
+      fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Cutoff payment error:', error);
-      
       if (error.code === 'permission-denied') {
         toast.error('Permission denied. Please check your Firestore rules.');
       } else {
@@ -832,15 +849,11 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // PAY ALL CONFIRMATION - WITH SERVER TARGETING
-  // ============================================================
   const confirmPayAll = async () => {
     if (!payAllPaymentCode || payAllPaymentCode.length !== 7) {
       setPayAllPaymentError('Please enter a valid 7-digit payment code.');
       return;
     }
-
     if (payAllBills.length === 0) {
       toast.error('No bills to pay');
       return;
@@ -868,17 +881,11 @@ const AdminDashboard = () => {
             consumption = 0;
             calculatedAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
           } else {
-            consumption = calculateConsumption(
-              bill.presentReading,
-              bill.previousReading
-            );
-            calculatedAmount = calculateBillAmount(
-              bill.consumerType,
-              consumption
-            );
+            consumption = calculateConsumption(bill.presentReading, bill.previousReading);
+            calculatedAmount = calculateBillAmount(bill.consumerType, consumption);
           }
 
-          const targetDb = getDbByServer(bill.serverSource || 'server1');
+          const targetDb = getDbByServer(bill.serverSource || selectedServer);
           const billRef = doc(targetDb, 'bills', bill.id);
           
           await updateDoc(billRef, {
@@ -886,9 +893,9 @@ const AdminDashboard = () => {
             paidAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             paymentCode: payAllPaymentCode,
-            referenceNumber: referenceNumber,
+            referenceNumber,
             paidBy: user?.email || 'Unknown',
-            consumption: consumption,
+            consumption,
             amount: calculatedAmount,
             amountCalculated: true,
             isDefective: isDefectiveReading,
@@ -899,8 +906,8 @@ const AdminDashboard = () => {
               consumerType: bill.consumerType || 'RESIDENTIAL',
               previousReading: bill.previousReading || 0,
               presentReading: bill.presentReading || 0,
-              consumption: consumption,
-              calculatedAmount: calculatedAmount,
+              consumption,
+              calculatedAmount,
               calculatedAt: new Date().toISOString(),
               isDefective: isDefectiveReading
             }
@@ -910,14 +917,9 @@ const AdminDashboard = () => {
           successCount++;
           
           paymentDetails.push({
-            month: bill.month,
-            year: bill.year,
-            billNumber: bill.billNumber,
-            amount: calculatedAmount,
-            consumption: consumption,
-            isDefective: isDefectiveReading
+            month: bill.month, year: bill.year, billNumber: bill.billNumber,
+            amount: calculatedAmount, consumption, isDefective: isDefectiveReading
           });
-
         } catch (error) {
           console.error('Error processing bill:', error);
           errorCount++;
@@ -940,26 +942,23 @@ const AdminDashboard = () => {
             payAllCount: successCount,
             payAllDetails: paymentDetails,
             paymentCode: payAllPaymentCode,
-            referenceNumber: referenceNumber
+            referenceNumber
           },
           paymentCode: payAllPaymentCode,
-          referenceNumber: referenceNumber,
+          referenceNumber,
           isPayAll: true,
           payAllDetails: paymentDetails
         });
         setShowReceipt(true);
       }
 
-      if (errorCount > 0) {
-        toast.error(`⚠️ ${errorCount} bills failed to process`);
-      }
+      if (errorCount > 0) toast.error(`⚠️ ${errorCount} bills failed to process`);
 
       setShowPayAllModal(false);
       setPayAllBills([]);
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
-      fetchBills();
-
+      fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Pay All error:', error);
       toast.error('Error processing payment: ' + error.message);
@@ -968,27 +967,21 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // SINGLE PAY CONFIRMATION - WITH SERVER TARGETING
-  // ============================================================
   const confirmPayBill = async () => {
     if (!paymentCode || paymentCode.length < 7) {
       setPaymentError('Please enter a valid 7-digit payment code.');
       return;
     }
-
     if (paymentCode.length !== 7) {
       setPaymentError('Payment code must be exactly 7 digits.');
       return;
     }
-
     if (!selectedBill) return;
 
     setIsPaying(true);
 
     try {
       const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
       const isPresentDefective = isDefective(selectedBill.presentReading);
       const isPreviousDefective = isDefective(selectedBill.previousReading);
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
@@ -1000,27 +993,21 @@ const AdminDashboard = () => {
         consumption = 0;
         calculatedAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
       } else {
-        consumption = calculateConsumption(
-          selectedBill.presentReading,
-          selectedBill.previousReading
-        );
-        calculatedAmount = calculateBillAmount(
-          selectedBill.consumerType,
-          consumption
-        );
+        consumption = calculateConsumption(selectedBill.presentReading, selectedBill.previousReading);
+        calculatedAmount = calculateBillAmount(selectedBill.consumerType, consumption);
       }
 
-      const targetDb = getDbByServer(selectedBill.serverSource || 'server1');
+      const targetDb = getDbByServer(selectedBill.serverSource || selectedServer);
       const billRef = doc(targetDb, 'bills', selectedBill.id);
       
       await updateDoc(billRef, {
         status: 'paid',
         paidAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        paymentCode: paymentCode,
-        referenceNumber: referenceNumber,
+        paymentCode,
+        referenceNumber,
         paidBy: user?.email || 'Unknown',
-        consumption: consumption,
+        consumption,
         amount: calculatedAmount,
         amountCalculated: true,
         isDefective: isDefectiveReading,
@@ -1030,8 +1017,8 @@ const AdminDashboard = () => {
           consumerType: selectedBill.consumerType || 'RESIDENTIAL',
           previousReading: selectedBill.previousReading || 0,
           presentReading: selectedBill.presentReading || 0,
-          consumption: consumption,
-          calculatedAmount: calculatedAmount,
+          consumption,
+          calculatedAmount,
           calculatedAt: new Date().toISOString(),
           isDefective: isDefectiveReading
         }
@@ -1039,11 +1026,8 @@ const AdminDashboard = () => {
 
       await createNextMonthBill({
         ...selectedBill,
-        consumption: consumption,
-        amount: calculatedAmount,
-        isDefective: isDefectiveReading,
-        isPresentDefective,
-        isPreviousDefective
+        consumption, amount: calculatedAmount, isDefective: isDefectiveReading,
+        isPresentDefective, isPreviousDefective
       });
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
@@ -1052,24 +1036,18 @@ const AdminDashboard = () => {
       setShowPayModal(false);
 
       setReceiptData({
-        bill: {
-          ...selectedBill,
-          consumption: consumption,
-          amount: calculatedAmount,
-          isDefective: isDefectiveReading
-        },
-        paymentCode: paymentCode,
-        referenceNumber: referenceNumber
+        bill: { ...selectedBill, consumption, amount: calculatedAmount, isDefective: isDefectiveReading },
+        paymentCode,
+        referenceNumber
       });
       setShowReceipt(true);
 
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
-      fetchBills();
+      fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Payment error details:', error);
-      
       if (error.code === 'permission-denied') {
         toast.error('Permission denied. Please check your Firestore rules.');
       } else {
@@ -1080,9 +1058,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CREATE NEXT MONTH BILL - WITH SERVER TARGETING
-  // ============================================================
   const createNextMonthBill = async (paidBill) => {
     try {
       const currentMonth = paidBill.month;
@@ -1095,7 +1070,7 @@ const AdminDashboard = () => {
       const nextMonth = MONTH_ORDER[nextIndex];
       const nextYear = nextIndex === 0 ? currentYear + 1 : currentYear;
 
-      const targetDb = getDbByServer(paidBill.serverSource || 'server1');
+      const targetDb = getDbByServer(paidBill.serverSource || selectedServer);
 
       const billsRef = collection(targetDb, 'bills');
       const q = query(
@@ -1110,10 +1085,8 @@ const AdminDashboard = () => {
       if (!querySnapshot.empty) {
         const existingDoc = querySnapshot.docs[0];
         const existingData = existingDoc.data();
-        
         if (!existingData.previousReading || existingData.previousReading === 0 || existingData.previousReading === '0') {
-          const existingRef = doc(targetDb, 'bills', existingDoc.id);
-          await updateDoc(existingRef, {
+          await updateDoc(doc(targetDb, 'bills', existingDoc.id), {
             previousReading: paidBill.presentReading || 0,
             updatedAt: new Date().toISOString()
           });
@@ -1145,14 +1118,12 @@ const AdminDashboard = () => {
         generatedFromBillNumber: paidBill.billNumber,
         previousAmount: paidBill.amount || 0,
         previousConsumption: paidBill.consumption || 0,
-        serverSource: paidBill.serverSource || 'server1'
+        serverSource: paidBill.serverSource || selectedServer
       };
 
       const docRef = await addDoc(collection(targetDb, 'bills'), newBillData);
       toast.success(`📋 Auto-created bill for ${nextMonth} ${nextYear}`);
-
       return docRef.id;
-
     } catch (error) {
       console.error('Error creating next month bill:', error);
     }
@@ -1186,8 +1157,11 @@ const AdminDashboard = () => {
 
     try {
       const allBills = [];
+      const serverConfigs = selectedServer === 'all' 
+        ? SERVER_CONFIGS 
+        : SERVER_CONFIGS.filter(s => s.key === selectedServer);
 
-      for (const serverConfig of SERVER_CONFIGS) {
+      for (const serverConfig of serverConfigs) {
         try {
           const billsRef = collection(serverConfig.db, 'bills');
           const q = query(
@@ -1213,8 +1187,7 @@ const AdminDashboard = () => {
 
       setNewMonthPreview(allBills);
       setShowNewMonthPreview(true);
-      toast.success(`Found ${allBills.length} bills for ${newMonthMonth} ${newMonthYear} in ${newMonthLocation}`);
-
+      toast.success(`Found ${allBills.length} bills`);
     } catch (error) {
       console.error('Error previewing new month:', error);
       toast.error('Error fetching bills: ' + error.message);
@@ -1241,17 +1214,13 @@ const AdminDashboard = () => {
       let successCount = 0;
       let errorCount = 0;
 
-      // Group by server
       const groupedByServer = {};
       for (const bill of newMonthPreview) {
-        const serverKey = bill.serverSource || 'server1';
-        if (!groupedByServer[serverKey]) {
-          groupedByServer[serverKey] = [];
-        }
+        const serverKey = bill.serverSource || selectedServer;
+        if (!groupedByServer[serverKey]) groupedByServer[serverKey] = [];
         groupedByServer[serverKey].push(bill);
       }
 
-      // Process each server group
       for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
         const targetDb = getDbByServer(serverKey);
         const billsCollectionRef = collection(targetDb, 'bills');
@@ -1262,7 +1231,6 @@ const AdminDashboard = () => {
           try {
             const bill = serverBills[i];
             const { id, ...billData } = bill;
-
             const presentReading = billData.presentReading || 0;
 
             const newBillData = {
@@ -1288,11 +1256,9 @@ const AdminDashboard = () => {
               serverSource: serverKey
             };
 
-            const newBillNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
-            newBillData.billNumber = newBillNumber;
+            newBillData.billNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
 
-            const docRef = doc(billsCollectionRef);
-            batch.set(docRef, newBillData);
+            batch.set(doc(billsCollectionRef), newBillData);
             successCount++;
             batchCount++;
 
@@ -1301,28 +1267,22 @@ const AdminDashboard = () => {
               batch = writeBatch(targetDb);
               batchCount = 0;
             }
-
           } catch (error) {
             console.error(`Error creating new month bill (${serverKey}):`, error);
             errorCount++;
           }
         }
 
-        if (batchCount > 0) {
-          await batch.commit();
-        }
+        if (batchCount > 0) await batch.commit();
       }
 
       if (successCount > 0) {
-        toast.success(`✅ Created ${successCount} bills for ${nextMonth} ${nextYear} in ${newMonthLocation}!`);
+        toast.success(`✅ Created ${successCount} bills for ${nextMonth} ${nextYear}!`);
         closeNewMonthModal();
-        fetchBills();
+        fetchBills(selectedServer);
       }
 
-      if (errorCount > 0) {
-        toast.error(`⚠️ ${errorCount} bills failed to create`);
-      }
-
+      if (errorCount > 0) toast.error(`⚠️ ${errorCount} bills failed to create`);
     } catch (error) {
       console.error('Error during new month creation:', error);
       toast.error('Error creating new month: ' + error.message);
@@ -1333,12 +1293,10 @@ const AdminDashboard = () => {
 
   const openExportPaidConfirm = () => {
     const paidBills = bills.filter(bill => bill.status === 'paid');
-    
     if (paidBills.length === 0) {
       toast.error('No paid bills found to export!');
       return;
     }
-
     setPaidBillsToDelete(paidBills);
     setShowExportPaidConfirm(true);
   };
@@ -1348,12 +1306,8 @@ const AdminDashboard = () => {
     setPaidBillsToDelete([]);
   };
 
-  // ============================================================
-  // EXPORT PAID AND DELETE - WITH SERVER TARGETING
-  // ============================================================
   const executeExportPaidAndDelete = async () => {
     const paidBills = paidBillsToDelete;
-    
     if (paidBills.length === 0) {
       toast.error('No paid bills to process');
       return;
@@ -1386,11 +1340,7 @@ const AdminDashboard = () => {
 
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF16A34A' }
-      };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
@@ -1404,16 +1354,8 @@ const AdminDashboard = () => {
         if (bill.paidAt) {
           try {
             const date = new Date(bill.paidAt);
-            paidAt = date.toLocaleDateString('en-PH', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-          } catch (e) {
-            paidAt = bill.paidAt || 'N/A';
-          }
+            paidAt = date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          } catch (e) { paidAt = bill.paidAt || 'N/A'; }
         }
 
         worksheet.addRow({
@@ -1430,35 +1372,9 @@ const AdminDashboard = () => {
           status: 'PAID',
           defective: isDefectiveReading ? 'YES' : 'NO',
           paymentCode: bill.paymentCode || 'N/A',
-          paidAt: paidAt,
+          paidAt,
           paidBy: bill.paidBy || 'N/A'
         });
-      });
-
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber > 1) {
-          row.height = 22;
-          row.alignment = { vertical: 'middle' };
-          row.eachCell((cell) => {
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFFFFFFF' }
-            };
-            cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
-          });
-          
-          const statusCell = row.getCell(11);
-          statusCell.font = { color: { argb: 'FF16A34A' }, bold: true };
-
-          const defectiveCell = row.getCell(12);
-          if (defectiveCell.value === 'YES') {
-            defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
-          }
-
-          const paymentCell = row.getCell(13);
-          paymentCell.font = { color: { argb: 'FF2563EB' }, bold: true };
-        }
       });
 
       worksheet.eachRow((row) => {
@@ -1488,86 +1404,29 @@ const AdminDashboard = () => {
         pivotTables: false
       });
 
-      worksheet.eachRow((row) => {
-        row.eachCell((cell) => {
-          cell.protection = { locked: true };
-        });
-      });
-
       const buffer = await workbook.xlsx.writeBuffer();
-      
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const defaultFileName = `Paid_Water_Bills_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-      let fileSaved = false;
-      
-      if ('showSaveFilePicker' in window) {
-        try {
-          const fileHandle = await window.showSaveFilePicker({
-            suggestedName: defaultFileName,
-            types: [{
-              description: 'Excel Workbook',
-              accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
-            }]
-          });
-
-          const writable = await fileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          fileSaved = true;
-          
-        } catch (pickError) {
-          if (pickError.name === 'AbortError' || pickError.name === 'SecurityError') {
-            toast.error('Export cancelled');
-            setIsExportingPaid(false);
-            return;
-          } else {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = defaultFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            fileSaved = true;
-          }
-        }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = defaultFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        fileSaved = true;
-      }
-
-      if (!fileSaved) {
-        toast.error('Failed to save file');
-        setIsExportingPaid(false);
-        return;
-      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = defaultFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast.success(`✅ Exported ${paidBills.length} paid bills!`);
 
-      // ========== DELETE FROM RESPECTIVE SERVERS ==========
       const groupedByServer = {};
       for (const bill of paidBills) {
-        const serverKey = bill.serverSource || 'server1';
-        if (!groupedByServer[serverKey]) {
-          groupedByServer[serverKey] = [];
-        }
+        const serverKey = bill.serverSource || selectedServer;
+        if (!groupedByServer[serverKey]) groupedByServer[serverKey] = [];
         groupedByServer[serverKey].push(bill);
       }
 
       let deleteSuccessCount = 0;
-      let deleteErrorCount = 0;
 
       for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
         const targetDb = getDbByServer(serverKey);
@@ -1575,40 +1434,24 @@ const AdminDashboard = () => {
         let deleteBatchCount = 0;
 
         for (let i = 0; i < serverBills.length; i++) {
-          try {
-            const billRef = doc(targetDb, 'bills', serverBills[i].id);
-            deleteBatch.delete(billRef);
-            deleteSuccessCount++;
-            deleteBatchCount++;
+          deleteBatch.delete(doc(targetDb, 'bills', serverBills[i].id));
+          deleteSuccessCount++;
+          deleteBatchCount++;
 
-            if (deleteBatchCount >= 500) {
-              await deleteBatch.commit();
-              deleteBatch = writeBatch(targetDb);
-              deleteBatchCount = 0;
-            }
-          } catch (error) {
-            console.error(`Error deleting paid bill (${serverKey}):`, error);
-            deleteErrorCount++;
+          if (deleteBatchCount >= 500) {
+            await deleteBatch.commit();
+            deleteBatch = writeBatch(targetDb);
+            deleteBatchCount = 0;
           }
         }
 
-        if (deleteBatchCount > 0) {
-          await deleteBatch.commit();
-        }
+        if (deleteBatchCount > 0) await deleteBatch.commit();
       }
 
-      if (deleteSuccessCount > 0) {
-        toast.success(`🗑️ Successfully deleted ${deleteSuccessCount} paid bills from Firebase!`);
-      }
-
-      if (deleteErrorCount > 0) {
-        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete`);
-      }
-
+      toast.success(`🗑️ Deleted ${deleteSuccessCount} paid bills!`);
       toast.success(`🔒 Excel Password: ${EXCEL_PASSWORD}`);
 
-      await fetchBills();
-
+      await fetchBills(selectedServer);
     } catch (error) {
       console.error('Export paid bills error:', error);
       toast.error('Error processing paid bills: ' + error.message);
@@ -1670,11 +1513,7 @@ const AdminDashboard = () => {
 
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF2563EB' }
-      };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
@@ -1698,38 +1537,6 @@ const AdminDashboard = () => {
           status: isCutoff ? 'CUT-OFF' : (bill.status?.toUpperCase() || 'UNPAID'),
           defective: isDefectiveReading ? 'YES' : 'NO'
         });
-      });
-
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber > 1) {
-          row.height = 22;
-          row.alignment = { vertical: 'middle' };
-          row.eachCell((cell) => {
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFFFFFFF' }
-            };
-            cell.font = { color: { argb: 'FF1E293B' }, size: 11 };
-          });
-          
-          const statusCell = row.getCell(11);
-          const statusValue = statusCell.value?.toString().toLowerCase() || '';
-          if (statusValue === 'paid') {
-            statusCell.font = { color: { argb: 'FF059669' }, bold: true };
-          } else if (statusValue === 'unpaid') {
-            statusCell.font = { color: { argb: 'FFD97706' }, bold: true };
-          } else if (statusValue === 'overdue') {
-            statusCell.font = { color: { argb: 'FFDC2626' }, bold: true };
-          } else if (statusValue === 'cut-off' || statusValue === 'cutoff') {
-            statusCell.font = { color: { argb: 'FFDC2626' }, bold: true };
-          }
-
-          const defectiveCell = row.getCell(12);
-          if (defectiveCell.value === 'YES') {
-            defectiveCell.font = { color: { argb: 'FFDC2626' }, bold: true };
-          }
-        }
       });
 
       worksheet.eachRow((row) => {
@@ -1759,52 +1566,23 @@ const AdminDashboard = () => {
         pivotTables: false
       });
 
-      worksheet.eachRow((row) => {
-        row.eachCell((cell) => {
-          cell.protection = { locked: true };
-        });
-      });
-
       const buffer = await workbook.xlsx.writeBuffer();
-      
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const locationSuffix = selectedExportLocation !== 'all' ? `_${selectedExportLocation}` : '';
-      const defaultFileName = `Water_Bills${locationSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const serverSuffix = selectedServer !== 'all' ? `_${getServerLabel(selectedServer).replace(' ', '_')}` : '_AllServers';
+      const defaultFileName = `Water_Bills${serverSuffix}${locationSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          const fileHandle = await window.showSaveFilePicker({
-            suggestedName: defaultFileName,
-            types: [{
-              description: 'Excel Workbook',
-              accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
-            }]
-          });
-
-          const writable = await fileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-
-          const savedFileName = fileHandle.name || defaultFileName;
-          
-          toast.success(`✅ Exported ${billsToExport.length} bills to "${savedFileName}"!`);
-          toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
-          
-        } catch (pickError) {
-          if (pickError.name === 'AbortError' || pickError.name === 'SecurityError') {
-            toast.error('Export cancelled');
-          } else {
-            console.error('File picker error:', pickError);
-            fallbackDownload(blob, defaultFileName, billsToExport.length);
-          }
-        }
-      } else {
-        fallbackDownload(blob, defaultFileName, billsToExport.length);
-      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = defaultFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
+      toast.success(`✅ Exported ${billsToExport.length} bills!`);
+      toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Error exporting file: ' + error.message);
@@ -1813,41 +1591,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const fallbackDownload = (blob, fileName, count) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast.success(`✅ Exported ${count} bills!`);
-    toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
-  };
+  // ============================================================
+  // IMPORT FUNCTIONS
+  // ============================================================
 
   const detectExcelFormat = (jsonData) => {
     if (!jsonData || jsonData.length === 0) return 'unknown';
-    
     const firstRow = jsonData[0];
     const keys = Object.keys(firstRow).map(k => k.toLowerCase().trim());
-    
-    const hasCollectableAmount = keys.some(k => 
-      k === 'collectable amount' || k === 'collectableamount' || k === 'collectable_amount'
-    );
-    
+    const hasCollectableAmount = keys.some(k => k === 'collectable amount' || k === 'collectableamount' || k === 'collectable_amount');
     const hasPresentReading = keys.some(k => k === 'present reading' || k === 'presentreading');
     const hasPreviousReading = keys.some(k => k === 'previous reading' || k === 'previousreading');
-    
-    if (hasCollectableAmount) {
-      return 'cutoff_format';
-    }
-    
-    if (hasPresentReading && hasPreviousReading) {
-      return 'calian_format';
-    }
-    
+    if (hasCollectableAmount) return 'cutoff_format';
+    if (hasPresentReading && hasPreviousReading) return 'calian_format';
     return 'unknown';
   };
 
@@ -1872,8 +1628,6 @@ const AdminDashboard = () => {
     const parsedData = [];
     const format = detectExcelFormat(jsonData);
     
-    console.log('📊 Detected Excel format:', format);
-    
     jsonData.forEach((row, index) => {
       const wsin = getRowValue(row, 'WSIN', 'wsin');
       const consumerName = getRowValue(row, 'Consumer Name', 'consumerName', 'Consumer');
@@ -1887,19 +1641,15 @@ const AdminDashboard = () => {
       const previousReading = getRowValue(row, 'Previous Reading', 'previousReading');
       const collectableAmount = getRowValue(row, 'collectable amount', 'Collectable Amount', 'collectableAmount');
       
-      if (!consumerName || consumerName === '') {
-        return;
-      }
+      if (!consumerName || consumerName === '') return;
       
       const statusUpper = status.toUpperCase().trim();
       const isStatusCutoff = statusUpper === 'CUTOFF' || statusUpper === 'CUT-OFF' || statusUpper === 'CUT OFF';
-      
       const presentNA = isNAReading(presentReading);
       const previousNA = isNAReading(previousReading);
       const isReadingsNA = presentNA && previousNA;
       
       let isCutoff = false;
-      
       if (format === 'cutoff_format') {
         isCutoff = isStatusCutoff || isReadingsNA;
       } else {
@@ -1907,13 +1657,9 @@ const AdminDashboard = () => {
       }
       
       let billStatus = 'unpaid';
-      if (isCutoff) {
-        billStatus = 'cutoff';
-      } else if (statusUpper === 'PAID') {
-        billStatus = 'paid';
-      } else if (statusUpper === 'OVERDUE') {
-        billStatus = 'overdue';
-      }
+      if (isCutoff) billStatus = 'cutoff';
+      else if (statusUpper === 'PAID') billStatus = 'paid';
+      else if (statusUpper === 'OVERDUE') billStatus = 'overdue';
       
       const billNumber = wsin || `WB-${year}-${String(index + 1).padStart(3, '0')}`;
       
@@ -1974,7 +1720,7 @@ const AdminDashboard = () => {
         notes: isCutoff ? 'CUT-OFF ACCOUNT' : '',
         isImported: true,
         importDate: new Date().toISOString(),
-        isCutoff: isCutoff,
+        isCutoff,
         excelFormat: format
       });
     });
@@ -1991,9 +1737,6 @@ const AdminDashboard = () => {
     return months[month] || '01';
   };
 
-  // ============================================================
-  // FILE UPLOAD HANDLER - WITH SERVER CHOICE
-  // ============================================================
   const handleFileUpload = async (event, serverChoice) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -2024,10 +1767,7 @@ const AdminDashboard = () => {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
-            defval: '',
-            blankrows: false
-          });
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', blankrows: false });
           
           const parsedBills = parseExcelData(jsonData);
           
@@ -2059,8 +1799,7 @@ const AdminDashboard = () => {
                 updatedAt: new Date().toISOString()
               };
               
-              const docRef = doc(billsRef);
-              batch.set(docRef, billData);
+              batch.set(doc(billsRef), billData);
               successCount++;
               batchCount++;
               
@@ -2077,32 +1816,25 @@ const AdminDashboard = () => {
             }
           }
 
-          if (batchCount > 0) {
-            await batch.commit();
-          }
+          if (batchCount > 0) await batch.commit();
 
           const cutoffCount = parsedBills.filter(b => b.isCutoff).length;
           
-          toast.success(`✅ Imported ${successCount} bills to ${serverLabel}! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
-          if (cutoffCount > 0) {
-            toast.success(`🔴 ${cutoffCount} cut-off accounts detected.`);
-          }
-          fetchBills();
+          toast.success(`✅ Imported ${successCount} bills to ${serverLabel}!`);
+          if (cutoffCount > 0) toast.success(`🔴 ${cutoffCount} cut-off accounts detected.`);
           
+          if (selectedServer !== serverChoice && selectedServer !== 'all') {
+            setSelectedServer(serverChoice);
+          } else {
+            fetchBills(selectedServer);
+          }
         } catch (error) {
           console.error('Error parsing Excel file:', error);
-          
           let errorMsg = 'Error processing Excel file.';
-          if (error?.code === 'permission-denied') {
-            errorMsg = `❌ Permission denied sa ${serverLabel}. Check Firestore rules!`;
-          } else if (error?.code === 'unavailable') {
-            errorMsg = `❌ Cannot connect to ${serverLabel}. Check internet!`;
-          } else if (error?.code === 'not-found') {
-            errorMsg = `❌ Firestore sa ${serverLabel} wala pa na-setup!`;
-          } else if (error?.message) {
-            errorMsg = `Error: ${error.message}`;
-          }
-          
+          if (error?.code === 'permission-denied') errorMsg = `❌ Permission denied sa ${serverLabel}. Check Firestore rules!`;
+          else if (error?.code === 'unavailable') errorMsg = `❌ Cannot connect to ${serverLabel}. Check internet!`;
+          else if (error?.code === 'not-found') errorMsg = `❌ Firestore sa ${serverLabel} wala pa na-setup!`;
+          else if (error?.message) errorMsg = `Error: ${error.message}`;
           toast.error(errorMsg, { duration: 8000 });
         } finally {
           setUploading(false);
@@ -2122,7 +1854,6 @@ const AdminDashboard = () => {
       };
 
       reader.readAsArrayBuffer(file);
-
     } catch (error) {
       console.error('Error processing file:', error);
       toast.error('Error processing file');
@@ -2133,20 +1864,13 @@ const AdminDashboard = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP'
-    }).format(amount);
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   const getStatusBadge = (status) => {
@@ -2159,28 +1883,19 @@ const AdminDashboard = () => {
     return statusMap[status] || statusMap.unpaid;
   };
 
-  // Helper function to get server color
-  const getServerColor = (serverKey) => {
-    const config = SERVER_CONFIGS.find(s => s.key === serverKey);
-    return config ? config.color : '#194752';
-  };
-
   const activeFilterCount = [
     filterType !== 'all',
     filterLocation !== 'all',
     filterMonth !== 'all',
     filterYear !== 'all',
-    filterConsumerPeriod !== 'all',
-    filterServer !== 'all'
+    filterConsumerPeriod !== 'all'
   ].filter(Boolean).length;
 
   const getConsumersWithUnpaid = () => {
     const consumerMap = new Map();
     filteredBills.forEach(bill => {
       if (bill.status !== 'paid' && !isCutoffBill(bill) && bill.consumerName) {
-        if (!consumerMap.has(bill.consumerName)) {
-          consumerMap.set(bill.consumerName, []);
-        }
+        if (!consumerMap.has(bill.consumerName)) consumerMap.set(bill.consumerName, []);
         consumerMap.get(bill.consumerName).push(bill);
       }
     });
@@ -2189,14 +1904,7 @@ const AdminDashboard = () => {
 
   const consumersWithUnpaid = getConsumersWithUnpaid();
 
-  if (loading) {
-    return (
-      <div className="loading-spinner">
-        <div className="spinner-3d"></div>
-        <p style={{ color: '#ffffff', marginTop: '16px', fontFamily: 'Inter, sans-serif' }}>Loading bills...</p>
-      </div>
-    );
-  }
+  const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
 
   return (
     <div className="admin-dashboard">
@@ -2207,26 +1915,66 @@ const AdminDashboard = () => {
           <p>Manage all water bill records</p>
         </div>
         <div className="header-actions">
-          <div className="table-type-toggle">
-            <button
-              className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`}
-              onClick={() => setTableType('regular')}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#FFFFFF',
+            border: `2px solid ${currentServerConfig?.color || '#194752'}`,
+            borderRadius: '10px',
+            padding: '6px 12px',
+            boxShadow: `0 2px 8px ${currentServerConfig?.color || '#194752'}22`
+          }}>
+            <ServerIcon width={18} height={18} color={currentServerConfig?.color || '#194752'} />
+            <span style={{
+              fontSize: '12px',
+              fontWeight: '700',
+              color: currentServerConfig?.color || '#194752',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Server:
+            </span>
+            <select
+              value={selectedServer}
+              onChange={handleServerChange}
+              disabled={loading}
+              style={{
+                padding: '6px 10px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: currentServerConfig?.color || '#194752',
+                outline: 'none',
+                cursor: loading ? 'wait' : 'pointer',
+                minWidth: '110px'
+              }}
             >
+              <option value="server1">🗄️ Server 1</option>
+              <option value="server2">🗄️ Server 2</option>
+              <option value="server3">🗄️ Server 3</option>
+              <option value="server4">🗄️ Server 4</option>
+              <option value="server5">🗄️ Server 5</option>
+              <option value="all">🌐 All Servers (Slow)</option>
+            </select>
+          </div>
+
+          <div className="table-type-toggle">
+            <button className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`} onClick={() => setTableType('regular')}>
               <RegularTableIcon />
               REGULAR
             </button>
-            <button
-              className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`}
-              onClick={() => setTableType('cutoff')}
-            >
+            <button className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`} onClick={() => setTableType('cutoff')}>
               <CutoffTableIcon />
               CUT-OFF
             </button>
           </div>
 
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            ADD BILL
-          </button>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>ADD BILL</button>
+          
           <button 
             className="btn btn-secondary" 
             onClick={() => setShowServerSelectModal(true)}
@@ -2234,6 +1982,7 @@ const AdminDashboard = () => {
           >
             IMPORT
           </button>
+          
           <button 
             className="btn btn-secondary"
             onClick={openExportModal}
@@ -2241,6 +1990,7 @@ const AdminDashboard = () => {
           >
             {isExporting ? '⏳ Exporting...' : 'EXPORT'}
           </button>
+          
           <button 
             className="btn btn-success" 
             onClick={openExportPaidConfirm}
@@ -2257,13 +2007,13 @@ const AdminDashboard = () => {
               fontFamily: 'Inter, sans-serif',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              cursor: 'pointer'
             }}
           >
             <ExportPaidIcon width={20} height={20} color="#ffffff" />
             {isExportingPaid ? '⏳ Processing...' : 'EXPORT PAID'}
           </button>
+          
           <button 
             className="btn btn-success" 
             onClick={openNewMonthModal}
@@ -2279,8 +2029,7 @@ const AdminDashboard = () => {
               fontFamily: 'Inter, sans-serif',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              cursor: 'pointer'
             }}
           >
             <CalendarAddIcon width={20} height={20} color="#ffffff" />
@@ -2289,7 +2038,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Hidden File Input */}
       <input
         type="file"
         id="fileInput"
@@ -2298,16 +2046,12 @@ const AdminDashboard = () => {
         onChange={(e) => handleFileUpload(e, selectedImportServer)}
       />
 
-      {/* ============================================================ */}
-      {/* SERVER SELECTION MODAL FOR IMPORT - 5 SERVERS */}
-      {/* ============================================================ */}
+      {/* SERVER SELECTION MODAL FOR IMPORT */}
       {showServerSelectModal && (
         <div className="modal-overlay" onClick={() => setShowServerSelectModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                🌐 Select Server
-              </h2>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>🌐 Select Server</h2>
               <button className="close-btn" onClick={() => setShowServerSelectModal(false)}>✕</button>
             </div>
 
@@ -2368,11 +2112,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowServerSelectModal(false)}
-                style={{ flex: 1 }}
-              >
+              <button className="btn btn-outline" onClick={() => setShowServerSelectModal(false)} style={{ flex: 1 }}>
                 Cancel
               </button>
             </div>
@@ -2380,9 +2120,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* CUTOFF PAY MODAL */}
-      {/* ============================================================ */}
       {showCutoffPayModal && cutoffBillToPay && (
         <div className="modal-overlay" onClick={() => setShowCutoffPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
@@ -2396,7 +2134,7 @@ const AdminDashboard = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Confirm payment for this cut-off account. The <strong>Collectable Amount</strong> will be used as the payment amount.
+                Confirm payment for this cut-off account.
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
@@ -2412,88 +2150,25 @@ const AdminDashboard = () => {
                 </span>
               </div>
 
-              <div style={{ 
-                border: '2px solid #DC2626', 
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '16px'
-              }}>
-                <table style={{ 
-                  width: '100%', 
-                  borderCollapse: 'collapse',
-                  fontSize: '14px'
-                }}>
+              <div style={{ border: '2px solid #DC2626', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                   <thead>
                     <tr style={{ background: '#DC2626' }}>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
-                        Bill Number (WSIN)
-                      </th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
-                        Consumer Name
-                      </th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
-                        Type
-                      </th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
-                        Year
-                      </th>
-                      <th style={{ padding: '12px 16px', textAlign: 'right', color: '#ffffff', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>
-                        Collectable Amount
-                      </th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff' }}>Bill Number (WSIN)</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff' }}>Consumer Name</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', color: '#ffffff' }}>Collectable Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr style={{ background: '#FFF5F5' }}>
-                      <td style={{ padding: '14px 16px', fontWeight: '600', color: '#194752' }}>
-                        {cutoffBillToPay.billNumber || 'N/A'}
-                      </td>
-                      <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>
-                        {cutoffBillToPay.consumerName || 'N/A'}
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span className={`type-badge ${cutoffBillToPay.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
-                          {cutoffBillToPay.type || cutoffBillToPay.consumerType || 'N/A'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>
-                        {cutoffBillToPay.year || 'N/A'}
-                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: '600', color: '#194752' }}>{cutoffBillToPay.billNumber || 'N/A'}</td>
+                      <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>{cutoffBillToPay.consumerName || 'N/A'}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '700', fontSize: '18px', color: '#DC2626' }}>
                         {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
                       </td>
                     </tr>
                   </tbody>
                 </table>
-              </div>
-
-              <div style={{ 
-                background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
-                border: '2px solid #FECACA',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                marginBottom: '20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '500' }}>
-                    AMOUNT TO PAY
-                  </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '28px', fontWeight: '800', color: '#DC2626' }}>
-                    {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '500' }}>
-                    STATUS
-                  </p>
-                  <span className="status-badge status-cutoff" style={{ fontSize: '14px', padding: '6px 18px' }}>
-                    CUT-OFF
-                  </span>
-                </div>
               </div>
 
               <div className="form-group">
@@ -2512,18 +2187,12 @@ const AdminDashboard = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={() => setShowCutoffPayModal(false)}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={() => setShowCutoffPayModal(false)} style={{ flex: 1 }}>Cancel</button>
               <button 
                 className="btn btn-primary" 
                 onClick={confirmCutoffPay}
                 disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff}
-                style={{ 
+                style={{
                   flex: 1,
                   background: '#DC2626',
                   color: '#ffffff',
@@ -2533,11 +2202,10 @@ const AdminDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
                   opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff) ? '0.5' : '1'
                 }}
               >
-                {isPayingCutoff ? '⏳ Processing...' : `✅ Confirm Payment`}
+                {isPayingCutoff ? '⏳ Processing...' : '✅ Confirm Payment'}
               </button>
             </div>
           </div>
@@ -2554,10 +2222,6 @@ const AdminDashboard = () => {
             </div>
             
             <div style={{ marginBottom: '16px' }}>
-              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a location to export. Only bills from the selected location will be included.
-              </p>
-              
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
                   Select Location <span className="required" style={{ color: '#DC2626' }}>*</span>
@@ -2575,45 +2239,20 @@ const AdminDashboard = () => {
                     fontFamily: 'Inter, sans-serif',
                     fontSize: '15px',
                     color: '#0F172A',
-                    outline: 'none',
-                    transition: 'all 0.2s'
+                    outline: 'none'
                   }}
                 >
                   <option value="all">🌍 All Locations ({bills.length} bills)</option>
                   {exportLocations.map(location => {
                     const count = bills.filter(b => b.location === location).length;
-                    return (
-                      <option key={location} value={location}>
-                        📍 {location} ({count} bills)
-                      </option>
-                    );
+                    return <option key={location} value={location}>📍 {location} ({count} bills)</option>;
                   })}
                 </select>
               </div>
-              
-              {selectedExportLocation !== 'all' && (
-                <div style={{ 
-                  marginTop: '12px', 
-                  padding: '10px 14px', 
-                  background: '#EFF6FF', 
-                  borderRadius: '8px',
-                  border: '1px solid #BFDBFE',
-                  fontSize: '14px',
-                  color: '#1E40AF'
-                }}>
-                  ℹ️ Exporting <strong>{bills.filter(b => b.location === selectedExportLocation).length}</strong> bills from <strong>{selectedExportLocation}</strong>
-                </div>
-              )}
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={closeExportModal}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={closeExportModal} style={{ flex: 1 }}>Cancel</button>
               <button 
                 className="btn btn-primary" 
                 onClick={handleExportWithLocationFilter}
@@ -2630,7 +2269,7 @@ const AdminDashboard = () => {
       {/* PAY ALL MODAL */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <PayAllIcon width={28} height={28} color="#16A34A" />
@@ -2644,56 +2283,26 @@ const AdminDashboard = () => {
                 You are about to pay <strong>{payAllBills.length}</strong> unpaid bills for <strong>{payAllConsumerName}</strong>.
               </p>
 
-              <div style={{ 
-                border: '1px solid #E2E8F0', 
-                borderRadius: '8px',
-                overflow: 'hidden',
-                marginBottom: '16px'
-              }}>
-                <table style={{ 
-                  width: '100%', 
-                  borderCollapse: 'collapse',
-                  fontSize: '13px'
-                }}>
-                  <thead style={{ background: '#F8FAFC' }}>
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px', maxHeight: '300px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0 }}>
                     <tr>
                       <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Period</th>
                       <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>WSIN</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'center', borderBottom: '1px solid #E2E8F0' }}>Server</th>
-                      <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Consumption</th>
                       <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payAllBills.map((bill, index) => {
-                      const { consumption, amount, isDefective: isDef } = calculateWithDefective(
-                        bill.presentReading,
-                        bill.previousReading,
-                        bill.consumerType
-                      );
+                      const { amount, isDefective: isDef } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
                       const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
                       return (
                         <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{ borderBottom: index < payAllBills.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                           <td style={{ padding: '8px 14px' }}>{period.trim()}</td>
                           <td style={{ padding: '8px 14px', fontWeight: '500' }}>{bill.billNumber || 'N/A'}</td>
-                          <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                            <span style={{
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              background: `${getServerColor(bill.serverSource)}22`,
-                              color: getServerColor(bill.serverSource)
-                            }}>
-                              {getServerLabel(bill.serverSource).replace('Server ', 'S')}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 14px', textAlign: 'right' }}>
-                            {consumption} m³
-                            {isDef && <span style={{ color: '#DC2626', fontSize: '10px', marginLeft: '4px' }}>⚠️</span>}
-                          </td>
                           <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '600' }}>
                             {formatCurrency(amount)}
+                            {isDef && <span style={{ color: '#DC2626', fontSize: '10px', marginLeft: '4px' }}>⚠️</span>}
                           </td>
                         </tr>
                       );
@@ -2701,16 +2310,10 @@ const AdminDashboard = () => {
                   </tbody>
                   <tfoot style={{ background: '#F8FAFC', borderTop: '2px solid #194752' }}>
                     <tr>
-                      <td colSpan="4" style={{ padding: '12px 14px', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>
-                        OVERALL TOTAL:
-                      </td>
+                      <td colSpan="2" style={{ padding: '12px 14px', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>OVERALL TOTAL:</td>
                       <td style={{ padding: '12px 14px', fontWeight: '700', fontSize: '18px', textAlign: 'right', color: '#194752' }}>
                         {formatCurrency(payAllBills.reduce((sum, bill) => {
-                          const { amount } = calculateWithDefective(
-                            bill.presentReading,
-                            bill.previousReading,
-                            bill.consumerType
-                          );
+                          const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
                           return sum + amount;
                         }, 0))}
                       </td>
@@ -2724,7 +2327,7 @@ const AdminDashboard = () => {
                 <input
                   type="text"
                   className={`payment-input ${payAllPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code (will be used for all bills)"
+                  placeholder="Enter 7-digit code"
                   value={payAllPaymentCode}
                   onChange={handlePayAllPaymentCodeChange}
                   maxLength="7"
@@ -2735,18 +2338,12 @@ const AdminDashboard = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={() => setShowPayAllModal(false)}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={() => setShowPayAllModal(false)} style={{ flex: 1 }}>Cancel</button>
               <button 
                 className="btn btn-primary" 
                 onClick={confirmPayAll}
                 disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll}
-                style={{ 
+                style={{
                   flex: 1,
                   background: '#16A34A',
                   color: '#ffffff',
@@ -2756,7 +2353,6 @@ const AdminDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
                   opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll) ? '0.5' : '1'
                 }}
               >
@@ -2767,7 +2363,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* EXPORT PAID CONFIRMATION MODAL */}
+      {/* EXPORT PAID CONFIRMATION */}
       {showExportPaidConfirm && (
         <div className="modal-overlay" onClick={closeExportPaidConfirm}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -2783,43 +2379,19 @@ const AdminDashboard = () => {
               <p style={{ color: '#0F172A', fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
                 ⚠️ This action will:
               </p>
-              <ul style={{ 
-                color: '#475569', 
-                fontSize: '14px', 
-                lineHeight: '2',
-                paddingLeft: '20px',
-                marginBottom: '16px'
-              }}>
+              <ul style={{ color: '#475569', fontSize: '14px', lineHeight: '2', paddingLeft: '20px' }}>
                 <li>📤 Export <strong>{paidBillsToDelete.length}</strong> paid bills to Excel</li>
-                <li>🗑️ <strong style={{ color: '#DC2626' }}>PERMANENTLY DELETE</strong> all paid bills from all servers</li>
-                <li>🔒 File will be password protected with <strong>"Water_2026"</strong></li>
+                <li>🗑️ <strong style={{ color: '#DC2626' }}>DELETE</strong> all paid bills from Firebase</li>
+                <li>🔒 File protected with <strong>"Water_2026"</strong></li>
               </ul>
-              
-              <div style={{ 
-                background: '#FEF2F2', 
-                border: '1px solid #FECACA', 
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginTop: '12px'
-              }}>
-                <p style={{ color: '#991B1B', fontSize: '13px', fontWeight: '500', margin: 0 }}>
-                  ⚠️ This action cannot be undone! Please make sure you have a backup.
-                </p>
-              </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={closeExportPaidConfirm}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={closeExportPaidConfirm} style={{ flex: 1 }}>Cancel</button>
               <button 
                 className="btn btn-primary" 
                 onClick={executeExportPaidAndDelete}
-                style={{ 
+                style={{
                   flex: 1,
                   background: '#DC2626',
                   color: '#ffffff',
@@ -2828,8 +2400,7 @@ const AdminDashboard = () => {
                   padding: '12px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  cursor: 'pointer'
                 }}
               >
                 <TrashIcon width={18} height={18} color="#ffffff" />
@@ -2854,92 +2425,52 @@ const AdminDashboard = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Location</strong> and <strong>Month</strong> to rollover to the next month.
-                All <strong>Present Readings</strong> will become <strong>Previous Readings</strong> for the new month.
+                Select Location, Month, and Year to rollover. Mag-fetch ra sa <strong>{selectedServer === 'all' ? 'tanan servers' : getServerLabel(selectedServer)}</strong>.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <Location03Icon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
                     Location <span className="required" style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={newMonthLocation}
                     onChange={(e) => setNewMonthLocation(e.target.value)}
                     className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
-                      color: '#0F172A',
-                      outline: 'none'
-                    }}
+                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
                   >
                     <option value="">Select Location...</option>
-                    {availableLocationsForNewMonth.map(location => (
-                      <option key={location} value={location}>{location}</option>
-                    ))}
+                    {availableLocationsForNewMonth.map(location => <option key={location} value={location}>{location}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <CalendarClockIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
                     Month <span className="required" style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={newMonthMonth}
                     onChange={(e) => setNewMonthMonth(e.target.value)}
                     className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
-                      color: '#0F172A',
-                      outline: 'none'
-                    }}
+                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
                   >
                     <option value="">Select Month...</option>
-                    {months.map(month => (
-                      <option key={month} value={month}>{month}</option>
-                    ))}
+                    {months.map(month => <option key={month} value={month}>{month}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <CalendarClockIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
                     Year <span className="required" style={{ color: '#DC2626' }}>*</span>
                   </label>
                   <select
                     value={newMonthYear}
                     onChange={(e) => setNewMonthYear(e.target.value)}
                     className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
-                      color: '#0F172A',
-                      outline: 'none'
-                    }}
+                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
                   >
                     <option value="">Select Year...</option>
-                    {years.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
+                    {years.map(year => <option key={year} value={year}>{year}</option>)}
                   </select>
                 </div>
               </div>
@@ -2959,7 +2490,6 @@ const AdminDashboard = () => {
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
                     opacity: (!newMonthLocation || !newMonthMonth || !newMonthYear || newMonthLoading) ? '0.5' : '1'
                   }}
                 >
@@ -2969,25 +2499,12 @@ const AdminDashboard = () => {
 
               {showNewMonthPreview && newMonthPreview.length > 0 && (
                 <div style={{ marginTop: '16px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '8px'
-                  }}>
-                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                      📋 Found {newMonthPreview.length} bills
-                    </span>
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '600', color: '#0F172A' }}>📋 Found {newMonthPreview.length} bills</span>
                   </div>
-                  
-                  <div style={{ 
-                    maxHeight: '200px', 
-                    overflow: 'auto',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px'
-                  }}>
+                  <div style={{ maxHeight: '200px', overflow: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 1 }}>
+                      <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
                         <tr>
                           <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
                           <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
@@ -3012,9 +2529,7 @@ const AdminDashboard = () => {
                                 {getServerLabel(bill.serverSource).replace('Server ', 'S')}
                               </span>
                             </td>
-                            <td style={{ padding: '6px 12px', fontWeight: '600', color: '#16A34A' }}>
-                              {bill.presentReading || '0'}
-                            </td>
+                            <td style={{ padding: '6px 12px', fontWeight: '600', color: '#16A34A' }}>{bill.presentReading || '0'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3025,18 +2540,12 @@ const AdminDashboard = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={closeNewMonthModal}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={closeNewMonthModal} style={{ flex: 1 }}>Cancel</button>
               <button 
                 className="btn btn-primary" 
                 onClick={confirmNewMonth}
                 disabled={newMonthPreview.length === 0 || newMonthLoading}
-                style={{ 
+                style={{
                   flex: 1,
                   background: '#16A34A',
                   color: '#ffffff',
@@ -3046,7 +2555,6 @@ const AdminDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
                   opacity: (newMonthPreview.length === 0 || newMonthLoading) ? '0.5' : '1'
                 }}
               >
@@ -3058,82 +2566,42 @@ const AdminDashboard = () => {
       )}
 
       {/* ============================================================ */}
-      {/* REGULAR TABLE VIEW */}
+      {/* REGULAR TABLE VIEW - WITH PAGINATION */}
       {/* ============================================================ */}
       {tableType === 'regular' && (
         <>
           <div className="stats-grid">
             <div className="stat-card">
-              <span className="stat-icon">
-                <SummationCircleIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Total Bills</p>
-                <p className="stat-number">{stats.total}</p>
-              </div>
+              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Total Bills</p><p className="stat-number">{stats.total}</p></div>
             </div>
             <div className="stat-card stat-paid">
-              <span className="stat-icon">
-                <PhilippinePesoIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Paid</p>
-                <p className="stat-number">{stats.paid}</p>
-              </div>
+              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Paid</p><p className="stat-number">{stats.paid}</p></div>
             </div>
             <div className="stat-card stat-unpaid">
-              <span className="stat-icon">
-                <CalendarClockIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Unpaid</p>
-                <p className="stat-number">{stats.unpaid}</p>
-              </div>
+              <span className="stat-icon"><CalendarClockIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Unpaid</p><p className="stat-number">{stats.unpaid}</p></div>
             </div>
             <div className="stat-card stat-overdue">
-              <span className="stat-icon">
-                <SecurityWarningIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Overdue</p>
-                <p className="stat-number">{stats.overdue}</p>
-              </div>
+              <span className="stat-icon"><SecurityWarningIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Overdue</p><p className="stat-number">{stats.overdue}</p></div>
             </div>
             <div className="stat-card">
-              <span className="stat-icon">
-                <User02Icon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Consumers</p>
-                <p className="stat-number">{stats.totalConsumers}</p>
-              </div>
+              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Consumers</p><p className="stat-number">{stats.totalConsumers}</p></div>
             </div>
             <div className="stat-card stat-residential">
-              <span className="stat-icon">
-                <ApartmentIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Residential</p>
-                <p className="stat-number">{stats.residential}</p>
-              </div>
+              <span className="stat-icon"><ApartmentIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Residential</p><p className="stat-number">{stats.residential}</p></div>
             </div>
             <div className="stat-card stat-commercial">
-              <span className="stat-icon">
-                <DuplexIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Commercial</p>
-                <p className="stat-number">{stats.commercial}</p>
-              </div>
+              <span className="stat-icon"><DuplexIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Commercial</p><p className="stat-number">{stats.commercial}</p></div>
             </div>
             <div className="stat-card">
-              <span className="stat-icon">
-                <Location03Icon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Location</p>
-                <p className="stat-number stat-location">{stats.location || 'N/A'}</p>
-              </div>
+              <span className="stat-icon"><Location03Icon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Location</p><p className="stat-number stat-location">{stats.location || 'N/A'}</p></div>
             </div>
           </div>
 
@@ -3146,68 +2614,37 @@ const AdminDashboard = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <select 
-                className="filter-select"
-                value={filterServer}
-                onChange={(e) => setFilterServer(e.target.value)}
-                style={{ minWidth: '130px', fontWeight: '600' }}
-              >
-                <option value="all">🌐 All Servers</option>
-                {SERVER_CONFIGS.map(s => (
-                  <option key={s.key} value={s.key}>🗄️ {s.label}</option>
-                ))}
-              </select>
-              <select 
-                className="filter-select"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-              >
+              <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                 <option value="all">All Types</option>
                 <option value="RESIDENTIAL">Residential</option>
                 <option value="COMMERCIAL">Commercial</option>
               </select>
-              <select 
-                className="filter-select"
-                value={filterLocation}
-                onChange={(e) => setFilterLocation(e.target.value)}
-              >
+              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
                 <option value="all">All Locations</option>
-                {locations.map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
+                {locations.map(location => <option key={location} value={location}>{location}</option>)}
               </select>
-              <select 
-                className="filter-select"
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-              >
+              <select className="filter-select" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
                 <option value="all">All Months</option>
-                {months.map(month => (
-                  <option key={month} value={month}>{month}</option>
-                ))}
+                {months.map(month => <option key={month} value={month}>{month}</option>)}
               </select>
-              <select 
-                className="filter-select"
-                value={filterYear}
-                onChange={(e) => setFilterYear(e.target.value)}
-              >
+              <select className="filter-select" value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
                 <option value="all">All Years</option>
-                {years.map(year => (
-                  <option key={year} value={year}>{year}</option>
+                {years.map(year => <option key={year} value={year}>{year}</option>)}
+              </select>
+              <select className="filter-select" value={filterConsumerPeriod} onChange={(e) => setFilterConsumerPeriod(e.target.value)} style={{ minWidth: '200px' }}>
+                <option value="all">All Consumer Periods</option>
+                {consumerPeriods.map(period => (
+                  <option key={period.key} value={period.key}>{period.consumerName} {period.month} {period.year}</option>
                 ))}
               </select>
             </div>
             <div className="filter-actions">
-              {activeFilterCount > 0 && (
-                <button className="btn-clear" onClick={resetFilters}>
-                  ✕ Clear Filters
-                </button>
-              )}
+              {activeFilterCount > 0 && <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>}
             </div>
           </div>
 
           {searchTerm.trim() && consumersWithUnpaid.size === 1 && (
-            <div style={{ 
+            <div style={{
               marginBottom: '16px',
               padding: '12px 20px',
               background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
@@ -3221,18 +2658,7 @@ const AdminDashboard = () => {
             }}>
               <div>
                 <span style={{ fontWeight: '600', color: '#166534' }}>
-                  <PayAllIcon width={20} height={20} color="#16A34A" style={{ display: 'inline', marginRight: '8px' }} />
                   {Array.from(consumersWithUnpaid.keys())[0]} has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills
-                </span>
-                <span style={{ fontSize: '13px', color: '#15803D', marginLeft: '12px' }}>
-                  Total: {formatCurrency(Array.from(consumersWithUnpaid.values())[0].reduce((sum, bill) => {
-                    const { amount } = calculateWithDefective(
-                      bill.presentReading,
-                      bill.previousReading,
-                      bill.consumerType
-                    );
-                    return sum + amount;
-                  }, 0))}
                 </span>
               </div>
               <button
@@ -3250,8 +2676,7 @@ const AdminDashboard = () => {
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  cursor: 'pointer'
                 }}
               >
                 <PayAllIcon width={20} height={20} color="#ffffff" />
@@ -3261,273 +2686,544 @@ const AdminDashboard = () => {
           )}
 
           <div className="table-container">
-            {filteredBills.length === 0 ? (
+            {loading ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '80px 20px',
+                minHeight: '400px',
+                gap: '20px'
+              }}>
+                <div style={{
+                  width: '70px',
+                  height: '70px',
+                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
+                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <p style={{
+                    color: currentServerConfig?.color || '#194752',
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    fontFamily: 'Inter, sans-serif',
+                    margin: 0,
+                    letterSpacing: '0.5px'
+                  }}>
+                    LOADING SERVER
+                  </p>
+                  <p style={{
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    fontFamily: 'Inter, sans-serif',
+                    margin: 0
+                  }}>
+                    Fetching data from{' '}
+                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
+                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
+                    </span>
+                    ...
+                  </p>
+                </div>
+              </div>
+            ) : filteredBills.length === 0 ? (
               <div className="empty-state">
-                <p>No bills found. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill or import from Excel!'}</p>
+                <p>No bills found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill or import from Excel!'}</p>
               </div>
             ) : (
-              <table className="bills-table">
-                <thead>
-                  <tr>
-                    <th>WSIN</th>
-                    <th>Server</th>
-                    <th>Consumer</th>
-                    <th>Location</th>
-                    <th>Period</th>
-                    <th>Type</th>
-                    <th>Previous</th>
-                    <th>Present</th>
-                    <th>Consumption</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBills.map((bill) => {
-                    let displayStatus;
-                    if (bill.status === 'paid') {
-                      displayStatus = 'paid';
-                    } else {
-                      displayStatus = determineBillStatus(bill);
-                    }
-                    
-                    const status = getStatusBadge(displayStatus);
-                    const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                    
-                    const isPresentDefective = isDefective(bill.presentReading);
-                    const isPreviousDefective = isDefective(bill.previousReading);
-                    const isDefectiveReading = isPresentDefective || isPreviousDefective;
-                    
-                    const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
-                    const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
-                    
-                    const { consumption, amount } = calculateWithDefective(
-                      bill.presentReading,
-                      bill.previousReading,
-                      bill.consumerType
-                    );
-                    
-                    return (
-                      <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
-                        <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                        <td>
-                          <span style={{
-                            padding: '3px 10px',
-                            borderRadius: '12px',
-                            fontSize: '10px',
-                            fontWeight: '700',
-                            background: `${getServerColor(bill.serverSource)}22`,
-                            color: getServerColor(bill.serverSource),
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {getServerLabel(bill.serverSource).toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                        <td className="name-cell">{bill.location || 'N/A'}</td>
-                        <td className="name-cell">{period.trim() || 'N/A'}</td>
-                        <td>
-                          <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
-                            {bill.consumerType || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="name-cell">{displayPrevious}</td>
-                        <td className="name-cell">{displayPresent}</td>
-                        <td className="name-cell" style={{ fontWeight: '600' }}>
-                          {consumption} m³
-                          {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
-                        </td>
-                        <td className="name-cell" style={{ fontWeight: '600' }}>
-                          {formatCurrency(amount)}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${status.class}`}>
-                            {status.label}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="admin-action-buttons">
-                            {displayStatus !== 'paid' && (
-                              <button className="action-btn pay" onClick={() => handlePayBill(bill)}>
-                                PAY
+              <>
+                <table className="bills-table">
+                  <thead>
+                    <tr>
+                      <th>WSIN</th>
+                      <th>Server</th>
+                      <th>Consumer</th>
+                      <th>Location</th>
+                      <th>Period</th>
+                      <th>Type</th>
+                      <th>Previous</th>
+                      <th>Present</th>
+                      <th>Consumption</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getCurrentPageData().map((bill) => {
+                      let displayStatus = bill.status === 'paid' ? 'paid' : determineBillStatus(bill);
+                      const status = getStatusBadge(displayStatus);
+                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      
+                      const isPresentDefective = isDefective(bill.presentReading);
+                      const isPreviousDefective = isDefective(bill.previousReading);
+                      const isDefectiveReading = isPresentDefective || isPreviousDefective;
+                      
+                      const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
+                      const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
+                      
+                      const { consumption, amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      
+                      return (
+                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
+                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                          <td>
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              background: `${getServerColor(bill.serverSource)}22`,
+                              color: getServerColor(bill.serverSource),
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {getServerLabel(bill.serverSource).toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                          <td className="name-cell">{bill.location || 'N/A'}</td>
+                          <td className="name-cell">{period.trim() || 'N/A'}</td>
+                          <td>
+                            <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
+                              {bill.consumerType || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="name-cell">{displayPrevious}</td>
+                          <td className="name-cell">{displayPresent}</td>
+                          <td className="name-cell" style={{ fontWeight: '600' }}>
+                            {consumption} m³
+                            {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
+                          </td>
+                          <td className="name-cell" style={{ fontWeight: '600' }}>{formatCurrency(amount)}</td>
+                          <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
+                          <td>
+                            <div className="admin-action-buttons">
+                              {displayStatus !== 'paid' && (
+                                <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
+                              )}
+                              <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
+                              <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* ============================================================ */}
+                {/* PAGINATION CONTROLS - REGULAR TABLE */}
+                {/* ============================================================ */}
+                {filteredBills.length > rowsPerPage && (
+                  <div className="pagination-container" style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px 20px',
+                    borderTop: '1px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    borderRadius: '0 0 12px 12px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
+                      {getPaginationInfo()}
+                    </div>
+
+                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
+                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
+                        Previous
+                      </button>
+
+                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {(() => {
+                          const pages = [];
+                          const total = totalPages;
+                          const current = currentPage;
+                          
+                          if (total <= 7) {
+                            for (let i = 1; i <= total; i++) pages.push(i);
+                          } else {
+                            pages.push(1);
+                            if (current > 3) pages.push('...');
+                            const start = Math.max(2, current - 1);
+                            const end = Math.min(total - 1, current + 1);
+                            for (let i = start; i <= end; i++) pages.push(i);
+                            if (current < total - 2) pages.push('...');
+                            pages.push(total);
+                          }
+                          
+                          return pages.map((page, index) => {
+                            if (page === '...') {
+                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
+                            }
+                            
+                            const isActive = page === current;
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => goToPage(page)}
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '8px',
+                                  border: isActive ? '2px solid #194752' : '1px solid #E2E8F0',
+                                  background: isActive ? '#194752' : '#FFFFFF',
+                                  color: isActive ? '#FFFFFF' : '#0F172A',
+                                  cursor: 'pointer',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: isActive ? '600' : '500',
+                                  minWidth: '40px'
+                                }}
+                              >
+                                {page}
                               </button>
-                            )}
-                            <button className="action-btn edit" onClick={() => handleEdit(bill)}>
-                              EDIT
-                            </button>
-                            <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>
-                              DELETE
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <button
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
+                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Next
+                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
+                      </button>
+                    </div>
+
+                    <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
+                      <span>Rows:</span>
+                      <select
+                        value={rowsPerPage}
+                        onChange={(e) => toast.info('Rows per page is fixed at 10')}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #E2E8F0',
+                          background: '#FFFFFF',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="10">10</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>
       )}
 
       {/* ============================================================ */}
-      {/* CUT-OFF TABLE VIEW */}
+      {/* CUT-OFF TABLE VIEW - WITH PAGINATION */}
       {/* ============================================================ */}
       {tableType === 'cutoff' && (
         <>
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <div className="stat-card" style={{ borderColor: '#DC2626' }}>
-              <span className="stat-icon">
-                <SummationCircleIcon width={28} height={28} color="#DC2626" />
-              </span>
-              <div>
-                <p className="stat-label">Cut-off Accounts</p>
-                <p className="stat-number" style={{ color: '#DC2626' }}>{filteredBills.length}</p>
-              </div>
+              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#DC2626" /></span>
+              <div><p className="stat-label">Cut-off Accounts</p><p className="stat-number" style={{ color: '#DC2626' }}>{filteredBills.length}</p></div>
             </div>
             <div className="stat-card">
-              <span className="stat-icon">
-                <User02Icon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Consumers</p>
-                <p className="stat-number">
-                  {new Set(filteredBills.map(b => b.consumerName)).size}
-                </p>
-              </div>
+              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Consumers</p><p className="stat-number">{new Set(filteredBills.map(b => b.consumerName)).size}</p></div>
             </div>
             <div className="stat-card">
-              <span className="stat-icon">
-                <PhilippinePesoIcon width={28} height={28} color="#194752" />
-              </span>
-              <div>
-                <p className="stat-label">Total Collectable</p>
-                <p className="stat-number" style={{ color: '#DC2626' }}>
-                  {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
-                </p>
-              </div>
+              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
+              <div><p className="stat-label">Total Collectable</p><p className="stat-number" style={{ color: '#DC2626' }}>
+                {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
+              </p></div>
             </div>
           </div>
 
           <div className="search-filter-container">
             <div className="search-wrapper">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search by name or WSIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <select 
-                className="filter-select"
-                value={filterServer}
-                onChange={(e) => setFilterServer(e.target.value)}
-                style={{ minWidth: '130px', fontWeight: '600' }}
-              >
-                <option value="all">🌐 All Servers</option>
-                {SERVER_CONFIGS.map(s => (
-                  <option key={s.key} value={s.key}>🗄️ {s.label}</option>
-                ))}
-              </select>
-              <select 
-                className="filter-select"
-                value={filterLocation}
-                onChange={(e) => setFilterLocation(e.target.value)}
-              >
+              <input type="text" className="search-input" placeholder="Search by name or WSIN..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
                 <option value="all">All Locations</option>
-                {locations.map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
+                {locations.map(location => <option key={location} value={location}>{location}</option>)}
               </select>
             </div>
             <div className="filter-actions">
-              {activeFilterCount > 0 && (
-                <button className="btn-clear" onClick={resetFilters}>
-                  ✕ Clear Filters
-                </button>
-              )}
+              {activeFilterCount > 0 && <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>}
             </div>
           </div>
 
           <div className="table-container">
-            {filteredBills.length === 0 ? (
-              <div className="empty-state">
-                <p>No cut-off accounts found.</p>
+            {loading ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '80px 20px',
+                minHeight: '400px',
+                gap: '20px'
+              }}>
+                <div style={{
+                  width: '70px',
+                  height: '70px',
+                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
+                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <p style={{ color: currentServerConfig?.color || '#194752', fontSize: '18px', fontWeight: '700', fontFamily: 'Inter, sans-serif', margin: 0, letterSpacing: '0.5px' }}>
+                    LOADING SERVER
+                  </p>
+                  <p style={{ color: '#64748B', fontSize: '14px', fontWeight: '500', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+                    Fetching cut-off accounts from{' '}
+                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
+                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
+                    </span>
+                    ...
+                  </p>
+                </div>
               </div>
+            ) : filteredBills.length === 0 ? (
+              <div className="empty-state"><p>No cut-off accounts found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p></div>
             ) : (
-              <table className="bills-table">
-                <thead>
-                  <tr>
-                    <th>WSIN</th>
-                    <th>Server</th>
-                    <th>Consumer</th>
-                    <th>Location</th>
-                    <th>Period</th>
-                    <th>Type</th>
-                    <th>Collectable Amount</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBills.map((bill) => {
-                    const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                    const amount = bill.amount || bill.collectableAmount || 0;
-                    const isPaid = bill.status === 'paid';
-                    
-                    return (
-                      <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
-                        <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                        <td>
-                          <span style={{
-                            padding: '3px 10px',
-                            borderRadius: '12px',
-                            fontSize: '10px',
-                            fontWeight: '700',
-                            background: `${getServerColor(bill.serverSource)}22`,
-                            color: getServerColor(bill.serverSource),
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {getServerLabel(bill.serverSource).toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                        <td className="name-cell">{bill.location || 'N/A'}</td>
-                        <td className="name-cell">{period.trim() || 'N/A'}</td>
-                        <td>
-                          <span className={`type-badge ${bill.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
-                            {bill.type || bill.consumerType || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="name-cell" style={{ fontWeight: '600', color: '#DC2626' }}>
-                          {formatCurrency(amount)}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${isPaid ? 'status-paid' : 'status-cutoff'}`}>
-                            {isPaid ? 'PAID' : 'CUT-OFF'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="admin-action-buttons">
-                            {!isPaid && (
-                              <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>
-                                PAY
+              <>
+                <table className="bills-table">
+                  <thead>
+                    <tr>
+                      <th>WSIN</th>
+                      <th>Server</th>
+                      <th>Consumer</th>
+                      <th>Location</th>
+                      <th>Period</th>
+                      <th>Type</th>
+                      <th>Collectable Amount</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getCurrentPageData().map((bill) => {
+                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      const amount = bill.amount || bill.collectableAmount || 0;
+                      const isPaid = bill.status === 'paid';
+                      
+                      return (
+                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
+                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                          <td>
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              background: `${getServerColor(bill.serverSource)}22`,
+                              color: getServerColor(bill.serverSource),
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {getServerLabel(bill.serverSource).toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                          <td className="name-cell">{bill.location || 'N/A'}</td>
+                          <td className="name-cell">{period.trim() || 'N/A'}</td>
+                          <td>
+                            <span className={`type-badge ${bill.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
+                              {bill.type || bill.consumerType || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="name-cell" style={{ fontWeight: '600', color: '#DC2626' }}>{formatCurrency(amount)}</td>
+                          <td>
+                            <span className={`status-badge ${isPaid ? 'status-paid' : 'status-cutoff'}`}>
+                              {isPaid ? 'PAID' : 'CUT-OFF'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="admin-action-buttons">
+                              {!isPaid && (
+                                <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>PAY</button>
+                              )}
+                              <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
+                              <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* ============================================================ */}
+                {/* PAGINATION CONTROLS - CUT-OFF TABLE */}
+                {/* ============================================================ */}
+                {filteredBills.length > rowsPerPage && (
+                  <div className="pagination-container" style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px 20px',
+                    borderTop: '1px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    borderRadius: '0 0 12px 12px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
+                      {getPaginationInfo()}
+                    </div>
+
+                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
+                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
+                        Previous
+                      </button>
+
+                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {(() => {
+                          const pages = [];
+                          const total = totalPages;
+                          const current = currentPage;
+                          
+                          if (total <= 7) {
+                            for (let i = 1; i <= total; i++) pages.push(i);
+                          } else {
+                            pages.push(1);
+                            if (current > 3) pages.push('...');
+                            const start = Math.max(2, current - 1);
+                            const end = Math.min(total - 1, current + 1);
+                            for (let i = start; i <= end; i++) pages.push(i);
+                            if (current < total - 2) pages.push('...');
+                            pages.push(total);
+                          }
+                          
+                          return pages.map((page, index) => {
+                            if (page === '...') {
+                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
+                            }
+                            
+                            const isActive = page === current;
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => goToPage(page)}
+                                style={{
+                                  padding: '8px 14px',
+                                  borderRadius: '8px',
+                                  border: isActive ? '2px solid #DC2626' : '1px solid #E2E8F0',
+                                  background: isActive ? '#DC2626' : '#FFFFFF',
+                                  color: isActive ? '#FFFFFF' : '#0F172A',
+                                  cursor: 'pointer',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: isActive ? '600' : '500',
+                                  minWidth: '40px'
+                                }}
+                              >
+                                {page}
                               </button>
-                            )}
-                            <button className="action-btn edit" onClick={() => handleEdit(bill)}>
-                              EDIT
-                            </button>
-                            <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>
-                              DELETE
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <button
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
+                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Next
+                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
+                      </button>
+                    </div>
+
+                    <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
+                      <span>Rows:</span>
+                      <select
+                        value={rowsPerPage}
+                        onChange={(e) => toast.info('Rows per page is fixed at 10')}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #E2E8F0',
+                          background: '#FFFFFF',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '13px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="10">10</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>
@@ -3539,16 +3235,9 @@ const AdminDashboard = () => {
           <div className="modal-content progress-modal">
             <h3>Importing Bills to {getServerLabel(selectedImportServer)}</h3>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${uploadProgress.total > 0 ? (uploadProgress.current / uploadProgress.total) * 100 : 0}%` 
-                }}
-              />
+              <div className="progress-fill" style={{ width: `${uploadProgress.total > 0 ? (uploadProgress.current / uploadProgress.total) * 100 : 0}%` }} />
             </div>
-            <p className="progress-text">
-              {uploadProgress.current} / {uploadProgress.total} bills
-            </p>
+            <p className="progress-text">{uploadProgress.current} / {uploadProgress.total} bills</p>
           </div>
         </div>
       )}
@@ -3576,45 +3265,14 @@ const AdminDashboard = () => {
             </div>
 
             <div className="pay-details">
-              <div className="pay-row">
-                <span className="pay-label">Bill Number</span>
-                <span className="pay-value">{selectedBill.billNumber || 'N/A'}</span>
-              </div>
-              <div className="pay-row">
-                <span className="pay-label">Consumer</span>
-                <span className="pay-value">{selectedBill.consumerName || 'N/A'}</span>
-              </div>
-              <div className="pay-row">
-                <span className="pay-label">Type</span>
-                <span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span>
-              </div>
-              <div className="pay-row" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px' }}>
-                <span className="pay-label" style={{ fontWeight: 'bold' }}>Consumption</span>
-                <span className="pay-value" style={{ fontWeight: 'bold' }}>
-                  {(() => {
-                    const { consumption, isDefective: isDef } = calculateWithDefective(
-                      selectedBill.presentReading,
-                      selectedBill.previousReading,
-                      selectedBill.consumerType
-                    );
-                    return (
-                      <>
-                        {consumption} m³
-                        {isDef && <span className="defective-badge"> DEFECTIVE</span>}
-                      </>
-                    );
-                  })()}
-                </span>
-              </div>
+              <div className="pay-row"><span className="pay-label">Bill Number</span><span className="pay-value">{selectedBill.billNumber || 'N/A'}</span></div>
+              <div className="pay-row"><span className="pay-label">Consumer</span><span className="pay-value">{selectedBill.consumerName || 'N/A'}</span></div>
+              <div className="pay-row"><span className="pay-label">Type</span><span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span></div>
               <div className="pay-row" style={{ borderTop: '2px solid #194752', paddingTop: '8px', marginTop: '4px' }}>
                 <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
                 <span className="pay-value amount" style={{ fontSize: '22px' }}>
                   {(() => {
-                    const { amount } = calculateWithDefective(
-                      selectedBill.presentReading,
-                      selectedBill.previousReading,
-                      selectedBill.consumerType
-                    );
+                    const { amount } = calculateWithDefective(selectedBill.presentReading, selectedBill.previousReading, selectedBill.consumerType);
                     return formatCurrency(amount);
                   })()}
                 </span>
@@ -3636,9 +3294,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
               <button 
                 className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7) ? 'disabled' : ''}`}
                 onClick={confirmPayBill}
@@ -3669,7 +3325,7 @@ const AdminDashboard = () => {
         <BillForm
           bill={editingBill}
           onClose={handleFormClose}
-          onSave={fetchBills}
+          onSave={() => fetchBills(selectedServer)}
         />
       )}
     </div>

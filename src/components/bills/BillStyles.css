@@ -14,7 +14,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
   padding-bottom: 20px;
@@ -115,9 +115,9 @@
 /* ========== STATS GRID ========== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(8, 2fr);
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
@@ -247,7 +247,7 @@
 }
 
 .btn-clear {
-  padding: 4px 14px;
+  padding: 4px 3px;
   background: #FEF2F2;
   color: #DC2626;
   border: 1px solid #FECACA;

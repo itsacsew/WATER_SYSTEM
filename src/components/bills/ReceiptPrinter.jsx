@@ -77,7 +77,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   };
 
   // ============================================================
-  // WATER FEE PERIOD FORMATTER - WITH MONTH RANGE & YEAR
+  // WATER FEE PERIOD FORMATTER
   // ============================================================
   const formatWaterFeePeriod = () => {
     const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -85,10 +85,8 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
     
     // Check if this is a PAY ALL transaction (multiple bills)
     if (bill?.isPayAll && bill?.payAllDetails && bill.payAllDetails.length > 0) {
-      // Extract all months and years from payAllDetails
       const details = bill.payAllDetails;
       
-      // Get unique month-year combos, sorted
       const sortedPeriods = [...details].sort((a, b) => {
         const aYear = parseInt(a.year) || 0;
         const bYear = parseInt(b.year) || 0;
@@ -106,22 +104,18 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
       const firstYear = firstPeriod.year || '';
       const lastYear = lastPeriod.year || '';
       
-      // If only one bill in pay all
       if (sortedPeriods.length === 1) {
         return `${firstMonth} ${firstYear}`;
       }
       
-      // If same month and year
       if (firstMonth === lastMonth && firstYear === lastYear) {
         return `${firstMonth} ${firstYear}`;
       }
       
-      // If same year, different months - use range: APRIL - JUNE 2026
       if (firstYear === lastYear) {
         return `${firstMonth} - ${lastMonth} ${firstYear}`;
       }
       
-      // If different years - use: DECEMBER 2025 - FEBRUARY 2026
       return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
     }
     
@@ -139,14 +133,13 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
     try {
       const element = receiptRef.current;
       
-      // Capture the receipt as image
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: 776, // 205mm in pixels at 96dpi
-        height: 378, // 100mm in pixels at 96dpi
+        width: 776,
+        height: 378,
         windowWidth: 776,
         windowHeight: 378,
       });
@@ -276,7 +269,6 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   };
 
   useEffect(() => {
-    // Auto-open print dialog when modal appears
     setTimeout(() => {
       handlePrint();
     }, 600);
@@ -364,7 +356,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
         </div>
 
         {/* ============================================================
-            RECEIPT - 10cm HEIGHT × 20.5cm WEIGHT (Landscape)
+            RECEIPT - 10cm HEIGHT × 20.5cm WIDTH (Landscape)
             ============================================================ */}
         <div 
           ref={receiptRef} 
@@ -432,11 +424,13 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
             {formatDate(currentDate)}
           </div>
 
-          {/* WATER FEE - WITH MONTH RANGE & YEAR */}
+          {/* ============================================================
+              WATER FEE - ADJUSTED POSITION (GIPA-RIGHT)
+              ============================================================ */}
           <div style={{
             position: 'absolute',
             top: '5.1cm',
-            left: '4cm',
+            left: '6.2cm',        // 👈 GIKAN 4cm → 6.2cm (gipa-right)
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
             fontSize: '15pt',
