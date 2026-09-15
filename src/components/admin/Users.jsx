@@ -1,7 +1,7 @@
 // src/components/admin/Users.jsx
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, getServerColor, SERVER_CONFIGS } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
@@ -54,11 +54,10 @@ const PhilippinePesoIconSmall = () => (
 );
 
 const ImportIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"currentColor"} fill={"none"}>
     <path d="M12 3V12M12 12L9.5 9.5M12 12L14.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M5 17.5C3.5 16.5 2 14.5 2 12C2 7.02944 6.02944 3 11 3C15.9706 3 20 7.02944 20 12C20 14.5 18.5 16.5 17 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M12 21V13M12 21L9.5 18.5M12 21L14.5 18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 17L6 20L9 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -88,10 +87,6 @@ const MonthIcon = () => (
   </svg>
 );
 
-// ============================================================
-// YEAR ICON (NEW)
-// ============================================================
-
 const YearIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
     <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -101,10 +96,6 @@ const YearIcon = () => (
   </svg>
 );
 
-// ============================================================
-// ADD USER ICON
-// ============================================================
-
 const AddUserIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
     <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -113,9 +104,16 @@ const AddUserIcon = () => (
   </svg>
 );
 
-// ============================================================
-// EYE ICONS FOR PASSWORD TOGGLE
-// ============================================================
+const ServerIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <rect x="2" y="3" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="2" y="14" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+    <circle cx="6" cy="6.5" r="1" fill="currentColor"/>
+    <circle cx="6" cy="17.5" r="1" fill="currentColor"/>
+    <circle cx="10" cy="6.5" r="1" fill="currentColor"/>
+    <circle cx="10" cy="17.5" r="1" fill="currentColor"/>
+  </svg>
+);
 
 const EyeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
@@ -138,6 +136,9 @@ const EyeOffIcon = () => (
 // USERS COMPONENT
 // ============================================================
 
+const MONTH_ORDER = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+
 const Users = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
@@ -147,6 +148,14 @@ const Users = () => {
   const [filterRole, setFilterRole] = useState('all');
   const [billsCount, setBillsCount] = useState({});
   const [paidBillsCount, setPaidBillsCount] = useState({});
+
+  // ============================================================
+  // ✅ SERVER FILTER STATE (default: server1)
+  // ============================================================
+  const [selectedServer, setSelectedServer] = useState('server1');
+  const [serverBills, setServerBills] = useState([]);
+  const [serverBillsLoading, setServerBillsLoading] = useState(false);
+
   const [stats, setStats] = useState({
     totalUsers: 0,
     adminCount: 0,
@@ -156,20 +165,23 @@ const Users = () => {
 
   // ========== IMPORT MODAL STATE ==========
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importServer, setImportServer] = useState('server1');
   const [importMonth, setImportMonth] = useState('');
-  const [importYear, setImportYear] = useState(''); // NEW
+  const [importYear, setImportYear] = useState('');
   const [importLocation, setImportLocation] = useState('');
   const [availableImportLocations, setAvailableImportLocations] = useState([]);
   const [availableImportMonths, setAvailableImportMonths] = useState([]);
-  const [availableImportYears, setAvailableImportYears] = useState([]); // NEW
+  const [availableImportYears, setAvailableImportYears] = useState([]);
   const [importLoading, setImportLoading] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
   const [showImportProgress, setShowImportProgress] = useState(false);
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [showImportPreview, setShowImportPreview] = useState(false);
+  const [importOptionsLoading, setImportOptionsLoading] = useState(false); // ✅ NEW
 
   // ========== EXPORT MODAL STATE ==========
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportServer, setExportServer] = useState('server1');
   const [exportMonth, setExportMonth] = useState('');
   const [exportLocation, setExportLocation] = useState('');
   const [availableExportLocations, setAvailableExportLocations] = useState([]);
@@ -197,89 +209,98 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchImportFilterOptions();
-    fetchExportFilterOptions();
   }, []);
+
+  // ✅ Re-fetch server-specific bills inig change sa selectedServer
+  useEffect(() => {
+    fetchServerBills(selectedServer);
+  }, [selectedServer]);
 
   useEffect(() => {
     filterUsers();
   }, [users, searchTerm, filterRole]);
 
   // ============================================================
-  // FETCH FILTER OPTIONS FOR IMPORT MODAL (NOW WITH YEARS)
+  // ✅ COMPUTE COUNTS BASE SA SERVER-SPECIFIC BILLS
   // ============================================================
+  useEffect(() => {
+    if (users.length > 0) {
+      const countMap = {};
+      const paidMap = {};
 
-  const fetchImportFilterOptions = async () => {
-    try {
-      const billsRef = collection(db, 'bills');
-      const querySnapshot = await getDocs(billsRef);
-      
-      const locations = new Set();
-      const months = new Set();
-      const years = new Set(); // NEW
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.location && data.location !== 'N/A') {
-          locations.add(data.location);
-        }
-        if (data.month && data.month !== 'N/A') {
-          months.add(data.month);
-        }
-        if (data.year && data.year !== 'N/A') {
-          years.add(data.year.toString()); // NEW
-        }
+      users.forEach(u => {
+        const userBills = serverBills.filter(bill => bill.userId === u.uid);
+        countMap[u.uid] = userBills.length;
+        paidMap[u.uid] = userBills.filter(bill => bill.status === 'paid').length;
       });
-      
-      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-      
-      setAvailableImportLocations(Array.from(locations).sort());
-      setAvailableImportMonths(Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
-      setAvailableImportYears(Array.from(years).sort((a, b) => Number(b) - Number(a))); // NEW — newest first
-      
-    } catch (error) {
-      console.error('Error fetching import filter options:', error);
+
+      setBillsCount(countMap);
+      setPaidBillsCount(paidMap);
     }
+  }, [serverBills, users]);
+
+  // ============================================================
+  // ✅ FETCH SERVER-SPECIFIC BILLS
+  // ============================================================
+  const fetchServerBills = async (serverKey) => {
+    setServerBillsLoading(true);
+    try {
+      const targetDb = getDbByServer(serverKey);
+      const billsRef = collection(targetDb, 'bills');
+      const querySnapshot = await getDocs(billsRef);
+      const billsData = [];
+      querySnapshot.forEach((doc) => {
+        billsData.push({ id: doc.id, ...doc.data() });
+      });
+      setServerBills(billsData);
+      console.log(`✅ Loaded ${billsData.length} bills from ${getServerLabel(serverKey)}`);
+    } catch (error) {
+      console.error(`Error loading bills from ${getServerLabel(serverKey)}:`, error);
+      setServerBills([]);
+    }
+    setServerBillsLoading(false);
   };
 
   // ============================================================
-  // FETCH FILTER OPTIONS FOR EXPORT MODAL
+  // ✅ EXTRACT FILTER OPTIONS PER SERVER
   // ============================================================
+  const extractImportOptionsFromBills = (billsData) => {
+    const locations = new Set();
+    const months = new Set();
+    const years = new Set();
 
-  const fetchExportFilterOptions = async () => {
-    try {
-      const importRef = collection(db, 'import');
-      const querySnapshot = await getDocs(importRef);
-      
-      const locations = new Set();
-      const months = new Set();
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.location && data.location !== 'N/A') {
-          locations.add(data.location);
-        }
-        if (data.month && data.month !== 'N/A') {
-          months.add(data.month);
-        }
-      });
-      
-      const monthOrder = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                          'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-      
-      setAvailableExportLocations(Array.from(locations).sort());
-      setAvailableExportMonths(Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)));
-      
-    } catch (error) {
-      console.error('Error fetching export filter options:', error);
-    }
+    billsData.forEach((bill) => {
+      if (bill.location && bill.location !== 'N/A') locations.add(bill.location);
+      if (bill.month && bill.month !== 'N/A') months.add(bill.month);
+      if (bill.year && bill.year !== 'N/A') years.add(bill.year.toString());
+    });
+
+    return {
+      locations: Array.from(locations).sort(),
+      months: Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)),
+      years: Array.from(years).sort((a, b) => Number(b) - Number(a)),
+    };
+  };
+
+  // ============================================================
+  // ✅ HANDLE SERVER BUTTON CLICK - LOAD DATA + IMPORT OPTIONS
+  // ============================================================
+  const handleServerClick = (serverKey) => {
+    setSelectedServer(serverKey);
+    toast.success(`Loading data from ${getServerLabel(serverKey)}...`, {
+      icon: '🗄️',
+      duration: 2000,
+      style: {
+        background: SERVER_CONFIGS.find(s => s.key === serverKey)?.color + '15',
+        color: SERVER_CONFIGS.find(s => s.key === serverKey)?.color,
+        border: `1px solid ${SERVER_CONFIGS.find(s => s.key === serverKey)?.color}`
+      }
+    });
   };
 
   // ============================================================
   // FETCH USERS
   // ============================================================
-
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -290,19 +311,16 @@ const Users = () => {
       querySnapshot.forEach((doc) => {
         usersData.push({ id: doc.id, ...doc.data() });
       });
-      
+
       setUsers(usersData);
       setFilteredUsers(usersData);
-      
-      await fetchBillsCount(usersData);
-      
+
       const totalUsers = usersData.length;
       const adminCount = usersData.filter(u => u.role === 'admin').length;
       const userCount = usersData.filter(u => u.role === 'user' || !u.role).length;
       const staffCount = usersData.filter(u => u.role === 'staff').length;
-      
+
       setStats({ totalUsers, adminCount, userCount, staffCount });
-      
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Error loading users');
@@ -310,56 +328,29 @@ const Users = () => {
     setLoading(false);
   };
 
-  const fetchBillsCount = async (usersData) => {
-    try {
-      const billsRef = collection(db, 'bills');
-      const querySnapshot = await getDocs(billsRef);
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
-      
-      const countMap = {};
-      const paidMap = {};
-      
-      usersData.forEach(user => {
-        const userBills = billsData.filter(bill => bill.userId === user.uid);
-        countMap[user.uid] = userBills.length;
-        paidMap[user.uid] = userBills.filter(bill => bill.status === 'paid').length;
-      });
-      
-      setBillsCount(countMap);
-      setPaidBillsCount(paidMap);
-      
-    } catch (error) {
-      console.error('Error fetching bills count:', error);
-    }
-  };
-
   const filterUsers = () => {
     let filtered = [...users];
-    
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.displayName?.toLowerCase().includes(term) ||
         user.email?.toLowerCase().includes(term)
       );
     }
-    
+
     if (filterRole !== 'all') {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         (user.role || 'user') === filterRole
       );
     }
-    
+
     setFilteredUsers(filtered);
   };
 
   // ============================================================
-  // ADD USER FUNCTIONS - WITH FIREBASE AUTH
+  // ADD USER FUNCTIONS
   // ============================================================
-
   const openAddUserModal = () => {
     setAddUserForm({
       fullName: '',
@@ -392,17 +383,17 @@ const Users = () => {
 
   const validateAddUserForm = () => {
     const errors = {};
-    
+
     if (!addUserForm.fullName.trim()) {
       errors.fullName = 'Full name is required';
     }
-    
+
     if (!addUserForm.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(addUserForm.email)) {
       errors.email = 'Invalid email address';
     }
-    
+
     if (!addUserForm.password) {
       errors.password = 'Password is required';
     } else if (addUserForm.password.length < 14) {
@@ -414,52 +405,48 @@ const Users = () => {
     } else if (!/[0-9]/.test(addUserForm.password)) {
       errors.password = 'Must contain at least one number';
     }
-    
+
     if (!addUserForm.confirmPassword) {
       errors.confirmPassword = 'Please confirm your password';
     } else if (addUserForm.password !== addUserForm.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setAddUserErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleAddUserSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateAddUserForm()) {
       return;
     }
-    
+
     setAddUserLoading(true);
-    
+
     try {
-      // Check if user already exists in Firestore
       const usersRef = collection(db, 'users');
       const emailQuery = query(usersRef, where('email', '==', addUserForm.email));
       const emailSnapshot = await getDocs(emailQuery);
-      
+
       if (!emailSnapshot.empty) {
         toast.error('User with this email already exists!');
         setAddUserLoading(false);
         return;
       }
-      
-      // ✅ STEP 1: Create Firebase Authentication user
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         addUserForm.email,
         addUserForm.password
       );
-      
-      // ✅ Get the UID from Firebase Auth
+
       const uid = userCredential.user.uid;
-      
+
       const now = new Date();
       const timestamp = now.toISOString();
-      
-      // ✅ STEP 2: User data structure - uid matches document ID
+
       const userData = {
         createdAt: timestamp,
         displayName: addUserForm.fullName,
@@ -473,19 +460,17 @@ const Users = () => {
         uid: uid,
         updatedAt: timestamp
       };
-      
-      // ✅ STEP 3: Save to Firestore using the Auth UID as document ID
+
       await setDoc(doc(db, 'users', uid), userData);
-      
+
       toast.success(`✅ User "${addUserForm.fullName}" created successfully!`);
       toast.success(`🔑 User can now login with their email and password`);
-      
+
       await fetchUsers();
       closeAddUserModal();
-      
     } catch (error) {
       console.error('Error creating user:', error);
-      
+
       if (error.code === 'auth/email-already-in-use') {
         toast.error('Email already in use! Please use a different email.');
       } else if (error.code === 'auth/weak-password') {
@@ -496,7 +481,7 @@ const Users = () => {
         toast.error('Error creating user: ' + error.message);
       }
     }
-    
+
     setAddUserLoading(false);
   };
 
@@ -505,39 +490,70 @@ const Users = () => {
   };
 
   // ============================================================
-  // IMPORT FUNCTIONS (NOW WITH YEAR)
+  // ✅ IMPORT FUNCTIONS - SERVER-SPECIFIC WITH SMART DROPDOWNS
   // ============================================================
-
-  const openImportModal = () => {
+  const openImportModalForServer = async (serverKey) => {
+    setImportServer(serverKey);
     setImportMonth('');
-    setImportYear(''); // NEW
+    setImportYear('');
     setImportLocation('');
     setImportPreviewData([]);
     setShowImportPreview(false);
+    setAvailableImportLocations([]);
+    setAvailableImportMonths([]);
+    setAvailableImportYears([]);
+
+    // ✅ Fetch options gikan sa selected server's bills
+    setImportOptionsLoading(true);
+
+    try {
+      const targetDb = getDbByServer(serverKey);
+      const billsRef = collection(targetDb, 'bills');
+      const querySnapshot = await getDocs(billsRef);
+      const billsData = [];
+      querySnapshot.forEach((doc) => {
+        billsData.push({ id: doc.id, ...doc.data() });
+      });
+
+      const options = extractImportOptionsFromBills(billsData);
+      setAvailableImportLocations(options.locations);
+      setAvailableImportMonths(options.months);
+      setAvailableImportYears(options.years);
+    } catch (error) {
+      console.error(`Error fetching import options from ${getServerLabel(serverKey)}:`, error);
+      toast.error(`Error loading filter options from ${getServerLabel(serverKey)}`);
+    } finally {
+      setImportOptionsLoading(false);
+    }
+
     setShowImportModal(true);
   };
 
   const closeImportModal = () => {
     setShowImportModal(false);
     setImportMonth('');
-    setImportYear(''); // NEW
+    setImportYear('');
     setImportLocation('');
     setImportPreviewData([]);
     setShowImportPreview(false);
+    setAvailableImportLocations([]);
+    setAvailableImportMonths([]);
+    setAvailableImportYears([]);
   };
 
   const previewImport = async () => {
-    // ✅ YEAR IS NOW REQUIRED
     if (!importMonth || !importYear || !importLocation) {
       toast.error('Please select Month, Year, and Location');
       return;
     }
 
     setImportLoading(true);
-    
+
     try {
-      const billsRef = collection(db, 'bills');
-      // ✅ FILTER BY MONTH + YEAR + LOCATION
+      const targetDb = getDbByServer(importServer);
+      const serverLabel = getServerLabel(importServer);
+
+      const billsRef = collection(targetDb, 'bills');
       const q = query(
         billsRef,
         where('month', '==', importMonth),
@@ -545,27 +561,26 @@ const Users = () => {
         where('location', '==', importLocation)
       );
       const querySnapshot = await getDocs(q);
-      
+
       const billsData = [];
       querySnapshot.forEach((doc) => {
         billsData.push({ id: doc.id, ...doc.data() });
       });
-      
+
       if (billsData.length === 0) {
-        toast.error(`No bills found for ${importMonth} ${importYear} in ${importLocation}`);
+        toast.error(`No bills found for ${importMonth} ${importYear} in ${importLocation} on ${serverLabel}`);
         setImportLoading(false);
         return;
       }
-      
+
       setImportPreviewData(billsData);
       setShowImportPreview(true);
-      toast.success(`Found ${billsData.length} bills to import`);
-      
+      toast.success(`Found ${billsData.length} bills from ${serverLabel}`);
     } catch (error) {
       console.error('Error previewing import:', error);
       toast.error('Error fetching bills: ' + error.message);
     }
-    
+
     setImportLoading(false);
   };
 
@@ -580,44 +595,47 @@ const Users = () => {
     setImportProgress({ current: 0, total: importPreviewData.length });
 
     try {
-      const importCollectionRef = collection(db, 'import');
+      const targetDb = getDbByServer(importServer);
+      const serverLabel = getServerLabel(importServer);
+
+      const importCollectionRef = collection(targetDb, 'import');
       let successCount = 0;
       let errorCount = 0;
-      
-      let batch = writeBatch(db);
+
+      let batch = writeBatch(targetDb);
       let batchCount = 0;
 
       for (let i = 0; i < importPreviewData.length; i++) {
         try {
           const bill = importPreviewData[i];
           const { id, ...billData } = bill;
-          
+
           const importData = {
             ...billData,
             importedAt: new Date().toISOString(),
             importedBy: user?.email || 'Unknown',
             importedByUid: user?.uid || 'unknown',
             originalBillId: id,
-            importBatch: `${importMonth}_${importYear}_${importLocation}_${Date.now()}`, // ✅ includes year
+            importBatch: `${importMonth}_${importYear}_${importLocation}_${Date.now()}`,
             importMonth: importMonth,
-            importYear: importYear, // ✅ NEW
+            importYear: importYear,
             importLocation: importLocation,
-            sourceCollection: 'bills'
+            sourceCollection: 'bills',
+            sourceServer: importServer
           };
-          
+
           const docRef = doc(importCollectionRef);
           batch.set(docRef, importData);
           successCount++;
           batchCount++;
-          
+
           setImportProgress({ current: i + 1, total: importPreviewData.length });
-          
+
           if (batchCount >= 500) {
             await batch.commit();
-            batch = writeBatch(db);
+            batch = writeBatch(targetDb);
             batchCount = 0;
           }
-          
         } catch (error) {
           console.error('Error adding import document:', error);
           errorCount++;
@@ -629,15 +647,13 @@ const Users = () => {
       }
 
       if (successCount > 0) {
-        toast.success(`✅ Successfully imported ${successCount} bills to "import" collection!`);
+        toast.success(`✅ Imported ${successCount} bills to "${serverLabel} → import" collection!`);
         closeImportModal();
-        fetchExportFilterOptions();
       }
-      
+
       if (errorCount > 0) {
         toast.error(`⚠️ ${errorCount} bills failed to import`);
       }
-      
     } catch (error) {
       console.error('Error during import:', error);
       toast.error('Error importing data: ' + error.message);
@@ -649,23 +665,50 @@ const Users = () => {
   };
 
   // ============================================================
-  // EXPORT FUNCTIONS WITH OVERRIDE (REPLACE ALL)
+  // EXPORT FUNCTIONS
   // ============================================================
-
-  const openExportModal = () => {
+  const openExportModal = async () => {
+    setExportServer(selectedServer);
     setExportMonth('');
     setExportLocation('');
     setExportPreviewData([]);
     setShowExportPreview(false);
+    setAvailableExportLocations([]);
+    setAvailableExportMonths([]);
+
+    // ✅ Fetch export options gikan sa selected server's import collection
+    try {
+      const targetDb = getDbByServer(selectedServer);
+      const importRef = collection(targetDb, 'import');
+      const querySnapshot = await getDocs(importRef);
+
+      const locations = new Set();
+      const months = new Set();
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.location && data.location !== 'N/A') locations.add(data.location);
+        if (data.month && data.month !== 'N/A') months.add(data.month);
+      });
+
+      setAvailableExportLocations(Array.from(locations).sort());
+      setAvailableExportMonths(Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
+    } catch (error) {
+      console.error('Error fetching export options:', error);
+    }
+
     setShowExportModal(true);
   };
 
   const closeExportModal = () => {
     setShowExportModal(false);
+    setExportServer('server1');
     setExportMonth('');
     setExportLocation('');
     setExportPreviewData([]);
     setShowExportPreview(false);
+    setAvailableExportLocations([]);
+    setAvailableExportMonths([]);
   };
 
   const previewExport = async () => {
@@ -675,42 +718,40 @@ const Users = () => {
     }
 
     setExportLoading(true);
-    
+
     try {
-      const importRef = collection(db, 'import');
+      const targetDb = getDbByServer(exportServer);
+      const serverLabel = getServerLabel(exportServer);
+
+      const importRef = collection(targetDb, 'import');
       const q = query(
         importRef,
         where('month', '==', exportMonth),
         where('location', '==', exportLocation)
       );
       const querySnapshot = await getDocs(q);
-      
+
       const importData = [];
       querySnapshot.forEach((doc) => {
         importData.push({ id: doc.id, ...doc.data() });
       });
-      
+
       if (importData.length === 0) {
-        toast.error(`No imported bills found for ${exportMonth} in ${exportLocation}`);
+        toast.error(`No imported bills found for ${exportMonth} in ${exportLocation} on ${serverLabel}`);
         setExportLoading(false);
         return;
       }
-      
+
       setExportPreviewData(importData);
       setShowExportPreview(true);
-      toast.success(`Found ${importData.length} imported bills to export`);
-      
+      toast.success(`Found ${importData.length} imported bills from ${serverLabel}`);
     } catch (error) {
       console.error('Error previewing export:', error);
       toast.error('Error fetching imported bills: ' + error.message);
     }
-    
+
     setExportLoading(false);
   };
-
-  // ============================================================
-  // CONFIRM EXPORT - OVERRIDE/REPLACE ALL BILLS
-  // ============================================================
 
   const confirmExport = async () => {
     if (exportPreviewData.length === 0) {
@@ -723,16 +764,17 @@ const Users = () => {
     setExportProgress({ current: 0, total: exportPreviewData.length * 3 });
 
     try {
-      const billsCollectionRef = collection(db, 'bills');
+      const targetDb = getDbByServer(exportServer);
+      const serverLabel = getServerLabel(exportServer);
+
+      const billsCollectionRef = collection(targetDb, 'bills');
       let successCount = 0;
       let errorCount = 0;
       let deleteCount = 0;
       let deleteErrorCount = 0;
 
-      // ========== STEP 1: Get year from export data ==========
       const exportYear = exportPreviewData[0]?.year || new Date().getFullYear().toString();
 
-      // ========== STEP 2: Find ALL existing bills with same month/year/location ==========
       const existingBillsQuery = query(
         billsCollectionRef,
         where('month', '==', exportMonth),
@@ -740,17 +782,16 @@ const Users = () => {
         where('location', '==', exportLocation)
       );
       const existingSnapshot = await getDocs(existingBillsQuery);
-      
+
       const existingBillIds = [];
       existingSnapshot.forEach((doc) => {
         existingBillIds.push(doc.id);
       });
 
       const existingCount = existingBillIds.length;
-      
-      // ========== STEP 3: Delete ALL existing bills ==========
+
       if (existingCount > 0) {
-        toast(`🗑️ Found ${existingCount} existing bills in "${exportLocation}" for ${exportMonth} ${exportYear}. Replacing with new data...`, {
+        toast(`🗑️ Found ${existingCount} existing bills in "${exportLocation}" on ${serverLabel}. Replacing...`, {
           icon: '🔄',
           duration: 4000,
           style: {
@@ -760,22 +801,21 @@ const Users = () => {
           }
         });
 
-        let deleteBatch = writeBatch(db);
+        let deleteBatch = writeBatch(targetDb);
         let deleteBatchCount = 0;
 
         for (let i = 0; i < existingBillIds.length; i++) {
           try {
-            const docRef = doc(db, 'bills', existingBillIds[i]);
+            const docRef = doc(targetDb, 'bills', existingBillIds[i]);
             deleteBatch.delete(docRef);
             deleteCount++;
             deleteBatchCount++;
 
             if (deleteBatchCount >= 500) {
               await deleteBatch.commit();
-              deleteBatch = writeBatch(db);
+              deleteBatch = writeBatch(targetDb);
               deleteBatchCount = 0;
             }
-
           } catch (error) {
             console.error('Error deleting existing bill:', error);
             deleteErrorCount++;
@@ -786,35 +826,34 @@ const Users = () => {
           await deleteBatch.commit();
         }
 
-        toast.success(`🗑️ Deleted ${deleteCount} existing bills from "${exportLocation}" for ${exportMonth} ${exportYear}`);
+        toast.success(`🗑️ Deleted ${deleteCount} existing bills from ${serverLabel}`);
       }
 
-      // ========== STEP 4: Export new bills from import collection ==========
-      let exportBatch = writeBatch(db);
+      let exportBatch = writeBatch(targetDb);
       let exportBatchCount = 0;
-
       const importDocIds = [];
 
       for (let i = 0; i < exportPreviewData.length; i++) {
         try {
           const importDoc = exportPreviewData[i];
           const { id, ...importData } = importDoc;
-          
+
           importDocIds.push(id);
-          
-          const { 
-            importedAt, 
-            importedBy, 
-            importedByUid, 
-            originalBillId, 
-            importBatch, 
-            importMonth: impMonth, 
-            importYear: impYear, // ✅ NEW
-            importLocation: impLocation, 
+
+          const {
+            importedAt,
+            importedBy,
+            importedByUid,
+            originalBillId,
+            importBatch,
+            importMonth: impMonth,
+            importYear: impYear,
+            importLocation: impLocation,
             sourceCollection,
-            ...cleanBillData 
+            sourceServer,
+            ...cleanBillData
           } = importData;
-          
+
           const billData = {
             ...cleanBillData,
             exportedAt: new Date().toISOString(),
@@ -832,22 +871,22 @@ const Users = () => {
             replacedFrom: id,
             replacedMonth: exportMonth,
             replacedYear: exportYear,
-            replacedLocation: exportLocation
+            replacedLocation: exportLocation,
+            serverSource: exportServer
           };
-          
+
           const docRef = doc(billsCollectionRef);
           exportBatch.set(docRef, billData);
           successCount++;
           exportBatchCount++;
-          
+
           setExportProgress({ current: i + 1, total: exportPreviewData.length * 3 });
-          
+
           if (exportBatchCount >= 500) {
             await exportBatch.commit();
-            exportBatch = writeBatch(db);
+            exportBatch = writeBatch(targetDb);
             exportBatchCount = 0;
           }
-          
         } catch (error) {
           console.error('Error exporting bill:', error);
           errorCount++;
@@ -858,31 +897,29 @@ const Users = () => {
         await exportBatch.commit();
       }
 
-      // ========== STEP 5: Delete from import collection ==========
       if (successCount > 0) {
         setExportProgress({ current: exportPreviewData.length, total: exportPreviewData.length * 3 });
-        
-        let deleteImportBatch = writeBatch(db);
+
+        let deleteImportBatch = writeBatch(targetDb);
         let deleteImportBatchCount = 0;
 
         for (let i = 0; i < importDocIds.length; i++) {
           try {
             const docId = importDocIds[i];
-            const docRef = doc(db, 'import', docId);
+            const docRef = doc(targetDb, 'import', docId);
             deleteImportBatch.delete(docRef);
             deleteImportBatchCount++;
-            
-            setExportProgress({ 
-              current: exportPreviewData.length + i + 1, 
-              total: exportPreviewData.length * 3 
+
+            setExportProgress({
+              current: exportPreviewData.length + i + 1,
+              total: exportPreviewData.length * 3
             });
-            
+
             if (deleteImportBatchCount >= 500) {
               await deleteImportBatch.commit();
-              deleteImportBatch = writeBatch(db);
+              deleteImportBatch = writeBatch(targetDb);
               deleteImportBatchCount = 0;
             }
-            
           } catch (error) {
             console.error('Error deleting import document:', error);
             deleteErrorCount++;
@@ -894,27 +931,25 @@ const Users = () => {
         }
       }
 
-      // ========== STEP 6: Show results ==========
       if (successCount > 0) {
-        let message = `✅ Successfully exported ${successCount} bills to "bills" collection!`;
+        let message = `✅ Successfully exported ${successCount} bills to "${serverLabel} → bills"!`;
         if (deleteCount > 0) {
-          message += ` 🔄 Replaced ${deleteCount} existing bills for ${exportMonth} ${exportYear} in ${exportLocation}.`;
+          message += ` 🔄 Replaced ${deleteCount} existing bills.`;
         }
         toast.success(message);
-        toast.success(`🗑️ Successfully deleted ${importDocIds.length} bills from "import" collection!`);
+        toast.success(`🗑️ Cleaned up ${importDocIds.length} bills from import collection`);
         closeExportModal();
-        fetchImportFilterOptions();
-        fetchExportFilterOptions();
+        // Re-fetch server bills para ma-update ang counts
+        fetchServerBills(selectedServer);
       }
-      
+
       if (errorCount > 0) {
         toast.error(`⚠️ ${errorCount} bills failed to export`);
       }
-      
+
       if (deleteErrorCount > 0) {
-        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete from import`);
+        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete`);
       }
-      
     } catch (error) {
       console.error('Error during export:', error);
       toast.error('Error exporting data: ' + error.message);
@@ -928,7 +963,6 @@ const Users = () => {
   // ============================================================
   // HELPER FUNCTIONS
   // ============================================================
-
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     if (timestamp.toDate) {
@@ -1011,6 +1045,10 @@ const Users = () => {
     );
   }
 
+  const importServerConfig = SERVER_CONFIGS.find(s => s.key === importServer);
+  const exportServerConfig = SERVER_CONFIGS.find(s => s.key === exportServer);
+  const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
+
   return (
     <div className="users-page">
       {/* Header */}
@@ -1020,11 +1058,11 @@ const Users = () => {
           <p>Manage all registered users</p>
         </div>
         <div className="header-actions">
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={openAddUserModal}
-            style={{ 
-              background: '#194752', 
+            style={{
+              background: '#194752',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -1034,25 +1072,12 @@ const Users = () => {
             <AddUserIcon />
             ADD USER
           </button>
-          <button 
-            className="btn btn-secondary" 
-            onClick={openImportModal}
-            style={{ 
-              background: '#194752', 
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <ImportIcon />
-            IMPORT DATA
-          </button>
-          <button 
-            className="btn btn-secondary" 
+
+          <button
+            className="btn btn-secondary"
             onClick={openExportModal}
-            style={{ 
-              background: '#DC2626', 
+            style={{
+              background: '#DC2626',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -1062,9 +1087,223 @@ const Users = () => {
             <ExportIcon />
             REPLACE BILLS
           </button>
+
           <button className="btn btn-secondary" onClick={fetchUsers}>
             🔄 Refresh
           </button>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* ✅ SERVER SELECTOR BUTTONS (Load + Import) */}
+      {/* ============================================================ */}
+      <div style={{
+        marginBottom: '20px',
+        padding: '16px 20px',
+        background: 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+        border: '2px solid #E2E8F0',
+        borderRadius: '14px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '14px'
+        }}>
+          <ServerIcon width={22} height={22} color="#194752" />
+          <span style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '15px',
+            fontWeight: '700',
+            color: '#0F172A'
+          }}>
+            SELECT SERVER:
+          </span>
+          <span style={{
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '12px',
+            color: '#64748B',
+            fontStyle: 'italic'
+          }}>
+            (Click to load data & import options)
+          </span>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '12px'
+        }}>
+          {SERVER_CONFIGS.map((server) => {
+            const isActive = selectedServer === server.key;
+            return (
+              <button
+                key={server.key}
+                onClick={() => handleServerClick(server.key)}
+                disabled={serverBillsLoading}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '14px 12px',
+                  background: isActive
+                    ? `linear-gradient(135deg, ${server.color}, ${server.color}dd)`
+                    : '#FFFFFF',
+                  color: isActive ? '#FFFFFF' : server.color,
+                  border: `3px solid ${isActive ? server.color : server.color + '40'}`,
+                  borderRadius: '12px',
+                  cursor: serverBillsLoading ? 'wait' : 'pointer',
+                  fontFamily: 'Inter, sans-serif',
+                  transition: 'all 0.25s ease',
+                  boxShadow: isActive
+                    ? `0 8px 24px ${server.color}50`
+                    : '0 2px 8px rgba(0,0,0,0.05)',
+                  transform: isActive ? 'translateY(-3px) scale(1.02)' : 'none',
+                  position: 'relative',
+                  opacity: serverBillsLoading ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive && !serverBillsLoading) {
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = `0 8px 24px ${server.color}30`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive && !serverBillsLoading) {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ServerIcon width={20} height={20} color={isActive ? '#FFFFFF' : server.color} />
+                  <span style={{
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {server.label.toUpperCase()}
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: '10px',
+                  opacity: 0.8,
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  wordBreak: 'break-all'
+                }}>
+                  {server.project}
+                </span>
+
+                {isActive && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '10px',
+                    fontSize: '10px',
+                    fontWeight: '800',
+                    background: 'rgba(255,255,255,0.25)',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    letterSpacing: '0.5px'
+                  }}>
+                    ✓ ACTIVE
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ✅ ACTIVE SERVER INFO BANNER */}
+        <div style={{
+          marginTop: '14px',
+          padding: '10px 16px',
+          background: `${currentServerConfig?.color}15`,
+          border: `1.5px solid ${currentServerConfig?.color}60`,
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>🗄️</span>
+            <span style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '13px',
+              fontWeight: '700',
+              color: currentServerConfig?.color
+            }}>
+              Currently viewing data from: <strong>{getServerLabel(selectedServer)}</strong>
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {serverBillsLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: '14px',
+                  height: '14px',
+                  border: `2px solid ${currentServerConfig?.color}40`,
+                  borderTop: `2px solid ${currentServerConfig?.color}`,
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                <span style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '12px',
+                  color: currentServerConfig?.color,
+                  fontWeight: '600'
+                }}>
+                  Loading...
+                </span>
+              </div>
+            ) : (
+              <span style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '12px',
+                background: currentServerConfig?.color,
+                color: '#FFFFFF',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontWeight: '700'
+              }}>
+                📊 {serverBills.length} bills loaded
+              </span>
+            )}
+            <button
+              onClick={() => openImportModalForServer(selectedServer)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                background: currentServerConfig?.color,
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = `0 4px 12px ${currentServerConfig?.color}60`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <ImportIcon />
+              IMPORT TO {getServerLabel(selectedServer).toUpperCase()}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1118,7 +1357,7 @@ const Users = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select 
+          <select
             className="filter-select"
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
@@ -1155,8 +1394,30 @@ const Users = () => {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>Total Bills</th>
-                <th>Paid Bills</th>
+                <th>
+                  Total Bills
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: currentServerConfig?.color || '#194752',
+                    textTransform: 'none',
+                    marginTop: '2px'
+                  }}>
+                    ({getServerLabel(selectedServer)})
+                  </div>
+                </th>
+                <th>
+                  Paid Bills
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: currentServerConfig?.color || '#194752',
+                    textTransform: 'none',
+                    marginTop: '2px'
+                  }}>
+                    ({getServerLabel(selectedServer)})
+                  </div>
+                </th>
                 <th>Last Login</th>
               </tr>
             </thead>
@@ -1166,7 +1427,7 @@ const Users = () => {
                 const status = getStatusDot(userData.lastLogin);
                 const totalBills = billsCount[userData.uid] || 0;
                 const paidBills = paidBillsCount[userData.uid] || 0;
-                
+
                 return (
                   <tr key={userData.id}>
                     <td>
@@ -1227,7 +1488,6 @@ const Users = () => {
 
             <form onSubmit={handleAddUserSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {/* Left Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className="form-group">
                     <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
@@ -1324,7 +1584,6 @@ const Users = () => {
                   </div>
                 </div>
 
-                {/* Right Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className="form-group">
                     <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
@@ -1378,8 +1637,7 @@ const Users = () => {
                         {addUserErrors.password}
                       </span>
                     )}
-                    
-                    {/* Password Requirements */}
+
                     <div className={`password-requirements ${isPasswordFocused || addUserForm.password.length > 0 ? 'visible' : ''}`} style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
@@ -1524,19 +1782,19 @@ const Users = () => {
               </div>
 
               <div className="modal-actions" style={{ display: 'flex', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
-                <button 
-                  type="button" 
-                  className="btn btn-outline" 
+                <button
+                  type="button"
+                  className="btn btn-outline"
                   onClick={closeAddUserModal}
                   style={{ flex: 1 }}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
                   disabled={addUserLoading}
-                  style={{ 
+                  style={{
                     flex: 1,
                     background: '#194752',
                     color: '#ffffff',
@@ -1579,247 +1837,378 @@ const Users = () => {
       )}
 
       {/* ============================================================
-          IMPORT MODAL (NOW WITH YEAR)
+          IMPORT MODAL - SERVER-SPECIFIC WITH SMART DROPDOWNS
           ============================================================ */}
       {showImportModal && (
         <div className="modal-overlay" onClick={closeImportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ImportIcon width={28} height={28} color="#194752" />
-                Import Bills to "import" Collection
+              <h2 style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: importServerConfig?.color || '#194752'
+              }}>
+                <ImportIcon width={28} height={28} color={importServerConfig?.color || '#194752'} />
+                Import Data — {getServerLabel(importServer)}
               </h2>
               <button className="close-btn" onClick={closeImportModal}>✕</button>
             </div>
 
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 20px',
+                background: `${importServerConfig?.color || '#194752'}15`,
+                border: `2px solid ${importServerConfig?.color || '#194752'}`,
+                borderRadius: '12px'
+              }}>
+                <span style={{
+                  fontSize: '18px',
+                  fontWeight: '800',
+                  color: importServerConfig?.color || '#194752',
+                  letterSpacing: '1px'
+                }}>
+                  🗄️ {getServerLabel(importServer).toUpperCase()}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: importServerConfig?.color || '#194752',
+                  opacity: 0.8,
+                  fontWeight: '600'
+                }}>
+                  {importServerConfig?.project}
+                </span>
+              </div>
+            </div>
+
             <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Month</strong>, <strong>Year</strong>, and <strong>Location</strong> to import bills from the 
-                <strong> "bills" </strong> collection to the <strong> "import" </strong> collection in Firebase.
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+                Pilia ang <strong>Month</strong>, <strong>Year</strong>, ug <strong>Location</strong> para
+                i-import ang bills gikan sa <strong>"{getServerLabel(importServer)} → bills"</strong> ngadto sa
+                <strong> "{getServerLabel(importServer)} → import"</strong> collection.
               </p>
 
-              {/* ✅ 3-COLUMN GRID: Month | Year | Location */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                    <MonthIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                    Month <span className="required" style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <select
-                    value={importMonth}
-                    onChange={(e) => setImportMonth(e.target.value)}
-                    className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '14px',
-                      color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="">Select Month...</option>
-                    {availableImportMonths.map(month => (
-                      <option key={month} value={month}>{month}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* ✅ NEW: YEAR DROPDOWN */}
-                <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                    <YearIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                    Year <span className="required" style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <select
-                    value={importYear}
-                    onChange={(e) => setImportYear(e.target.value)}
-                    className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '14px',
-                      color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="">Select Year...</option>
-                    {availableImportYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                    <LocationIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                    Location <span className="required" style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <select
-                    value={importLocation}
-                    onChange={(e) => setImportLocation(e.target.value)}
-                    className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '14px',
-                      color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="">Select Location...</option>
-                    {availableImportLocations.map(location => (
-                      <option key={location} value={location}>{location}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px' }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={previewImport}
-                  disabled={!importMonth || !importYear || !importLocation || importLoading}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#194752',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    opacity: (!importMonth || !importYear || !importLocation || importLoading) ? '0.5' : '1'
-                  }}
-                >
-                  {importLoading ? '⏳ Loading...' : '🔍 Preview Bills'}
-                </button>
-              </div>
-
-              {showImportPreview && importPreviewData.length > 0 && (
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '8px'
+              {/* ✅ LOADING INDICATOR FOR IMPORT OPTIONS */}
+              {importOptionsLoading ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '40px 20px',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: `4px solid ${importServerConfig?.color || '#194752'}20`,
+                    borderTop: `4px solid ${importServerConfig?.color || '#194752'}`,
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite'
+                  }} />
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '13px',
+                    color: importServerConfig?.color || '#194752',
+                    fontWeight: '600'
                   }}>
-                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                      📋 Found {importPreviewData.length} bills to import
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#64748B' }}>
-                      From: {importMonth} {importYear} | {importLocation}
-                    </span>
-                  </div>
-                  
-                  <div style={{ 
-                    maxHeight: '200px', 
-                    overflow: 'auto',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px'
-                  }}>
-                    <table style={{ 
-                      width: '100%', 
-                      borderCollapse: 'collapse',
-                      fontSize: '12px'
-                    }}>
-                      <thead style={{ 
-                        background: '#F1F5F9', 
-                        position: 'sticky', 
-                        top: 0,
-                        zIndex: 1
-                      }}>
-                        <tr>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importPreviewData.slice(0, 50).map((bill) => (
-                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
-                            <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
-                            <td style={{ padding: '6px 12px' }}>
-                              <span style={{ 
-                                padding: '2px 10px', 
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
-                                color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
-                              }}>
-                                {bill.consumerType || 'N/A'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>
-                              ₱{(bill.amount || 0).toFixed(2)}
-                            </td>
-                            <td style={{ padding: '6px 12px' }}>
-                              <span style={{ 
-                                padding: '2px 10px', 
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
-                                color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
-                              }}>
-                                {bill.status || 'UNPAID'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {importPreviewData.length > 50 && (
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        textAlign: 'center', 
-                        background: '#F8FAFC',
-                        fontSize: '12px',
-                        color: '#64748B'
-                      }}>
-                        Showing first 50 of {importPreviewData.length} bills
+                    Loading available months, years, and locations from {getServerLabel(importServer)}...
+                  </span>
+                </div>
+              ) : (
+                <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                          <MonthIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
+                          Month <span className="required" style={{ color: '#DC2626' }}>*</span>
+                        </label>
+                        <select
+                          value={importMonth}
+                          onChange={(e) => {
+                            setImportMonth(e.target.value);
+                            setImportPreviewData([]);
+                            setShowImportPreview(false);
+                          }}
+                          className="modal-input"
+                          disabled={availableImportMonths.length === 0}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            background: '#F8FAFC',
+                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '14px',
+                            color: '#0F172A',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            cursor: availableImportMonths.length === 0 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">
+                            {availableImportMonths.length === 0 ? 'No months available' : 'Select Month...'}
+                          </option>
+                          {availableImportMonths.map(month => (
+                            <option key={month} value={month}>{month}</option>
+                          ))}
+                        </select>
+                        {availableImportMonths.length > 0 && (
+                          <p style={{
+                            fontSize: '10px',
+                            color: importServerConfig?.color || '#64748B',
+                            marginTop: '2px',
+                            fontWeight: '600'
+                          }}>
+                            {availableImportMonths.length} available
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                          <YearIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
+                          Year <span className="required" style={{ color: '#DC2626' }}>*</span>
+                        </label>
+                        <select
+                          value={importYear}
+                          onChange={(e) => {
+                            setImportYear(e.target.value);
+                            setImportPreviewData([]);
+                            setShowImportPreview(false);
+                          }}
+                          className="modal-input"
+                          disabled={availableImportYears.length === 0}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            background: '#F8FAFC',
+                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '14px',
+                            color: '#0F172A',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            cursor: availableImportYears.length === 0 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">
+                            {availableImportYears.length === 0 ? 'No years available' : 'Select Year...'}
+                          </option>
+                          {availableImportYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                        {availableImportYears.length > 0 && (
+                          <p style={{
+                            fontSize: '10px',
+                            color: importServerConfig?.color || '#64748B',
+                            marginTop: '2px',
+                            fontWeight: '600'
+                          }}>
+                            {availableImportYears.length} available
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
+                          <LocationIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
+                          Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                        </label>
+                        <select
+                          value={importLocation}
+                          onChange={(e) => {
+                            setImportLocation(e.target.value);
+                            setImportPreviewData([]);
+                            setShowImportPreview(false);
+                          }}
+                          className="modal-input"
+                          disabled={availableImportLocations.length === 0}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            background: '#F8FAFC',
+                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '14px',
+                            color: '#0F172A',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            cursor: availableImportLocations.length === 0 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">
+                            {availableImportLocations.length === 0 ? 'No locations available' : 'Select Location...'}
+                          </option>
+                          {availableImportLocations.map(location => (
+                            <option key={location} value={location}>{location}</option>
+                          ))}
+                        </select>
+                        {availableImportLocations.length > 0 && (
+                          <p style={{
+                            fontSize: '10px',
+                            color: importServerConfig?.color || '#64748B',
+                            marginTop: '2px',
+                            fontWeight: '600'
+                          }}>
+                            {availableImportLocations.length} available
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  
+
+                  {/* PREVIEW BUTTON */}
+                  {availableImportMonths.length > 0 && availableImportYears.length > 0 && availableImportLocations.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={previewImport}
+                        disabled={!importMonth || !importYear || !importLocation || importLoading}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          background: importServerConfig?.color || '#194752',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          opacity: (!importMonth || !importYear || !importLocation || importLoading) ? '0.5' : '1'
+                        }}
+                      >
+                        {importLoading ? '⏳ Loading...' : `🔍 Preview Bills from ${getServerLabel(importServer)}`}
+                      </button>
+                    </div>
+                  )}
+
+                  {showImportPreview && importPreviewData.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '8px'
+                      }}>
+                        <span style={{ fontWeight: '600', color: '#0F172A' }}>
+                          📋 Found {importPreviewData.length} bills to import
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: importServerConfig?.color || '#64748B',
+                          fontWeight: '600'
+                        }}>
+                          From: {getServerLabel(importServer)} | {importMonth} {importYear}
+                        </span>
+                      </div>
+
+                      <div style={{
+                        maxHeight: '200px',
+                        overflow: 'auto',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px'
+                      }}>
+                        <table style={{
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          fontSize: '12px'
+                        }}>
+                          <thead style={{
+                            background: '#F1F5F9',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1
+                          }}>
+                            <tr>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importPreviewData.slice(0, 50).map((bill) => (
+                              <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                                <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                                <td style={{ padding: '6px 12px' }}>
+                                  <span style={{
+                                    padding: '2px 10px',
+                                    borderRadius: '12px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
+                                    color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
+                                  }}>
+                                    {bill.consumerType || 'N/A'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>
+                                  ₱{(bill.amount || 0).toFixed(2)}
+                                </td>
+                                <td style={{ padding: '6px 12px' }}>
+                                  <span style={{
+                                    padding: '2px 10px',
+                                    borderRadius: '12px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
+                                    color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
+                                  }}>
+                                    {bill.status || 'UNPAID'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {importPreviewData.length > 50 && (
+                          <div style={{
+                            padding: '8px 12px',
+                            textAlign: 'center',
+                            background: '#F8FAFC',
+                            fontSize: '12px',
+                            color: '#64748B'
+                          }}>
+                            Showing first 50 of {importPreviewData.length} bills
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
+              <button
+                className="btn btn-outline"
                 onClick={closeImportModal}
                 style={{ flex: 1 }}
               >
                 Cancel
               </button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmImport}
                 disabled={importPreviewData.length === 0 || importLoading}
-                style={{ 
+                style={{
                   flex: 1,
-                  background: '#194752',
+                  background: importServerConfig?.color || '#194752',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -1831,7 +2220,7 @@ const Users = () => {
                   opacity: (importPreviewData.length === 0 || importLoading) ? '0.5' : '1'
                 }}
               >
-                {importLoading ? '⏳ Importing...' : `📥 Import ${importPreviewData.length} Bills`}
+                {importLoading ? '⏳ Importing...' : `📥 Import ${importPreviewData.length} Bills to ${getServerLabel(importServer)}`}
               </button>
             </div>
           </div>
@@ -1842,31 +2231,29 @@ const Users = () => {
       {showImportProgress && (
         <div className="modal-overlay">
           <div className="modal-content progress-modal">
-            <h3>📤 Importing Bills to "import" Collection</h3>
+            <h3>📤 Importing Bills to "{getServerLabel(importServer)} → import"</h3>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%` 
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%`,
+                  background: `linear-gradient(135deg, ${importServerConfig?.color || '#194752'}, ${importServerConfig?.color || '#124451'}dd)`
                 }}
               />
             </div>
             <p className="progress-text">
               {importProgress.current} / {importProgress.total} bills imported
             </p>
-            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-              ⏳ Please wait, this may take a few moments...
-            </p>
           </div>
         </div>
       )}
 
       {/* ============================================================
-          EXPORT MODAL - REPLACE/OVERRIDE
+          EXPORT MODAL
           ============================================================ */}
       {showExportModal && (
         <div className="modal-overlay" onClick={closeExportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <ExportIcon width={28} height={28} color="#DC2626" />
@@ -1877,9 +2264,55 @@ const Users = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Month</strong> and <strong>Location</strong> to <strong>REPLACE</strong> bills in the 
+                Select a <strong>Server</strong>, <strong>Month</strong>, and <strong>Location</strong> to <strong>REPLACE</strong> bills in the
                 <strong> "bills" </strong> collection with data from the <strong> "import" </strong> collection.
               </p>
+
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: '600',
+                  marginBottom: '6px',
+                  color: exportServerConfig?.color || '#0F172A',
+                  fontSize: '13px'
+                }}>
+                  <ServerIcon width={18} height={18} color={exportServerConfig?.color || '#DC2626'} />
+                  Server <span className="required" style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <select
+                  value={exportServer}
+                  onChange={(e) => {
+                    setExportServer(e.target.value);
+                    setExportPreviewData([]);
+                    setShowExportPreview(false);
+                    setExportMonth('');
+                    setExportLocation('');
+                  }}
+                  className="modal-input"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: '#F8FAFC',
+                    border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}`,
+                    borderRadius: '8px',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: exportServerConfig?.color || '#0F172A',
+                    outline: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {SERVER_CONFIGS.map(s => (
+                    <option key={s.key} value={s.key}>
+                      {s.label} ({s.project})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
@@ -1948,7 +2381,7 @@ const Users = () => {
                   style={{
                     width: '100%',
                     padding: '12px',
-                    background: '#DC2626',
+                    background: exportServerConfig?.color || '#DC2626',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
@@ -1959,40 +2392,40 @@ const Users = () => {
                     opacity: (!exportMonth || !exportLocation || exportLoading) ? '0.5' : '1'
                   }}
                 >
-                  {exportLoading ? '⏳ Loading...' : '🔍 Preview Imported Bills'}
+                  {exportLoading ? '⏳ Loading...' : `🔍 Preview Imported Bills from ${getServerLabel(exportServer)}`}
                 </button>
               </div>
 
               {showExportPreview && exportPreviewData.length > 0 && (
                 <div style={{ marginTop: '16px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: '8px'
                   }}>
                     <span style={{ fontWeight: '600', color: '#0F172A' }}>
                       📋 Found {exportPreviewData.length} imported bills to export
                     </span>
-                    <span style={{ fontSize: '12px', color: '#DC2626' }}>
-                      Will REPLACE all existing bills for {exportMonth} in {exportLocation}
+                    <span style={{ fontSize: '12px', color: '#DC2626', fontWeight: '600' }}>
+                      Will REPLACE all existing bills for {exportMonth} in {exportLocation} on {getServerLabel(exportServer)}
                     </span>
                   </div>
-                  
-                  <div style={{ 
-                    maxHeight: '200px', 
+
+                  <div style={{
+                    maxHeight: '200px',
                     overflow: 'auto',
                     border: '1px solid #E2E8F0',
                     borderRadius: '8px'
                   }}>
-                    <table style={{ 
-                      width: '100%', 
+                    <table style={{
+                      width: '100%',
                       borderCollapse: 'collapse',
                       fontSize: '12px'
                     }}>
-                      <thead style={{ 
-                        background: '#F1F5F9', 
-                        position: 'sticky', 
+                      <thead style={{
+                        background: '#F1F5F9',
+                        position: 'sticky',
                         top: 0,
                         zIndex: 1
                       }}>
@@ -2010,8 +2443,8 @@ const Users = () => {
                             <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
                             <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
                             <td style={{ padding: '6px 12px' }}>
-                              <span style={{ 
-                                padding: '2px 10px', 
+                              <span style={{
+                                padding: '2px 10px',
                                 borderRadius: '12px',
                                 fontSize: '10px',
                                 fontWeight: '600',
@@ -2025,8 +2458,8 @@ const Users = () => {
                               ₱{(bill.amount || 0).toFixed(2)}
                             </td>
                             <td style={{ padding: '6px 12px' }}>
-                              <span style={{ 
-                                padding: '2px 10px', 
+                              <span style={{
+                                padding: '2px 10px',
                                 borderRadius: '12px',
                                 fontSize: '10px',
                                 fontWeight: '600',
@@ -2041,9 +2474,9 @@ const Users = () => {
                       </tbody>
                     </table>
                     {exportPreviewData.length > 50 && (
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        textAlign: 'center', 
+                      <div style={{
+                        padding: '8px 12px',
+                        textAlign: 'center',
                         background: '#F8FAFC',
                         fontSize: '12px',
                         color: '#64748B'
@@ -2057,20 +2490,20 @@ const Users = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
+              <button
+                className="btn btn-outline"
                 onClick={closeExportModal}
                 style={{ flex: 1 }}
               >
                 Cancel
               </button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmExport}
                 disabled={exportPreviewData.length === 0 || exportLoading}
-                style={{ 
+                style={{
                   flex: 1,
-                  background: '#DC2626',
+                  background: exportServerConfig?.color || '#DC2626',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
@@ -2082,7 +2515,7 @@ const Users = () => {
                   opacity: (exportPreviewData.length === 0 || exportLoading) ? '0.5' : '1'
                 }}
               >
-                {exportLoading ? '⏳ Replacing...' : `🔄 REPLACE ${exportPreviewData.length} Bills`}
+                {exportLoading ? '⏳ Replacing...' : `🔄 REPLACE ${exportPreviewData.length} Bills on ${getServerLabel(exportServer)}`}
               </button>
             </div>
           </div>
@@ -2093,12 +2526,13 @@ const Users = () => {
       {showExportProgress && (
         <div className="modal-overlay">
           <div className="modal-content progress-modal">
-            <h3>🔄 Replacing Bills in "bills" Collection</h3>
+            <h3>🔄 Replacing Bills on {getServerLabel(exportServer)}</h3>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${exportProgress.total > 0 ? (exportProgress.current / exportProgress.total) * 100 : 0}%` 
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${exportProgress.total > 0 ? (exportProgress.current / exportProgress.total) * 100 : 0}%`,
+                  background: `linear-gradient(135deg, ${exportServerConfig?.color || '#DC2626'}, ${exportServerConfig?.color || '#991B1B'}dd)`
                 }}
               />
             </div>

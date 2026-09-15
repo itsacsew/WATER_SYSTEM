@@ -1234,29 +1234,31 @@ const AdminDashboard = () => {
             const presentReading = billData.presentReading || 0;
 
             const newBillData = {
-              ...billData,
-              month: nextMonth,
-              year: nextYear.toString(),
-              previousReading: presentReading,
-              presentReading: 0,
-              consumption: 0,
-              amount: 0,
-              status: 'unpaid',
-              dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
-              notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
-              userId: user?.uid || billData.userId || 'unknown',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              isRollover: true,
-              rolloverFrom: id,
-              rolloverFromMonth: newMonthMonth,
-              rolloverFromYear: newMonthYear,
-              rolloverLocation: newMonthLocation,
-              previousPresentReading: presentReading,
-              serverSource: serverKey
-            };
+  ...billData,
+  month: nextMonth,
+  year: nextYear.toString(),
+  previousReading: presentReading,
+  presentReading: 0,
+  consumption: 0,
+  amount: 0,
+  status: 'unpaid',
+  dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
+  notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
+  userId: user?.uid || billData.userId || 'unknown',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  isRollover: true,
+  rolloverFrom: id,
+  rolloverFromMonth: newMonthMonth,
+  rolloverFromYear: newMonthYear,
+  rolloverLocation: newMonthLocation,
+  previousPresentReading: presentReading,
+  serverSource: serverKey
+};
 
-            newBillData.billNumber = `${nextYear}-${String(i + 1).padStart(3, '0')}`;
+// ✅ FIX: Preserve the original WSIN (billNumber) para magsunod gihapon
+// Kung naay billNumber sa original data, gamiton nato. Kung wala, fallback sa old format.
+newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).padStart(3, '0')}`;
 
             batch.set(doc(billsCollectionRef), newBillData);
             successCount++;

@@ -11,6 +11,7 @@ import ExcelJS from 'exceljs';
 import './BillStyles.css';
 
 const EXCEL_PASSWORD = 'Water_2026';
+const DISCOUNT_RATE = 0.05; // 5% discount
 
 // ============================================================
 // HARD-CODED SVG ICONS
@@ -131,6 +132,23 @@ const ServerIcon = (props) => (
     <circle cx="6" cy="17.5" r="1" fill="currentColor"/>
     <circle cx="10" cy="6.5" r="1" fill="currentColor"/>
     <circle cx="10" cy="17.5" r="1" fill="currentColor"/>
+  </svg>
+);
+
+const SeniorIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <circle cx="12" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M14 21V18M10 21V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M21 10L20 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const PWDIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <circle cx="12" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M9 22L10.5 15L8 12L10 9L12 10L14 9L16 12L13.5 15L15 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 8L18 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
 
@@ -309,10 +327,7 @@ const BillDashboard = () => {
   const [filteredBills, setFilteredBills] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // DEFAULT SERVER = SERVER 1
   const [selectedServer, setSelectedServer] = useState('server1');
-  
-  // CHECKBOX SELECTION STATE
   const [selectedBillIds, setSelectedBillIds] = useState([]);
   
   const [showForm, setShowForm] = useState(false);
@@ -331,6 +346,12 @@ const BillDashboard = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  
+  // ============================================================
+  // DISCOUNT STATE (Senior Citizen & PWD)
+  // ============================================================
+  const [isSeniorCitizen, setIsSeniorCitizen] = useState(false);
+  const [isPWD, setIsPWD] = useState(false);
   
   const [tableType, setTableType] = useState('regular');
   
@@ -375,9 +396,6 @@ const BillDashboard = () => {
     setCurrentPage(1);
   }, [searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, selectedServer, tableType]);
 
-  // ============================================================
-  // FETCH BILLS - LAZY LOAD per server
-  // ============================================================
   const fetchBills = useCallback(async (serverKey) => {
     if (!user) return;
     
@@ -463,6 +481,8 @@ const BillDashboard = () => {
     if (showPayModal) {
       setPaymentCode('');
       setPaymentError('');
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
     }
   }, [showPayModal]);
 
@@ -470,6 +490,8 @@ const BillDashboard = () => {
     if (showPayAllModal) {
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
     }
   }, [showPayAllModal]);
 
@@ -623,9 +645,6 @@ const BillDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CHECKBOX HANDLERS
-  // ============================================================
   const handleToggleBillSelection = (billId) => {
     setSelectedBillIds(prev => {
       if (prev.includes(billId)) {
@@ -657,9 +676,6 @@ const BillDashboard = () => {
     setSelectedBillIds([]);
   };
 
-  // ============================================================
-  // DYNAMIC PAY BUTTON HANDLER
-  // ============================================================
   const handleSelectedPay = () => {
     if (selectedBillIds.length === 0) {
       toast.error('Please select at least one bill to pay');
@@ -726,6 +742,8 @@ const BillDashboard = () => {
     setSelectedBill(bill);
     setPaymentCode('');
     setPaymentError('');
+    setIsSeniorCitizen(false);
+    setIsPWD(false);
     setShowPayModal(true);
   };
 
@@ -786,9 +804,6 @@ const BillDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CUTOFF PAY - WITH SERVER TARGETING
-  // ============================================================
   const confirmCutoffPay = async () => {
     if (!cutoffPaymentCode || cutoffPaymentCode.length !== 7) {
       setCutoffPaymentError('Please enter a valid 7-digit payment code.');
@@ -852,9 +867,6 @@ const BillDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CUTOFF PAY ALL - WITH SERVER TARGETING
-  // ============================================================
   const confirmCutoffPayAll = async () => {
     if (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7) {
       setCutoffPayAllPaymentError('Please enter a valid 7-digit payment code.');
@@ -1023,7 +1035,7 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // PAY ALL - WITH SERVER TARGETING
+  // PAY ALL - WITH DISCOUNT SUPPORT
   // ============================================================
   const confirmPayAll = async () => {
     if (!payAllPaymentCode || payAllPaymentCode.length !== 7) {
@@ -1035,6 +1047,15 @@ const BillDashboard = () => {
       return;
     }
 
+    const hasDiscount = isSeniorCitizen || isPWD;
+    const discountType = isSeniorCitizen && isPWD 
+      ? 'SENIOR & PWD' 
+      : isSeniorCitizen 
+        ? 'SENIOR CITIZEN' 
+        : isPWD 
+          ? 'PWD' 
+          : null;
+
     setIsPayingAll(true);
 
     try {
@@ -1042,6 +1063,8 @@ const BillDashboard = () => {
       let successCount = 0;
       let errorCount = 0;
       let totalAmount = 0;
+      let totalDiscount = 0;
+      let totalOriginalAmount = 0;
       let paymentDetails = [];
 
       for (const bill of payAllBills) {
@@ -1051,15 +1074,19 @@ const BillDashboard = () => {
           const isDefectiveReading = isPresentDefective || isPreviousDefective;
           
           let consumption = 0;
-          let calculatedAmount = 0;
+          let originalAmount = 0;
           
           if (isDefectiveReading) {
             consumption = 0;
-            calculatedAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+            originalAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
           } else {
             consumption = calculateConsumption(bill.presentReading, bill.previousReading);
-            calculatedAmount = calculateBillAmount(bill.consumerType, consumption);
+            originalAmount = calculateBillAmount(bill.consumerType, consumption);
           }
+
+          // ✅ APPLY DISCOUNT
+          const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
+          const finalAmount = originalAmount - discountAmount;
 
           const targetDb = getDbByServer(bill.serverSource || selectedServer);
           const billRef = doc(targetDb, 'bills', bill.id);
@@ -1072,7 +1099,12 @@ const BillDashboard = () => {
             referenceNumber,
             paidBy: user?.email || 'Unknown',
             consumption,
-            amount: calculatedAmount,
+            amount: finalAmount,
+            originalAmount: originalAmount,
+            discountAmount: discountAmount,
+            discountType: discountType,
+            hasDiscount: hasDiscount,
+            discountRate: hasDiscount ? DISCOUNT_RATE : 0,
             amountCalculated: true,
             isDefective: isDefectiveReading,
             isPresentDefective,
@@ -1083,18 +1115,30 @@ const BillDashboard = () => {
               previousReading: bill.previousReading || 0,
               presentReading: bill.presentReading || 0,
               consumption,
-              calculatedAmount,
+              originalAmount,
+              discountAmount,
+              finalAmount,
+              hasDiscount,
+              discountType,
               calculatedAt: new Date().toISOString(),
               isDefective: isDefectiveReading
             }
           });
 
-          totalAmount += calculatedAmount;
+          totalOriginalAmount += originalAmount;
+          totalDiscount += discountAmount;
+          totalAmount += finalAmount;
           successCount++;
           
           paymentDetails.push({
             month: bill.month, year: bill.year, billNumber: bill.billNumber,
-            amount: calculatedAmount, consumption, isDefective: isDefectiveReading
+            amount: finalAmount, 
+            originalAmount,
+            discountAmount,
+            consumption, 
+            isDefective: isDefectiveReading,
+            hasDiscount,
+            discountType
           });
         } catch (error) {
           console.error('Error processing bill:', error);
@@ -1105,6 +1149,16 @@ const BillDashboard = () => {
       if (successCount > 0) {
         toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
+        if (hasDiscount) {
+          toast.success(`🎉 ${discountType} Discount (5%): -₱${totalDiscount.toFixed(2)}`, {
+            duration: 5000,
+            style: {
+              background: '#FEF3C7',
+              color: '#92400E',
+              border: '1px solid #F59E0B'
+            }
+          });
+        }
         toast.success(`📋 OR Number: ${payAllPaymentCode}`);
         
         setReceiptData({
@@ -1113,6 +1167,10 @@ const BillDashboard = () => {
             consumerName: payAllConsumerName,
             consumption: 'Multiple Bills',
             amount: totalAmount,
+            originalAmount: totalOriginalAmount,
+            discountAmount: totalDiscount,
+            discountType: discountType,
+            hasDiscount: hasDiscount,
             isDefective: false,
             isPayAll: true,
             payAllCount: successCount,
@@ -1123,7 +1181,12 @@ const BillDashboard = () => {
           paymentCode: payAllPaymentCode,
           referenceNumber,
           isPayAll: true,
-          payAllDetails: paymentDetails
+          payAllDetails: paymentDetails,
+          discount: {
+            type: discountType,
+            rate: DISCOUNT_RATE,
+            amount: totalDiscount
+          }
         });
         setShowReceipt(true);
       }
@@ -1135,6 +1198,8 @@ const BillDashboard = () => {
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
       setSelectedBillIds([]);
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Pay All error:', error);
@@ -1145,7 +1210,7 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // SINGLE PAY - WITH SERVER TARGETING
+  // SINGLE PAY - WITH DISCOUNT SUPPORT
   // ============================================================
   const confirmPayBill = async () => {
     if (!paymentCode || paymentCode.length < 7) {
@@ -1158,6 +1223,15 @@ const BillDashboard = () => {
     }
     if (!selectedBill) return;
 
+    const hasDiscount = isSeniorCitizen || isPWD;
+    const discountType = isSeniorCitizen && isPWD 
+      ? 'SENIOR & PWD' 
+      : isSeniorCitizen 
+        ? 'SENIOR CITIZEN' 
+        : isPWD 
+          ? 'PWD' 
+          : null;
+
     setIsPaying(true);
 
     try {
@@ -1167,15 +1241,19 @@ const BillDashboard = () => {
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
       
       let consumption = 0;
-      let calculatedAmount = 0;
+      let originalAmount = 0;
       
       if (isDefectiveReading) {
         consumption = 0;
-        calculatedAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+        originalAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
       } else {
         consumption = calculateConsumption(selectedBill.presentReading, selectedBill.previousReading);
-        calculatedAmount = calculateBillAmount(selectedBill.consumerType, consumption);
+        originalAmount = calculateBillAmount(selectedBill.consumerType, consumption);
       }
+
+      // ✅ APPLY DISCOUNT
+      const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
+      const finalAmount = originalAmount - discountAmount;
 
       const targetDb = getDbByServer(selectedBill.serverSource || selectedServer);
       const billRef = doc(targetDb, 'bills', selectedBill.id);
@@ -1188,7 +1266,12 @@ const BillDashboard = () => {
         referenceNumber,
         paidBy: user?.email || 'Unknown',
         consumption,
-        amount: calculatedAmount,
+        amount: finalAmount,
+        originalAmount: originalAmount,
+        discountAmount: discountAmount,
+        discountType: discountType,
+        hasDiscount: hasDiscount,
+        discountRate: hasDiscount ? DISCOUNT_RATE : 0,
         amountCalculated: true,
         isDefective: isDefectiveReading,
         isPresentDefective,
@@ -1198,27 +1281,57 @@ const BillDashboard = () => {
           previousReading: selectedBill.previousReading || 0,
           presentReading: selectedBill.presentReading || 0,
           consumption,
-          calculatedAmount,
+          originalAmount,
+          discountAmount,
+          finalAmount,
+          hasDiscount,
+          discountType,
           calculatedAt: new Date().toISOString(),
           isDefective: isDefectiveReading
         }
       });
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
-      toast.success(`💰 Amount: ₱${calculatedAmount.toFixed(2)}`);
+      toast.success(`💰 Amount: ₱${finalAmount.toFixed(2)}`);
+      if (hasDiscount) {
+        toast.success(`🎉 ${discountType} Discount (5%): -₱${discountAmount.toFixed(2)}`, {
+          duration: 5000,
+          style: {
+            background: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #F59E0B'
+          }
+        });
+      }
 
       setShowPayModal(false);
 
       setReceiptData({
-        bill: { ...selectedBill, consumption, amount: calculatedAmount, isDefective: isDefectiveReading },
+        bill: { 
+          ...selectedBill, 
+          consumption, 
+          amount: finalAmount,
+          originalAmount,
+          discountAmount,
+          discountType,
+          hasDiscount,
+          isDefective: isDefectiveReading 
+        },
         paymentCode,
-        referenceNumber
+        referenceNumber,
+        discount: hasDiscount ? {
+          type: discountType,
+          rate: DISCOUNT_RATE,
+          amount: discountAmount
+        } : null
       });
       setShowReceipt(true);
 
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Payment error details:', error);
@@ -1278,6 +1391,8 @@ const BillDashboard = () => {
         { header: 'Present Reading', key: 'presentReading', width: 18 },
         { header: 'Consumption', key: 'consumption', width: 15 },
         { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Discount', key: 'discount', width: 15 },
+        { header: 'Discount Type', key: 'discountType', width: 18 },
         { header: 'Status', key: 'status', width: 12 },
         { header: 'Defective', key: 'defective', width: 12 }
       ];
@@ -1305,6 +1420,8 @@ const BillDashboard = () => {
           presentReading: isCutoff ? 'N/A' : (isDefective(bill.presentReading) ? 'DEFECTIVE' : (bill.presentReading || '0')),
           consumption: isCutoff ? 'N/A' : (bill.consumption || '0'),
           amount: bill.amount || '0',
+          discount: bill.discountAmount ? `₱${bill.discountAmount.toFixed(2)}` : 'N/A',
+          discountType: bill.discountType || 'N/A',
           status: isCutoff ? 'CUT-OFF' : (bill.status?.toUpperCase() || 'UNPAID'),
           defective: isDefectiveReading ? 'YES' : 'NO'
         });
@@ -1418,32 +1535,21 @@ const BillDashboard = () => {
 
   const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
 
-  // ============================================================
-  // COMPUTE: Should checkboxes be visible?
-  // Conditions:
-  //   1. Naa nay search term (searchTerm.trim() !== '')
-  //   2. Ang search result kay usa ra ka consumer (unique)
-  //   3. Ang naka-search nga consumer naay 2 or more unpaid bills
-  // ============================================================
   const shouldShowCheckboxes = (() => {
-    // Rule 1: Dapat naay search term
     if (!searchTerm.trim()) return false;
 
-    // Get all filtered unpaid regular bills
     const unpaidRegularBills = filteredBills.filter(
       b => b.status !== 'paid' && !isCutoffBill(b)
     );
 
     if (unpaidRegularBills.length < 2) return false;
 
-    // Rule 2: Dapat usa ra ka consumer ang naa sa results
     const uniqueConsumers = new Set(
       unpaidRegularBills.map(b => (b.consumerName || '').toUpperCase().trim())
     );
 
     if (uniqueConsumers.size !== 1) return false;
 
-    // Rule 3: Dapat 2 or more unpaid bills ang consumer
     if (unpaidRegularBills.length < 2) return false;
 
     return true;
@@ -1454,6 +1560,28 @@ const BillDashboard = () => {
     const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
     return sum + amount;
   }, 0);
+
+  // ============================================================
+  // DISCOUNT CALCULATION FOR PREVIEW
+  // ============================================================
+  const getDiscountPreview = () => {
+    const hasDiscount = isSeniorCitizen || isPWD;
+    if (!hasDiscount) return null;
+    
+    const discountType = isSeniorCitizen && isPWD 
+      ? 'Senior Citizen & PWD' 
+      : isSeniorCitizen 
+        ? 'Senior Citizen' 
+        : 'PWD';
+    
+    return {
+      type: discountType,
+      rate: DISCOUNT_RATE,
+      ratePercent: (DISCOUNT_RATE * 100).toFixed(0)
+    };
+  };
+
+  const discountPreview = getDiscountPreview();
 
   return (
     <div className="bill-dashboard">
@@ -1801,10 +1929,12 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* PAY ALL / PAY SELECTED MODAL */}
+      {/* ============================================================ */}
+      {/* PAY ALL / PAY SELECTED MODAL - WITH DISCOUNT CHECKBOXES */}
+      {/* ============================================================ */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <PayAllIcon width={28} height={28} color="#16A34A" />
@@ -1823,7 +1953,7 @@ const BillDashboard = () => {
                 borderRadius: '8px',
                 overflow: 'hidden',
                 marginBottom: '16px',
-                maxHeight: '320px',
+                maxHeight: '280px',
                 overflowY: 'auto'
               }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -1839,6 +1969,7 @@ const BillDashboard = () => {
                     {payAllBills.map((bill, index) => {
                       const { consumption, amount, isDefective: isDef } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
                       const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      const finalAmount = (isSeniorCitizen || isPWD) ? amount * (1 - DISCOUNT_RATE) : amount;
                       return (
                         <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{ borderBottom: index < payAllBills.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                           <td style={{ padding: '8px 14px' }}>{period.trim()}</td>
@@ -1849,23 +1980,213 @@ const BillDashboard = () => {
                           </td>
                           <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '600' }}>
                             {formatCurrency(amount)}
+                            {(isSeniorCitizen || isPWD) && (
+                              <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '700' }}>
+                                → {formatCurrency(finalAmount)}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
-                  <tfoot style={{ background: '#F8FAFC', borderTop: '2px solid #194752' }}>
-                    <tr>
-                      <td colSpan="3" style={{ padding: '12px 14px', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>OVERALL TOTAL:</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', fontSize: '18px', textAlign: 'right', color: '#194752' }}>
-                        {formatCurrency(payAllBills.reduce((sum, bill) => {
-                          const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
-                          return sum + amount;
-                        }, 0))}
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+              </div>
+
+              {/* ============================================================ */}
+              {/* DISCOUNT CHECKBOXES */}
+              {/* ============================================================ */}
+              <div style={{
+                padding: '14px 18px',
+                background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
+                border: '2px solid #BFDBFE',
+                borderRadius: '12px',
+                marginBottom: '16px'
+              }}>
+                <p style={{
+                  margin: '0 0 12px 0',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  color: '#1E40AF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🎉 Discount (5%)
+                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {/* SENIOR CITIZEN */}
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: isSeniorCitizen ? '#DBEAFE' : '#FFFFFF',
+                    border: isSeniorCitizen ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSeniorCitizen ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isSeniorCitizen}
+                      onChange={(e) => setIsSeniorCitizen(e.target.checked)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: '#2563EB',
+                        flexShrink: 0
+                      }}
+                    />
+                    <SeniorIcon width={22} height={22} color={isSeniorCitizen ? '#2563EB' : '#64748B'} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: isSeniorCitizen ? '#1E40AF' : '#0F172A'
+                      }}>
+                        SENIOR CITIZEN
+                      </span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: isSeniorCitizen ? '#2563EB' : '#64748B'
+                      }}>
+                        5% discount
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* PWD */}
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: isPWD ? '#DBEAFE' : '#FFFFFF',
+                    border: isPWD ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isPWD ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isPWD}
+                      onChange={(e) => setIsPWD(e.target.checked)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: '#2563EB',
+                        flexShrink: 0
+                      }}
+                    />
+                    <PWDIcon width={22} height={22} color={isPWD ? '#2563EB' : '#64748B'} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: isPWD ? '#1E40AF' : '#0F172A'
+                      }}>
+                        PWD
+                      </span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: isPWD ? '#2563EB' : '#64748B'
+                      }}>
+                        5% discount
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {discountPreview && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 14px',
+                    background: '#F0FDF4',
+                    border: '1px solid #86EFAC',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '16px' }}>✅</span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#166534'
+                    }}>
+                      {discountPreview.type} discount applied ({discountPreview.ratePercent}% off)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* TOTAL SUMMARY */}
+              <div style={{
+                padding: '16px 20px',
+                background: (isSeniorCitizen || isPWD) 
+                  ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
+                  : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+                border: (isSeniorCitizen || isPWD) 
+                  ? '2px solid #86EFAC' 
+                  : '2px solid #E2E8F0',
+                borderRadius: '12px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '14px', color: '#64748B', fontWeight: '600' }}>Subtotal:</span>
+                  <span style={{ fontSize: '16px', color: '#0F172A', fontWeight: '700' }}>
+                    {formatCurrency(payAllBills.reduce((sum, bill) => {
+                      const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      return sum + amount;
+                    }, 0))}
+                  </span>
+                </div>
+
+                {(isSeniorCitizen || isPWD) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', color: '#16A34A', fontWeight: '600' }}>
+                      Discount ({discountPreview?.type}):
+                    </span>
+                    <span style={{ fontSize: '16px', color: '#16A34A', fontWeight: '700' }}>
+                      -{formatCurrency(payAllBills.reduce((sum, bill) => {
+                        const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                        return sum + (amount * DISCOUNT_RATE);
+                      }, 0))}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  paddingTop: '8px',
+                  borderTop: '2px solid #E2E8F0',
+                  marginTop: '8px'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#0F172A', fontWeight: '800' }}>TOTAL:</span>
+                  <span style={{ 
+                    fontSize: '22px', 
+                    color: (isSeniorCitizen || isPWD) ? '#16A34A' : '#194752', 
+                    fontWeight: '800' 
+                  }}>
+                    {formatCurrency(payAllBills.reduce((sum, bill) => {
+                      const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      const finalAmount = (isSeniorCitizen || isPWD) ? amount * (1 - DISCOUNT_RATE) : amount;
+                      return sum + finalAmount;
+                    }, 0))}
+                  </span>
+                </div>
               </div>
 
               <div className="form-group">
@@ -1909,7 +2230,9 @@ const BillDashboard = () => {
         </div>
       )}
 
+      {/* ============================================================ */}
       {/* REGULAR TABLE VIEW */}
+      {/* ============================================================ */}
       {tableType === 'regular' && (
         <>
           <div className="stats-grid">
@@ -1980,10 +2303,6 @@ const BillDashboard = () => {
             </div>
           </div>
 
-          {/* ============================================================ */}
-          {/* DYNAMIC PAY BUTTON / PAY ALL BUTTON */}
-          {/* Conditions: searchTerm + multiple unpaid bills sa usa ka consumer */}
-          {/* ============================================================ */}
           {shouldShowCheckboxes && consumersWithUnpaid.size === 1 && (
             <div style={{
               marginBottom: '16px',
@@ -2128,7 +2447,6 @@ const BillDashboard = () => {
                 <table className="bills-table">
                   <thead>
                     <tr>
-                      {/* CHECKBOX COLUMN - only show header if shouldShowCheckboxes */}
                       {shouldShowCheckboxes && (
                         <th style={{ width: '40px', textAlign: 'center' }}>
                           <input
@@ -2223,7 +2541,14 @@ const BillDashboard = () => {
                             {consumption} m³
                             {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
                           </td>
-                          <td className="name-cell" style={{ fontWeight: '600' }}>{formatCurrency(amount)}</td>
+                          <td className="name-cell" style={{ fontWeight: '600' }}>
+                            {formatCurrency(amount)}
+                            {bill.hasDiscount && (
+                              <div style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700' }}>
+                                🎉 {bill.discountType}
+                              </div>
+                            )}
+                          </td>
                           <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
                           <td>
                             <div className="action-buttons">
@@ -2661,7 +2986,9 @@ const BillDashboard = () => {
         </>
       )}
 
-      {/* Pay Modal - Single Bill */}
+      {/* ============================================================ */}
+      {/* Pay Modal - Single Bill with DISCOUNT Checkboxes */}
+      {/* ============================================================ */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -2674,15 +3001,199 @@ const BillDashboard = () => {
               <div className="pay-row"><span className="pay-label">Bill Number</span><span className="pay-value">{selectedBill.billNumber || 'N/A'}</span></div>
               <div className="pay-row"><span className="pay-label">Consumer</span><span className="pay-value">{selectedBill.consumerName || 'N/A'}</span></div>
               <div className="pay-row"><span className="pay-label">Type</span><span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span></div>
-              <div className="pay-row" style={{ borderTop: '2px solid #194752', paddingTop: '8px', marginTop: '4px' }}>
-                <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
-                <span className="pay-value amount" style={{ fontSize: '22px' }}>
-                  {(() => {
-                    const { amount } = calculateWithDefective(selectedBill.presentReading, selectedBill.previousReading, selectedBill.consumerType);
-                    return formatCurrency(amount);
-                  })()}
-                </span>
+            </div>
+
+            {/* ============================================================ */}
+            {/* DISCOUNT CHECKBOXES */}
+            {/* ============================================================ */}
+            <div style={{
+              padding: '5px 18px',
+              background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
+              border: '2px solid #BFDBFE',
+              borderRadius: '12px',
+              marginBottom: '16px'
+            }}>
+              <p style={{
+                margin: '0 0 5px 0',
+                fontWeight: '700',
+                fontSize: '14px',
+                color: '#1E40AF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                Discount (5%)
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  background: isSeniorCitizen ? '#DBEAFE' : '#FFFFFF',
+                  border: isSeniorCitizen ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={isSeniorCitizen}
+                    onChange={(e) => setIsSeniorCitizen(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: '#2563EB',
+                      flexShrink: 0
+                    }}
+                  />
+                  <SeniorIcon width={20} height={20} color={isSeniorCitizen ? '#2563EB' : '#64748B'} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: isSeniorCitizen ? '#1E40AF' : '#0F172A'
+                    }}>
+                      SENIOR CITIZEN
+                    </span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '10px',
+                      color: isSeniorCitizen ? '#2563EB' : '#64748B'
+                    }}>
+                      5% discount
+                    </span>
+                  </div>
+                </label>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  background: isPWD ? '#DBEAFE' : '#FFFFFF',
+                  border: isPWD ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={isPWD}
+                    onChange={(e) => setIsPWD(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: '#2563EB',
+                      flexShrink: 0
+                    }}
+                  />
+                  <PWDIcon width={20} height={20} color={isPWD ? '#2563EB' : '#64748B'} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: isPWD ? '#1E40AF' : '#0F172A'
+                    }}>
+                      PWD
+                    </span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '10px',
+                      color: isPWD ? '#2563EB' : '#64748B'
+                    }}>
+                      5% discount
+                    </span>
+                  </div>
+                </label>
               </div>
+
+              {discountPreview && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  background: '#F0FDF4',
+                  border: '1px solid #86EFAC',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{ fontSize: '14px' }}>✅</span>
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#166534'
+                  }}>
+                    {discountPreview.type} discount applied ({discountPreview.ratePercent}% off)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* TOTAL SUMMARY */}
+            <div style={{
+              padding: '14px 18px',
+              background: (isSeniorCitizen || isPWD) 
+                ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
+                : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+              border: (isSeniorCitizen || isPWD) 
+                ? '2px solid #86EFAC' 
+                : '2px solid #E2E8F0',
+              borderRadius: '12px',
+              marginBottom: '16px'
+            }}>
+              {(() => {
+                const { amount } = calculateWithDefective(selectedBill.presentReading, selectedBill.previousReading, selectedBill.consumerType);
+                const hasDiscount = isSeniorCitizen || isPWD;
+                const discountAmt = hasDiscount ? amount * DISCOUNT_RATE : 0;
+                const finalAmt = amount - discountAmt;
+
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>Subtotal:</span>
+                      <span style={{ fontSize: '15px', color: '#0F172A', fontWeight: '700' }}>
+                        {formatCurrency(amount)}
+                      </span>
+                    </div>
+
+                    {hasDiscount && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: '#16A34A', fontWeight: '600' }}>
+                          Discount ({discountPreview?.type}):
+                        </span>
+                        <span style={{ fontSize: '15px', color: '#16A34A', fontWeight: '700' }}>
+                          -{formatCurrency(discountAmt)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      paddingTop: '8px',
+                      borderTop: '2px solid #E2E8F0',
+                      marginTop: '6px'
+                    }}>
+                      <span style={{ fontSize: '15px', color: '#0F172A', fontWeight: '800' }}>AMOUNT TO PAY:</span>
+                      <span style={{ 
+                        fontSize: '22px', 
+                        color: hasDiscount ? '#16A34A' : '#194752', 
+                        fontWeight: '800' 
+                      }}>
+                        {formatCurrency(finalAmt)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="form-group">
