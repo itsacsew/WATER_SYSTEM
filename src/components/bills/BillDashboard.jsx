@@ -1,6 +1,6 @@
 // src/components/bills/BillDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc, limit, getDoc, setDoc } from 'firebase/firestore';
 import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, getServerColor, SERVER_CONFIGS } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -9,9 +9,19 @@ import ReceiptPrinter from './ReceiptPrinter';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import './BillStyles.css';
+import ApplicationForm from './ApplicationForm';
 
 const EXCEL_PASSWORD = 'Water_2026';
 const DISCOUNT_RATE = 0.05; // 5% discount
+
+
+// ============================================================
+// SERVER 4 = OR NUMBER STORAGE + PAID BILLS ARCHIVE
+// ============================================================
+const OR_SERVER_KEY = 'server4';
+const OR_COLLECTION = 'or_numbers';
+const USED_OR_COLLECTION = 'used_or_numbers';
+const ARCHIVE_COLLECTION = 'bills'; // ✅ Same collection name — Server 4 bills
 
 // ============================================================
 // HARD-CODED SVG ICONS
@@ -38,7 +48,7 @@ const DuplexIcon = (props) => (
     <path d="M20 14L12.916 9.27735C12.6448 9.0965 12.326 9 12 9C11.674 9 11.3552 9.0965 11.084 9.27735L4 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M18.5 13.5V18C18.5 19.8856 18.5 20.8284 17.9142 21.4142C17.3284 22 16.3856 22 14.5 22H9.5C7.61438 22 6.67157 22 6.08579 21.4142C5.5 20.8284 5.5 19.8856 5.5 18V13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17 5V12M7 5V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M14 22V18C14 16.8954 13.1046 16 12 16C10.8954 16 10 16.8954 10 18V22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M14 22V18C14 16.8954 13.1046 16 12 16C10.8954 16 10 15.6569 10 18V22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -318,6 +328,175 @@ const getConsumerPeriodOptions = (billsData) => {
 };
 
 // ============================================================
+// ✅ FETCH NEXT AVAILABLE OR NUMBER (NO COMPOSITE INDEX NEEDED)
+// ALWAYS USES SERVER 4, REGARDLESS OF THE CURRENT VIEW SERVER
+// ============================================================
+const fetchNextAvailableOR = async () => {
+  try {
+    const orDb = getDbByServer(OR_SERVER_KEY); // Always 'server4'
+    const orRef = collection(orDb, OR_COLLECTION);
+
+    console.log('🔍 Fetching available OR from SERVER 4 → collection: or_numbers');
+
+    // ✅ SIMPLE QUERY — only ONE where clause, NO orderBy, NO limit
+    // This does NOT require a composite index
+    const q = query(
+      orRef,
+      where('status', '==', 'available')
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      console.warn('⚠️ No available OR numbers found in Server 4');
+      return null;
+    }
+
+    console.log(`📊 Found ${snap.size} available ORs in Server 4`);
+
+    // ✅ Sort manually by orNumber (ascending) to get the lowest one
+    const sortedDocs = snap.docs.sort((a, b) => {
+      const aNum = parseInt(String(a.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      const bNum = parseInt(String(b.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      return aNum - bNum;
+    });
+
+    const orDoc = sortedDocs[0];
+    const orData = orDoc.data();
+
+    console.log('✅ Next available OR:', orData.orNumber);
+    return {
+      id: orDoc.id,
+      orNumber: String(orData.orNumber),
+      batchId: orData.batchId || null,
+      ...orData
+    };
+  } catch (error) {
+    console.error('❌ Error fetching available OR from Server 4:', error);
+    console.error('   Error code:', error.code);
+    console.error('   Error message:', error.message);
+    return null;
+  }
+};
+
+// ============================================================
+// ✅ MARK OR AS USED + STORE IN USED_OR_COLLECTION (SERVER 4)
+// ============================================================
+const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail) => {
+  try {
+    const orDb = getDbByServer(OR_SERVER_KEY); // Always 'server4'
+    const orRef = doc(orDb, OR_COLLECTION, orDocId);
+    const usedRef = collection(orDb, USED_OR_COLLECTION);
+
+    const usedAt = new Date().toISOString();
+
+    // ✅ Update the OR doc → status: 'used'
+    await updateDoc(orRef, {
+      status: 'used',
+      usedAt,
+      usedBy: userEmail || 'Unknown',
+      billId: billInfo?.id || null,
+      billNumber: billInfo?.billNumber || null,
+      consumerName: billInfo?.consumerName || null,
+      paymentCode,
+      serverSource: billInfo?.serverSource || null,
+      referenceNumber: billInfo?.referenceNumber || null
+    });
+
+    // ✅ Also store in used_or_numbers collection for tracking
+    const usedDocId = `${orNumber}_${Date.now()}`;
+    await setDoc(doc(usedRef, usedDocId), {
+      orNumber,
+      originalOrDocId: orDocId,
+      status: 'used',
+      usedAt,
+      usedBy: userEmail || 'Unknown',
+      billId: billInfo?.id || null,
+      billNumber: billInfo?.billNumber || null,
+      consumerName: billInfo?.consumerName || null,
+      consumerAddress: billInfo?.location || null,
+      month: billInfo?.month || null,
+      year: billInfo?.year || null,
+      amount: billInfo?.amount || 0,
+      paymentCode,
+      referenceNumber: billInfo?.referenceNumber || null,
+      serverSource: billInfo?.serverSource || null,
+      archivedAt: usedAt
+    });
+
+    console.log(`✅ OR ${orNumber} marked as used in Server 4`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error marking OR as used:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================================
+// ✅ AUTO-ARCHIVE PAID BILL TO SERVER 4 (bills collection)
+// ============================================================
+const archivePaidBill = async (bill, paymentCode, referenceNumber, originalServer) => {
+  try {
+    const archiveDb = getDbByServer(OR_SERVER_KEY); // Server 4
+    const archiveRef = collection(archiveDb, ARCHIVE_COLLECTION); // bills collection
+
+    // Use original bill ID + suffix to avoid collision
+    const archiveDocId = `${bill.id}_${Date.now()}`;
+
+    const archiveData = {
+      // ===== ORIGINAL BILL FIELDS (same table layout) =====
+      billNumber: bill.billNumber || 'N/A',
+      consumerName: bill.consumerName || 'N/A',
+      location: bill.location || 'N/A',
+      consumerType: bill.consumerType || 'RESIDENTIAL',
+      month: bill.month || 'N/A',
+      year: bill.year || 'N/A',
+      previousReading: bill.previousReading ?? 0,
+      presentReading: bill.presentReading ?? 0,
+      consumption: bill.consumption ?? 0,
+      amount: bill.amount ?? 0,
+      originalAmount: bill.originalAmount ?? bill.amount ?? 0,
+      discountAmount: bill.discountAmount ?? 0,
+      discountType: bill.discountType || null,
+      hasDiscount: bill.hasDiscount ?? false,
+      status: 'paid',
+      type: bill.type || bill.consumerType || 'RESIDENTIAL',
+      dueDate: bill.dueDate || null,
+      notes: bill.notes || '',
+
+      // ===== ARCHIVE METADATA =====
+      archived: true,
+      archivedAt: new Date().toISOString(),
+      archivedFrom: originalServer,
+      archivedFromLabel: getServerLabel(originalServer),
+      originalBillId: bill.id,
+
+      // ===== PAYMENT INFO =====
+      paymentCode: paymentCode || 'N/A',
+      referenceNumber: referenceNumber || 'N/A',
+      paidAt: bill.paidAt || new Date().toISOString(),
+      paidBy: bill.paidBy || 'Unknown',
+      paidVia: bill.paidVia || 'PAY',
+
+      // ===== KEEP CREATED/UPDATED =====
+      createdAt: bill.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+
+      // ===== IDENTITY =====
+      userId: bill.userId || 'unknown',
+      serverSource: originalServer
+    };
+
+    await setDoc(doc(archiveRef, archiveDocId), archiveData);
+    console.log(`📦 Archived paid bill ${bill.billNumber} → Server 4 (OR: ${paymentCode})`);
+    return { success: true, archiveId: archiveDocId };
+  } catch (error) {
+    console.error('❌ Archive error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================================
 // BILL DASHBOARD COMPONENT
 // ============================================================
 
@@ -347,6 +526,11 @@ const BillDashboard = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   
+  // ✅ OR Number auto-fetch state
+  const [availableOR, setAvailableOR] = useState(null);
+  const [loadingOR, setLoadingOR] = useState(false);
+  const [orFetchError, setOrFetchError] = useState('');
+  
   // ============================================================
   // DISCOUNT STATE (Senior Citizen & PWD)
   // ============================================================
@@ -364,12 +548,16 @@ const BillDashboard = () => {
   const [payAllPaymentCode, setPayAllPaymentCode] = useState('');
   const [payAllPaymentError, setPayAllPaymentError] = useState('');
   const [isPayingAll, setIsPayingAll] = useState(false);
+  const [payAllAvailableOR, setPayAllAvailableOR] = useState(null);
+  const [payAllLoadingOR, setPayAllLoadingOR] = useState(false);
   
   const [showCutoffPayModal, setShowCutoffPayModal] = useState(false);
   const [cutoffBillToPay, setCutoffBillToPay] = useState(null);
   const [cutoffPaymentCode, setCutoffPaymentCode] = useState('');
   const [cutoffPaymentError, setCutoffPaymentError] = useState('');
   const [isPayingCutoff, setIsPayingCutoff] = useState(false);
+  const [cutoffAvailableOR, setCutoffAvailableOR] = useState(null);
+  const [cutoffLoadingOR, setCutoffLoadingOR] = useState(false);
   
   const [showCutoffPayAllModal, setShowCutoffPayAllModal] = useState(false);
   const [cutoffPayAllBills, setCutoffPayAllBills] = useState([]);
@@ -377,6 +565,8 @@ const BillDashboard = () => {
   const [cutoffPayAllPaymentCode, setCutoffPayAllPaymentCode] = useState('');
   const [cutoffPayAllPaymentError, setCutoffPayAllPaymentError] = useState('');
   const [isPayingCutoffAll, setIsPayingCutoffAll] = useState(false);
+  const [cutoffPayAllAvailableOR, setCutoffPayAllAvailableOR] = useState(null);
+  const [cutoffPayAllLoadingOR, setCutoffPayAllLoadingOR] = useState(false);
   
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportLocation, setSelectedExportLocation] = useState('all');
@@ -386,6 +576,7 @@ const BillDashboard = () => {
   const [months, setMonths] = useState([]);
   const [years, setYears] = useState([]);
   const [consumerPeriods, setConsumerPeriods] = useState([]);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
   
   const [stats, setStats] = useState({
     total: 0, paid: 0, unpaid: 0, overdue: 0,
@@ -477,12 +668,28 @@ const BillDashboard = () => {
     filterBills();
   }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, tableType]);
 
+  // ✅ Auto-fetch OR when Pay Modal opens
   useEffect(() => {
     if (showPayModal) {
       setPaymentCode('');
       setPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
+      setAvailableOR(null);
+      setOrFetchError('');
+
+      const loadOR = async () => {
+        setLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setAvailableOR(or);
+          setPaymentCode(or.orNumber);
+        } else {
+          setOrFetchError('No available OR number in Server 4. Please add OR numbers first.');
+        }
+        setLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showPayModal]);
 
@@ -492,6 +699,18 @@ const BillDashboard = () => {
       setPayAllPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
+      setPayAllAvailableOR(null);
+
+      const loadOR = async () => {
+        setPayAllLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setPayAllAvailableOR(or);
+          setPayAllPaymentCode(or.orNumber);
+        }
+        setPayAllLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showPayAllModal]);
 
@@ -499,6 +718,18 @@ const BillDashboard = () => {
     if (showCutoffPayModal) {
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
+      setCutoffAvailableOR(null);
+
+      const loadOR = async () => {
+        setCutoffLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setCutoffAvailableOR(or);
+          setCutoffPaymentCode(or.orNumber);
+        }
+        setCutoffLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showCutoffPayModal]);
 
@@ -506,6 +737,18 @@ const BillDashboard = () => {
     if (showCutoffPayAllModal) {
       setCutoffPayAllPaymentCode('');
       setCutoffPayAllPaymentError('');
+      setCutoffPayAllAvailableOR(null);
+
+      const loadOR = async () => {
+        setCutoffPayAllLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setCutoffPayAllAvailableOR(or);
+          setCutoffPayAllPaymentCode(or.orNumber);
+        }
+        setCutoffPayAllLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showCutoffPayAllModal]);
 
@@ -706,8 +949,6 @@ const BillDashboard = () => {
 
     setPayAllBills(sortedSelected);
     setPayAllConsumerName(consumerName);
-    setPayAllPaymentCode('');
-    setPayAllPaymentError('');
     setShowPayAllModal(true);
   };
 
@@ -740,17 +981,11 @@ const BillDashboard = () => {
 
   const handlePayBill = (bill) => {
     setSelectedBill(bill);
-    setPaymentCode('');
-    setPaymentError('');
-    setIsSeniorCitizen(false);
-    setIsPWD(false);
     setShowPayModal(true);
   };
 
   const handleCutoffPay = (bill) => {
     setCutoffBillToPay(bill);
-    setCutoffPaymentCode('');
-    setCutoffPaymentError('');
     setShowCutoffPayModal(true);
   };
 
@@ -775,8 +1010,6 @@ const BillDashboard = () => {
     
     setCutoffPayAllBills(sortedUnpaid);
     setCutoffPayAllConsumerName(consumerName);
-    setCutoffPayAllPaymentCode('');
-    setCutoffPayAllPaymentError('');
     setShowCutoffPayAllModal(true);
   };
 
@@ -804,6 +1037,9 @@ const BillDashboard = () => {
     }
   };
 
+  // ============================================================
+  // CONFIRM CUTOFF PAY - SINGLE (WITH AUTO OR + ARCHIVE)
+  // ============================================================
   const confirmCutoffPay = async () => {
     if (!cutoffPaymentCode || cutoffPaymentCode.length !== 7) {
       setCutoffPaymentError('Please enter a valid 7-digit payment code.');
@@ -816,10 +1052,11 @@ const BillDashboard = () => {
     try {
       const referenceNumber = `CUTOFF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const amountToPay = cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0;
-      const targetDb = getDbByServer(cutoffBillToPay.serverSource || selectedServer);
+      const originalServer = cutoffBillToPay.serverSource || selectedServer;
+      const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', cutoffBillToPay.id);
       
-      await updateDoc(billRef, {
+      const paidBillData = {
         status: 'paid',
         paidAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -837,15 +1074,49 @@ const BillDashboard = () => {
           calculatedAt: new Date().toISOString(),
           isCutoff: true
         }
-      });
+      };
+
+      // ✅ Update original bill to paid
+      await updateDoc(billRef, paidBillData);
+
+      // ✅ ARCHIVE TO SERVER 4
+      await archivePaidBill(
+        { ...cutoffBillToPay, ...paidBillData },
+        cutoffPaymentCode,
+        referenceNumber,
+        originalServer
+      );
+
+      // ✅ Mark OR as used
+      if (cutoffAvailableOR) {
+        await markORAsUsed(
+          cutoffAvailableOR.orNumber,
+          cutoffAvailableOR.id,
+          {
+            id: cutoffBillToPay.id,
+            billNumber: cutoffBillToPay.billNumber,
+            consumerName: cutoffBillToPay.consumerName,
+            location: cutoffBillToPay.location,
+            month: cutoffBillToPay.month,
+            year: cutoffBillToPay.year,
+            amount: amountToPay,
+            serverSource: originalServer,
+            referenceNumber
+          },
+          cutoffPaymentCode,
+          user?.email || 'Unknown'
+        );
+      }
 
       toast.success(`✅ Cut-off bill ${cutoffBillToPay.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${amountToPay.toFixed(2)}`);
+      toast.success(`📋 OR Number: ${cutoffPaymentCode}`);
+      toast.success(`📦 Archived to Server 4`, { duration: 4000, icon: '🗄️' });
 
       setShowCutoffPayModal(false);
 
       setReceiptData({
-        bill: { ...cutoffBillToPay, consumption: 'CUT-OFF', amount: amountToPay, isDefective: false, isCutoff: true },
+        bill: { ...cutoffBillToPay, ...paidBillData, consumption: 'CUT-OFF', amount: amountToPay, isDefective: false, isCutoff: true },
         paymentCode: cutoffPaymentCode,
         referenceNumber
       });
@@ -854,6 +1125,7 @@ const BillDashboard = () => {
       setCutoffBillToPay(null);
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
+      setCutoffAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Cutoff payment error:', error);
@@ -867,6 +1139,9 @@ const BillDashboard = () => {
     }
   };
 
+  // ============================================================
+  // CONFIRM CUTOFF PAY ALL (WITH AUTO OR + ARCHIVE)
+  // ============================================================
   const confirmCutoffPayAll = async () => {
     if (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7) {
       setCutoffPayAllPaymentError('Please enter a valid 7-digit payment code.');
@@ -889,10 +1164,11 @@ const BillDashboard = () => {
       for (const bill of cutoffPayAllBills) {
         try {
           const amountToPay = bill.amount || bill.collectableAmount || 0;
-          const targetDb = getDbByServer(bill.serverSource || selectedServer);
+          const originalServer = bill.serverSource || selectedServer;
+          const targetDb = getDbByServer(originalServer);
           const billRef = doc(targetDb, 'bills', bill.id);
           
-          await updateDoc(billRef, {
+          const paidBillData = {
             status: 'paid',
             paidAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -910,7 +1186,18 @@ const BillDashboard = () => {
               calculatedAt: new Date().toISOString(),
               isCutoff: true
             }
-          });
+          };
+
+          // ✅ Update original bill
+          await updateDoc(billRef, paidBillData);
+
+          // ✅ ARCHIVE TO SERVER 4
+          await archivePaidBill(
+            { ...bill, ...paidBillData },
+            cutoffPayAllPaymentCode,
+            referenceNumber,
+            originalServer
+          );
 
           totalAmount += amountToPay;
           successCount++;
@@ -926,9 +1213,30 @@ const BillDashboard = () => {
       }
 
       if (successCount > 0) {
+        // ✅ Mark OR as used
+        if (cutoffPayAllAvailableOR) {
+          await markORAsUsed(
+            cutoffPayAllAvailableOR.orNumber,
+            cutoffPayAllAvailableOR.id,
+            {
+              id: 'CUTOFF_PAY_ALL',
+              billNumber: cutoffPayAllBills[0]?.billNumber || 'MULTIPLE',
+              consumerName: cutoffPayAllConsumerName,
+              month: 'MULTIPLE',
+              year: 'MULTIPLE',
+              amount: totalAmount,
+              serverSource: cutoffPayAllBills[0]?.serverSource || selectedServer,
+              referenceNumber
+            },
+            cutoffPayAllPaymentCode,
+            user?.email || 'Unknown'
+          );
+        }
+
         toast.success(`✅ Successfully paid ${successCount} cut-off bills for ${cutoffPayAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
         toast.success(`📋 OR Number: ${cutoffPayAllPaymentCode}`);
+        toast.success(`📦 Archived ${successCount} bills to Server 4`, { duration: 4000, icon: '🗄️' });
         
         setReceiptData({
           bill: {
@@ -959,6 +1267,7 @@ const BillDashboard = () => {
       setCutoffPayAllBills([]);
       setCutoffPayAllPaymentCode('');
       setCutoffPayAllPaymentError('');
+      setCutoffPayAllAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Cutoff Pay All error:', error);
@@ -1021,8 +1330,6 @@ const BillDashboard = () => {
     
     setPayAllBills(sortedUnpaid);
     setPayAllConsumerName(consumerName);
-    setPayAllPaymentCode('');
-    setPayAllPaymentError('');
     setShowPayAllModal(true);
   };
 
@@ -1035,7 +1342,7 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // PAY ALL - WITH DISCOUNT SUPPORT
+  // PAY ALL - WITH DISCOUNT + AUTO OR + ARCHIVE
   // ============================================================
   const confirmPayAll = async () => {
     if (!payAllPaymentCode || payAllPaymentCode.length !== 7) {
@@ -1084,14 +1391,14 @@ const BillDashboard = () => {
             originalAmount = calculateBillAmount(bill.consumerType, consumption);
           }
 
-          // ✅ APPLY DISCOUNT
           const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
           const finalAmount = originalAmount - discountAmount;
 
-          const targetDb = getDbByServer(bill.serverSource || selectedServer);
+          const originalServer = bill.serverSource || selectedServer;
+          const targetDb = getDbByServer(originalServer);
           const billRef = doc(targetDb, 'bills', bill.id);
           
-          await updateDoc(billRef, {
+          const paidBillData = {
             status: 'paid',
             paidAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -1123,7 +1430,18 @@ const BillDashboard = () => {
               calculatedAt: new Date().toISOString(),
               isDefective: isDefectiveReading
             }
-          });
+          };
+
+          // ✅ Update original bill
+          await updateDoc(billRef, paidBillData);
+
+          // ✅ ARCHIVE TO SERVER 4
+          await archivePaidBill(
+            { ...bill, ...paidBillData },
+            payAllPaymentCode,
+            referenceNumber,
+            originalServer
+          );
 
           totalOriginalAmount += originalAmount;
           totalDiscount += discountAmount;
@@ -1147,6 +1465,26 @@ const BillDashboard = () => {
       }
 
       if (successCount > 0) {
+        // ✅ Mark OR as used
+        if (payAllAvailableOR) {
+          await markORAsUsed(
+            payAllAvailableOR.orNumber,
+            payAllAvailableOR.id,
+            {
+              id: 'PAY_ALL',
+              billNumber: payAllBills[0]?.billNumber || 'MULTIPLE',
+              consumerName: payAllConsumerName,
+              month: 'MULTIPLE',
+              year: 'MULTIPLE',
+              amount: totalAmount,
+              serverSource: payAllBills[0]?.serverSource || selectedServer,
+              referenceNumber
+            },
+            payAllPaymentCode,
+            user?.email || 'Unknown'
+          );
+        }
+
         toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
         if (hasDiscount) {
@@ -1160,6 +1498,7 @@ const BillDashboard = () => {
           });
         }
         toast.success(`📋 OR Number: ${payAllPaymentCode}`);
+        toast.success(`📦 Archived ${successCount} bills to Server 4`, { duration: 4000, icon: '🗄️' });
         
         setReceiptData({
           bill: {
@@ -1200,6 +1539,7 @@ const BillDashboard = () => {
       setSelectedBillIds([]);
       setIsSeniorCitizen(false);
       setIsPWD(false);
+      setPayAllAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Pay All error:', error);
@@ -1210,7 +1550,7 @@ const BillDashboard = () => {
   };
 
   // ============================================================
-  // SINGLE PAY - WITH DISCOUNT SUPPORT
+  // SINGLE PAY - WITH DISCOUNT + AUTO OR + ARCHIVE
   // ============================================================
   const confirmPayBill = async () => {
     if (!paymentCode || paymentCode.length < 7) {
@@ -1251,14 +1591,14 @@ const BillDashboard = () => {
         originalAmount = calculateBillAmount(selectedBill.consumerType, consumption);
       }
 
-      // ✅ APPLY DISCOUNT
       const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
       const finalAmount = originalAmount - discountAmount;
 
-      const targetDb = getDbByServer(selectedBill.serverSource || selectedServer);
+      const originalServer = selectedBill.serverSource || selectedServer;
+      const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', selectedBill.id);
       
-      await updateDoc(billRef, {
+      const paidBillData = {
         status: 'paid',
         paidAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1289,7 +1629,39 @@ const BillDashboard = () => {
           calculatedAt: new Date().toISOString(),
           isDefective: isDefectiveReading
         }
-      });
+      };
+
+      // ✅ Update original bill
+      await updateDoc(billRef, paidBillData);
+
+      // ✅ ARCHIVE TO SERVER 4
+      await archivePaidBill(
+        { ...selectedBill, ...paidBillData },
+        paymentCode,
+        referenceNumber,
+        originalServer
+      );
+
+      // ✅ Mark OR as used
+      if (availableOR) {
+        await markORAsUsed(
+          availableOR.orNumber,
+          availableOR.id,
+          {
+            id: selectedBill.id,
+            billNumber: selectedBill.billNumber,
+            consumerName: selectedBill.consumerName,
+            location: selectedBill.location,
+            month: selectedBill.month,
+            year: selectedBill.year,
+            amount: finalAmount,
+            serverSource: originalServer,
+            referenceNumber
+          },
+          paymentCode,
+          user?.email || 'Unknown'
+        );
+      }
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${finalAmount.toFixed(2)}`);
@@ -1303,12 +1675,15 @@ const BillDashboard = () => {
           }
         });
       }
+      toast.success(`📋 OR Number: ${paymentCode}`);
+      toast.success(`📦 Archived to Server 4`, { duration: 4000, icon: '🗄️' });
 
       setShowPayModal(false);
 
       setReceiptData({
         bill: { 
           ...selectedBill, 
+          ...paidBillData,
           consumption, 
           amount: finalAmount,
           originalAmount,
@@ -1332,6 +1707,7 @@ const BillDashboard = () => {
       setPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
+      setAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Payment error details:', error);
@@ -1394,6 +1770,7 @@ const BillDashboard = () => {
         { header: 'Discount', key: 'discount', width: 15 },
         { header: 'Discount Type', key: 'discountType', width: 18 },
         { header: 'Status', key: 'status', width: 12 },
+        { header: 'OR Number', key: 'orNumber', width: 15 },
         { header: 'Defective', key: 'defective', width: 12 }
       ];
 
@@ -1423,6 +1800,7 @@ const BillDashboard = () => {
           discount: bill.discountAmount ? `₱${bill.discountAmount.toFixed(2)}` : 'N/A',
           discountType: bill.discountType || 'N/A',
           status: isCutoff ? 'CUT-OFF' : (bill.status?.toUpperCase() || 'UNPAID'),
+          orNumber: bill.paymentCode || 'N/A',
           defective: isDefectiveReading ? 'YES' : 'NO'
         });
       });
@@ -1550,8 +1928,6 @@ const BillDashboard = () => {
 
     if (uniqueConsumers.size !== 1) return false;
 
-    if (unpaidRegularBills.length < 2) return false;
-
     return true;
   })();
 
@@ -1561,9 +1937,6 @@ const BillDashboard = () => {
     return sum + amount;
   }, 0);
 
-  // ============================================================
-  // DISCOUNT CALCULATION FOR PREVIEW
-  // ============================================================
   const getDiscountPreview = () => {
     const hasDiscount = isSeniorCitizen || isPWD;
     if (!hasDiscount) return null;
@@ -1633,7 +2006,7 @@ const BillDashboard = () => {
               <option value="server1">Server 1</option>
               <option value="server2">Server 2</option>
               <option value="server3">Server 3</option>
-              <option value="server4">Server 4</option>
+              <option value="server4">🗄️ Server 4 (Archive)</option>
               <option value="server5">Server 5</option>
             </select>
           </div>
@@ -1662,8 +2035,30 @@ const BillDashboard = () => {
           </div>
 
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            ADD BILL
-          </button>
+  ADD BILL
+</button>
+
+<button
+  className="btn"
+  onClick={() => setShowApplicationForm(true)}
+  style={{
+    background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 24px',
+    border: 'none',
+    borderRadius: '10px',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+  }}
+>
+  📋 APPLICATION
+</button>
         </div>
       </div>
 
@@ -1735,7 +2130,7 @@ const BillDashboard = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Confirm payment for this cut-off account. The <strong>Collectable Amount</strong> will be used as the payment amount.
+                Confirm payment for this cut-off account.
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
@@ -1757,7 +2152,6 @@ const BillDashboard = () => {
                     <tr style={{ background: '#DC2626' }}>
                       <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff' }}>Bill Number (WSIN)</th>
                       <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff' }}>Consumer Name</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', color: '#ffffff' }}>Type</th>
                       <th style={{ padding: '12px 16px', textAlign: 'right', color: '#ffffff' }}>Collectable Amount</th>
                     </tr>
                   </thead>
@@ -1765,11 +2159,6 @@ const BillDashboard = () => {
                     <tr style={{ background: '#FFF5F5' }}>
                       <td style={{ padding: '14px 16px', fontWeight: '600', color: '#194752' }}>{cutoffBillToPay.billNumber || 'N/A'}</td>
                       <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>{cutoffBillToPay.consumerName || 'N/A'}</td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span className={`type-badge ${cutoffBillToPay.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
-                          {cutoffBillToPay.type || cutoffBillToPay.consumerType || 'N/A'}
-                        </span>
-                      </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '700', fontSize: '18px', color: '#DC2626' }}>
                         {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
                       </td>
@@ -1779,17 +2168,69 @@ const BillDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>OR Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  className={`payment-input ${cutoffPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code"
-                  value={cutoffPaymentCode}
-                  onChange={handleCutoffPaymentCodeChange}
-                  maxLength="7"
-                  autoFocus
-                />
-                {cutoffPaymentError && <span className="error-text">{cutoffPaymentError}</span>}
+                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+                {cutoffLoadingOR ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching available OR Number...
+                  </div>
+                ) : cutoffAvailableOR ? (
+                  <>
+                    <input
+                      type="text"
+                      className="payment-input"
+                      value={cutoffPaymentCode}
+                      readOnly
+                      style={{
+                        background: '#F0FDF4',
+                        border: '2px solid #16A34A',
+                        color: '#166534',
+                        cursor: 'not-allowed',
+                        fontWeight: '800'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>✅</span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#166534'
+                      }}>
+                        Auto-assigned from Server 4 → Batch: {cutoffAvailableOR.batchId || 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    color: '#991B1B',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ No available OR numbers. Please add OR numbers in Admin Dashboard.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1798,7 +2239,7 @@ const BillDashboard = () => {
               <button 
                 className="btn btn-primary" 
                 onClick={confirmCutoffPay}
-                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff}
+                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR}
                 style={{
                   flex: 1,
                   background: '#DC2626',
@@ -1809,7 +2250,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff) ? '0.5' : '1'
+                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR) ? '0.5' : '1'
                 }}
               >
                 {isPayingCutoff ? '⏳ Processing...' : '✅ Confirm Payment'}
@@ -1889,17 +2330,69 @@ const BillDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>OR Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  className={`payment-input ${cutoffPayAllPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code"
-                  value={cutoffPayAllPaymentCode}
-                  onChange={handleCutoffPayAllPaymentCodeChange}
-                  maxLength="7"
-                  autoFocus
-                />
-                {cutoffPayAllPaymentError && <span className="error-text">{cutoffPayAllPaymentError}</span>}
+                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+                {cutoffPayAllLoadingOR ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching available OR Number...
+                  </div>
+                ) : cutoffPayAllAvailableOR ? (
+                  <>
+                    <input
+                      type="text"
+                      className="payment-input"
+                      value={cutoffPayAllPaymentCode}
+                      readOnly
+                      style={{
+                        background: '#F0FDF4',
+                        border: '2px solid #16A34A',
+                        color: '#166534',
+                        cursor: 'not-allowed',
+                        fontWeight: '800'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>✅</span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#166534'
+                      }}>
+                        Auto-assigned from Server 4 → Batch: {cutoffPayAllAvailableOR.batchId || 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    color: '#991B1B',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ No available OR numbers.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1908,7 +2401,7 @@ const BillDashboard = () => {
               <button 
                 className="btn btn-primary" 
                 onClick={confirmCutoffPayAll}
-                disabled={!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll}
+                disabled={!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll || !cutoffPayAllAvailableOR}
                 style={{
                   flex: 1,
                   background: '#DC2626',
@@ -1919,7 +2412,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll) ? '0.5' : '1'
+                  opacity: (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll || !cutoffPayAllAvailableOR) ? '0.5' : '1'
                 }}
               >
                 {isPayingCutoffAll ? '⏳ Processing...' : `✅ Pay All (${cutoffPayAllBills.length} Bills)`}
@@ -1929,9 +2422,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* PAY ALL / PAY SELECTED MODAL - WITH DISCOUNT CHECKBOXES */}
-      {/* ============================================================ */}
+      {/* PAY ALL / PAY SELECTED MODAL - WITH DISCOUNT + AUTO OR */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
@@ -1993,9 +2484,7 @@ const BillDashboard = () => {
                 </table>
               </div>
 
-              {/* ============================================================ */}
               {/* DISCOUNT CHECKBOXES */}
-              {/* ============================================================ */}
               <div style={{
                 padding: '14px 18px',
                 background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
@@ -2016,7 +2505,6 @@ const BillDashboard = () => {
                 </p>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {/* SENIOR CITIZEN */}
                   <label style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2061,7 +2549,6 @@ const BillDashboard = () => {
                     </div>
                   </label>
 
-                  {/* PWD */}
                   <label style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2189,18 +2676,71 @@ const BillDashboard = () => {
                 </div>
               </div>
 
+              {/* ✅ AUTO OR DISPLAY */}
               <div className="form-group">
-                <label>OR Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  className={`payment-input ${payAllPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code"
-                  value={payAllPaymentCode}
-                  onChange={handlePayAllPaymentCodeChange}
-                  maxLength="7"
-                  autoFocus
-                />
-                {payAllPaymentError && <span className="error-text">{payAllPaymentError}</span>}
+                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+                {payAllLoadingOR ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching available OR Number...
+                  </div>
+                ) : payAllAvailableOR ? (
+                  <>
+                    <input
+                      type="text"
+                      className="payment-input"
+                      value={payAllPaymentCode}
+                      readOnly
+                      style={{
+                        background: '#F0FDF4',
+                        border: '2px solid #16A34A',
+                        color: '#166534',
+                        cursor: 'not-allowed',
+                        fontWeight: '800'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>✅</span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#166534'
+                      }}>
+                        Auto-assigned from Server 4 → Batch: {payAllAvailableOR.batchId || 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    color: '#991B1B',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ No available OR numbers. Please add OR numbers in Admin Dashboard.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2209,7 +2749,7 @@ const BillDashboard = () => {
               <button 
                 className="btn btn-primary" 
                 onClick={confirmPayAll}
-                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll}
+                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR}
                 style={{
                   flex: 1,
                   background: '#16A34A',
@@ -2220,7 +2760,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll) ? '0.5' : '1'
+                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR) ? '0.5' : '1'
                 }}
               >
                 {isPayingAll ? '⏳ Processing...' : `✅ Pay (${payAllBills.length} Bill${payAllBills.length > 1 ? 's' : ''})`}
@@ -2230,9 +2770,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* REGULAR TABLE VIEW */}
-      {/* ============================================================ */}
       {tableType === 'regular' && (
         <>
           <div className="stats-grid">
@@ -2299,8 +2837,11 @@ const BillDashboard = () => {
                 <option value="all">All Years</option>
                 {years.map(year => <option key={year} value={year}>{year}</option>)}
               </select>
-             <button className="btn-clear" onClick={resetFilters}>Clear Filters</button>
+              <div >
+              <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>
             </div>
+            </div>
+            
           </div>
 
           {shouldShowCheckboxes && consumersWithUnpaid.size === 1 && (
@@ -2552,8 +3093,23 @@ const BillDashboard = () => {
                           <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
                           <td>
                             <div className="action-buttons">
-                              {displayStatus !== 'paid' && (
+                              {displayStatus !== 'paid' ? (
                                 <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
+                              ) : (
+                                <span style={{
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#194752',
+                                  background: '#F1F5F9',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.5px',
+                                  whiteSpace: 'nowrap',
+                                  border: '1px solid #E2E8F0'
+                                }}>
+                                  {bill.paymentCode || '—'}
+                                </span>
                               )}
                             </div>
                           </td>
@@ -2675,11 +3231,11 @@ const BillDashboard = () => {
 
                     <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
                       <span>Rows:</span>
-                      <select
+                      <div
                         value={rowsPerPage}
                         onChange={(e) => toast.info('Rows per page is fixed at 10')}
                         style={{
-                          padding: '4px 8px',
+                          padding: '5px 10px',
                           borderRadius: '6px',
                           border: '1px solid #E2E8F0',
                           background: '#FFFFFF',
@@ -2689,7 +3245,7 @@ const BillDashboard = () => {
                         }}
                       >
                         <option value="10">10</option>
-                      </select>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2727,8 +3283,8 @@ const BillDashboard = () => {
                 {locations.map(location => <option key={location} value={location}>{location}</option>)}
               </select>
             </div>
-            <div className="filter-actions">
-              {activeFilterCount > 0 && <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>}
+            <div>
+              <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>
             </div>
           </div>
 
@@ -2793,31 +3349,6 @@ const BillDashboard = () => {
                   borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite'
                 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <p style={{
-                    color: currentServerConfig?.color || '#194752',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0,
-                    letterSpacing: '0.5px'
-                  }}>
-                    LOADING SERVER
-                  </p>
-                  <p style={{
-                    color: '#64748B',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0
-                  }}>
-                    Fetching cut-off accounts from{' '}
-                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
-                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
-                    </span>
-                    ...
-                  </p>
-                </div>
               </div>
             ) : filteredBills.length === 0 ? (
               <div className="empty-state"><p>No cut-off accounts found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p></div>
@@ -2861,8 +3392,23 @@ const BillDashboard = () => {
                           </td>
                           <td>
                             <div className="action-buttons">
-                              {!isPaid && (
+                              {!isPaid ? (
                                 <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>PAY</button>
+                              ) : (
+                                <span style={{
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#194752',
+                                  background: '#F1F5F9',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.5px',
+                                  whiteSpace: 'nowrap',
+                                  border: '1px solid #E2E8F0'
+                                }}>
+                                  {bill.paymentCode || '—'}
+                                </span>
                               )}
                             </div>
                           </td>
@@ -2986,9 +3532,7 @@ const BillDashboard = () => {
         </>
       )}
 
-      {/* ============================================================ */}
-      {/* Pay Modal - Single Bill with DISCOUNT Checkboxes */}
-      {/* ============================================================ */}
+      {/* Pay Modal - Single Bill with AUTO OR */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -3003,9 +3547,7 @@ const BillDashboard = () => {
               <div className="pay-row"><span className="pay-label">Type</span><span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span></div>
             </div>
 
-            {/* ============================================================ */}
             {/* DISCOUNT CHECKBOXES */}
-            {/* ============================================================ */}
             <div style={{
               padding: '5px 18px',
               background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
@@ -3196,26 +3738,91 @@ const BillDashboard = () => {
               })()}
             </div>
 
+            {/* ✅ AUTO OR DISPLAY */}
             <div className="form-group">
-              <label>OR Number <span className="required">*</span></label>
-              <input
-                type="text"
-                className={`payment-input ${paymentError ? 'error' : ''}`}
-                placeholder="Enter 7-digit code"
-                value={paymentCode}
-                onChange={handlePaymentCodeChange}
-                maxLength="7"
-                autoFocus
-              />
-              {paymentError && <span className="error-text">{paymentError}</span>}
+              <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+              {loadingOR ? (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#F1F5F9',
+                  border: '2px solid #E2E8F0',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  color: '#64748B',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ⏳ Fetching available OR Number...
+                </div>
+              ) : availableOR ? (
+                <>
+                  <input
+                    type="text"
+                    className="payment-input"
+                    value={paymentCode}
+                    readOnly
+                    style={{
+                      background: '#F0FDF4',
+                      border: '2px solid #16A34A',
+                      color: '#166534',
+                      cursor: 'not-allowed',
+                      fontWeight: '800'
+                    }}
+                  />
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: '#F0FDF4',
+                    border: '1px solid #86EFAC',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>✅</span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#166534'
+                    }}>
+                      Auto-assigned from Server 4 → Batch: {availableOR.batchId || 'N/A'}
+                    </span>
+                  </div>
+                </>
+              ) : orFetchError ? (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#FEF2F2',
+                  border: '2px solid #FECACA',
+                  borderRadius: '8px',
+                  color: '#991B1B',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}>
+                  ⚠️ {orFetchError}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#FEF2F2',
+                  border: '2px solid #FECACA',
+                  borderRadius: '8px',
+                  color: '#991B1B',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}>
+                  ⚠️ No available OR numbers.
+                </div>
+              )}
             </div>
 
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
               <button 
-                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7) ? 'disabled' : ''}`}
+                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7 || !availableOR) ? 'disabled' : ''}`}
                 onClick={confirmPayBill}
-                disabled={!paymentCode || paymentCode.length !== 7 || isPaying}
+                disabled={!paymentCode || paymentCode.length !== 7 || isPaying || !availableOR}
               >
                 {isPaying ? 'Processing...' : 'Confirm Payment'}
               </button>
@@ -3238,13 +3845,19 @@ const BillDashboard = () => {
       )}
 
       {/* Bill Form */}
-      {showForm && (
-        <BillForm
-          bill={editingBill}
-          onClose={handleFormClose}
-          onSave={() => fetchBills(selectedServer)}
-        />
-      )}
+      {/* Bill Form */}
+{showForm && (
+  <BillForm
+    bill={editingBill}
+    onClose={handleFormClose}
+    onSave={() => fetchBills(selectedServer)}
+    serverKey={editingBill?.serverSource || selectedServer}  // ✅ Auto-detect server
+  />
+)}
+{/* ✅ Application Form */}
+{showApplicationForm && (
+  <ApplicationForm onClose={() => setShowApplicationForm(false)} />
+)}
     </div>
   );
 };

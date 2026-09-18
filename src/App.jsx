@@ -15,74 +15,85 @@ import Users from './components/admin/Users';
 import Navbar from './components/common/Navbar';
 import RoleRedirect from './components/common/RoleRedirect';
 import './App.css';
-
+import Paid from './components/bills/Paid';
 function App() {
   return (
     <Router>
       <AuthProvider>
         <div className="App">
           <Routes>
-            {/* Root route - role-based redirect */}
-            <Route path="/" element={<RoleRedirect />} />
-            
-            {/* Auth routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Protected routes - all users */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <NavbarLayout>
-                    <Dashboard />
-                  </NavbarLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/bills"
-              element={
-                <ProtectedRoute>
-                  <NavbarLayout>
-                    <BillHistory />
-                  </NavbarLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <NavbarLayout>
-                    <Profile />
-                  </NavbarLayout>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Admin only routes */}
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <NavbarLayout>
-                    <AdminDashboard />
-                  </NavbarLayout>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <AdminRoute>
-                  <NavbarLayout>
-                    <Users />
-                  </NavbarLayout>
-                </AdminRoute>
-              }
-            />
-          </Routes>
+  {/* Root route - role-based redirect */}
+  <Route path="/" element={<RoleRedirect />} />
+  
+  {/* Auth routes */}
+  <Route path="/login" element={<Login />} />
+  <Route path="/register" element={<Register />} />
+  
+  {/* Protected routes - all users */}
+  <Route
+    path="/dashboard"
+    element={
+      <ProtectedRoute>
+        <NavbarLayout>
+          <Dashboard />
+        </NavbarLayout>
+      </ProtectedRoute>
+    }
+  />
+  <Route
+    path="/bills"
+    element={
+      <ProtectedRoute>
+        <NavbarLayout>
+          <BillHistory />
+        </NavbarLayout>
+      </ProtectedRoute>
+    }
+  />
+  <Route
+    path="/profile"
+    element={
+      <ProtectedRoute>
+        <NavbarLayout>
+          <Profile />
+        </NavbarLayout>
+      </ProtectedRoute>
+    }
+  />
+  
+  {/* Admin only routes */}
+  <Route
+    path="/admin"
+    element={
+      <AdminRoute>
+        <NavbarLayout>
+          <AdminDashboard />
+        </NavbarLayout>
+      </AdminRoute>
+    }
+  />
+  <Route
+    path="/users"
+    element={
+      <AdminRoute>
+        <NavbarLayout>
+          <Users />
+        </NavbarLayout>
+      </AdminRoute>
+    }
+  />
+  {/* ✅ NEW: PAID route */}
+  <Route
+  path="/paid"
+  element={
+    <AdminRoute>
+      <NavbarLayout>
+        <Paid />
+      </NavbarLayout>
+    </AdminRoute>
+  }
+  />
+</Routes>
           <Toaster
             position="top-right"
             toastOptions={{

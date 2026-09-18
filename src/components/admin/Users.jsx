@@ -62,7 +62,7 @@ const ImportIcon = () => (
 );
 
 const ExportIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"currentColor"} fill={"none"}>
     <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M5 6.5C3.5 7.5 2 9.5 2 12C2 16.9706 6.02944 21 11 21C15.9706 21 20 16.9706 20 12C20 9.5 18.5 7.5 17 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M12 3V11M12 11L9.5 8.5M12 11L14.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -83,7 +83,6 @@ const MonthIcon = () => (
     <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12.1258 14H12.0008M12.1258 18H12.0008M7.625 14H7.5M7.625 18H7.5M16.625 14H16.5M12.2508 14C12.2508 14.1381 12.1389 14.25 12.0008 14.25C11.8628 14.25 11.7508 14.1381 11.7508 14C11.7508 13.8619 11.8628 13.75 12.0008 13.75C12.1389 13.75 12.2508 13.8619 12.2508 14ZM12.2508 18C12.2508 18.1381 12.1389 18.25 12.0008 18.25C11.8628 18.25 11.7508 18.1381 11.7508 18C11.7508 17.8619 11.8628 17.75 12.0008 17.75C12.1389 17.75 12.2508 17.8619 12.2508 18ZM7.75 14C7.75 14.1381 7.63807 14.25 7.5 14.25C7.36193 14.25 7.25 14.1381 7.25 14C7.25 13.8619 7.36193 13.75 7.5 13.75C7.63807 13.75 7.75 13.8619 7.75 14ZM7.75 18C7.75 18.1381 7.63807 18.25 7.5 18.25C7.36193 18.25 7.25 18.1381 7.25 18C7.25 17.8619 7.36193 17.75 7.5 17.75C7.63807 17.75 7.75 17.8619 7.75 18ZM16.75 14C16.75 14.1381 16.6381 14.25 16.5 14.25C16.3619 14.25 16.25 14.1381 16.25 14C16.25 13.8619 16.3619 13.75 16.5 13.75C16.6381 13.75 16.75 13.8619 16.75 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -149,9 +148,7 @@ const Users = () => {
   const [billsCount, setBillsCount] = useState({});
   const [paidBillsCount, setPaidBillsCount] = useState({});
 
-  // ============================================================
-  // ✅ SERVER FILTER STATE (default: server1)
-  // ============================================================
+  // ========== SERVER SELECTION STATE ==========
   const [selectedServer, setSelectedServer] = useState('server1');
   const [serverBills, setServerBills] = useState([]);
   const [serverBillsLoading, setServerBillsLoading] = useState(false);
@@ -177,11 +174,11 @@ const Users = () => {
   const [showImportProgress, setShowImportProgress] = useState(false);
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [showImportPreview, setShowImportPreview] = useState(false);
-  const [importOptionsLoading, setImportOptionsLoading] = useState(false); // ✅ NEW
+  const [importOptionsLoading, setImportOptionsLoading] = useState(false);
 
-  // ========== EXPORT MODAL STATE ==========
+  // ========== EXPORT/REPLACE MODAL STATE ==========
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportServer, setExportServer] = useState('server1');
+  const [exportServer, setExportServer] = useState('server1'); // ✅ Set by button
   const [exportMonth, setExportMonth] = useState('');
   const [exportLocation, setExportLocation] = useState('');
   const [availableExportLocations, setAvailableExportLocations] = useState([]);
@@ -191,6 +188,7 @@ const Users = () => {
   const [showExportProgress, setShowExportProgress] = useState(false);
   const [exportPreviewData, setExportPreviewData] = useState([]);
   const [showExportPreview, setShowExportPreview] = useState(false);
+  const [exportOptionsLoading, setExportOptionsLoading] = useState(false); // ✅ NEW
 
   // ========== ADD USER MODAL STATE ==========
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -262,7 +260,7 @@ const Users = () => {
   };
 
   // ============================================================
-  // ✅ EXTRACT FILTER OPTIONS PER SERVER
+  // ✅ EXTRACT FILTER OPTIONS PER SERVER (for import)
   // ============================================================
   const extractImportOptionsFromBills = (billsData) => {
     const locations = new Set();
@@ -283,7 +281,25 @@ const Users = () => {
   };
 
   // ============================================================
-  // ✅ HANDLE SERVER BUTTON CLICK - LOAD DATA + IMPORT OPTIONS
+  // ✅ EXTRACT FILTER OPTIONS PER SERVER (for export/replace)
+  // ============================================================
+  const extractExportOptionsFromImport = (importData) => {
+    const locations = new Set();
+    const months = new Set();
+
+    importData.forEach((item) => {
+      if (item.location && item.location !== 'N/A') locations.add(item.location);
+      if (item.month && item.month !== 'N/A') months.add(item.month);
+    });
+
+    return {
+      locations: Array.from(locations).sort(),
+      months: Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)),
+    };
+  };
+
+  // ============================================================
+  // ✅ HANDLE SERVER BUTTON CLICK (load data)
   // ============================================================
   const handleServerClick = (serverKey) => {
     setSelectedServer(serverKey);
@@ -503,7 +519,6 @@ const Users = () => {
     setAvailableImportMonths([]);
     setAvailableImportYears([]);
 
-    // ✅ Fetch options gikan sa selected server's bills
     setImportOptionsLoading(true);
 
     try {
@@ -665,10 +680,10 @@ const Users = () => {
   };
 
   // ============================================================
-  // EXPORT FUNCTIONS
+  // ✅ EXPORT/REPLACE FUNCTIONS - SERVER-SPECIFIC
   // ============================================================
-  const openExportModal = async () => {
-    setExportServer(selectedServer);
+  const openExportModalForServer = async (serverKey) => {
+    setExportServer(serverKey); // ✅ Set by which button clicked
     setExportMonth('');
     setExportLocation('');
     setExportPreviewData([]);
@@ -676,25 +691,27 @@ const Users = () => {
     setAvailableExportLocations([]);
     setAvailableExportMonths([]);
 
-    // ✅ Fetch export options gikan sa selected server's import collection
+    setExportOptionsLoading(true);
+
     try {
-      const targetDb = getDbByServer(selectedServer);
+      const targetDb = getDbByServer(serverKey);
       const importRef = collection(targetDb, 'import');
       const querySnapshot = await getDocs(importRef);
-
-      const locations = new Set();
-      const months = new Set();
-
+      const importData = [];
       querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.location && data.location !== 'N/A') locations.add(data.location);
-        if (data.month && data.month !== 'N/A') months.add(data.month);
+        importData.push({ id: doc.id, ...doc.data() });
       });
 
-      setAvailableExportLocations(Array.from(locations).sort());
-      setAvailableExportMonths(Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
+      const options = extractExportOptionsFromImport(importData);
+      setAvailableExportLocations(options.locations);
+      setAvailableExportMonths(options.months);
+
+      console.log(`✅ Loaded export options from ${getServerLabel(serverKey)}:`, options);
     } catch (error) {
-      console.error('Error fetching export options:', error);
+      console.error(`Error fetching export options from ${getServerLabel(serverKey)}:`, error);
+      toast.error(`Error loading export options from ${getServerLabel(serverKey)}`);
+    } finally {
+      setExportOptionsLoading(false);
     }
 
     setShowExportModal(true);
@@ -702,7 +719,6 @@ const Users = () => {
 
   const closeExportModal = () => {
     setShowExportModal(false);
-    setExportServer('server1');
     setExportMonth('');
     setExportLocation('');
     setExportPreviewData([]);
@@ -1073,21 +1089,6 @@ const Users = () => {
             ADD USER
           </button>
 
-          <button
-            className="btn btn-secondary"
-            onClick={openExportModal}
-            style={{
-              background: '#DC2626',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <ExportIcon />
-            REPLACE BILLS
-          </button>
-
           <button className="btn btn-secondary" onClick={fetchUsers}>
             🔄 Refresh
           </button>
@@ -1095,7 +1096,7 @@ const Users = () => {
       </div>
 
       {/* ============================================================ */}
-      {/* ✅ SERVER SELECTOR BUTTONS (Load + Import) */}
+      {/* ✅ SERVER SELECTOR BUTTONS (Load Data) */}
       {/* ============================================================ */}
       <div style={{
         marginBottom: '20px',
@@ -1125,7 +1126,7 @@ const Users = () => {
             color: '#64748B',
             fontStyle: 'italic'
           }}>
-            (Click to load data & import options)
+            (Click to load data)
           </span>
         </div>
 
@@ -1274,35 +1275,148 @@ const Users = () => {
                 📊 {serverBills.length} bills loaded
               </span>
             )}
-            <button
-              onClick={() => openImportModalForServer(selectedServer)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 14px',
-                background: currentServerConfig?.color,
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '8px',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = `0 4px 12px ${currentServerConfig?.color}60`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <ImportIcon />
-              IMPORT TO {getServerLabel(selectedServer).toUpperCase()}
-            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* ✅ ACTION BUTTONS: IMPORT + REPLACE PER SERVER */}
+      {/* ============================================================ */}
+      <div style={{
+        marginBottom: '20px',
+        padding: '16px 20px',
+        background: '#FFFFFF',
+        border: '2px solid #E2E8F0',
+        borderRadius: '14px'
+      }}>
+        {/* IMPORT SECTION */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px'
+          }}>
+            <ImportIcon width={18} height={18} color="#194752" />
+            <span style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px',
+              fontWeight: '700',
+              color: '#194752',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              📥 Import Data (per server)
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '10px'
+          }}>
+            {SERVER_CONFIGS.map((server) => (
+              <button
+                key={`import-${server.key}`}
+                onClick={() => openImportModalForServer(server.key)}
+                style={{
+                  padding: '10px 12px',
+                  background: server.color,
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  boxShadow: `0 2px 8px ${server.color}40`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = `0 6px 16px ${server.color}60`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = `0 2px 8px ${server.color}40`;
+                }}
+              >
+                <ImportIcon width={14} height={14} color="#FFFFFF" />
+                IMPORT {server.label.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* DIVIDER */}
+        <div style={{
+          height: '1px',
+          background: '#E2E8F0',
+          margin: '16px 0'
+        }} />
+
+        {/* REPLACE BILLS SECTION */}
+        <div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px'
+          }}>
+            <ExportIcon width={18} height={18} color="#DC2626" />
+            <span style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px',
+              fontWeight: '700',
+              color: '#DC2626',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              🔄 Replace Bills (per server)
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '10px'
+          }}>
+            {SERVER_CONFIGS.map((server) => (
+              <button
+                key={`replace-${server.key}`}
+                onClick={() => openExportModalForServer(server.key)}
+                style={{
+                  padding: '10px 12px',
+                  background: `linear-gradient(135deg, #DC2626, ${server.color})`,
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  boxShadow: `0 2px 8px #DC262640`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = `0 6px 16px #DC262660`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = `0 2px 8px #DC262640`;
+                }}
+              >
+                <ExportIcon width={14} height={14} color="#FFFFFF" />
+                REPLACE {server.label.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -1896,7 +2010,6 @@ const Users = () => {
                 <strong> "{getServerLabel(importServer)} → import"</strong> collection.
               </p>
 
-              {/* ✅ LOADING INDICATOR FOR IMPORT OPTIONS */}
               {importOptionsLoading ? (
                 <div style={{
                   display: 'flex',
@@ -1925,6 +2038,33 @@ const Users = () => {
                 </div>
               ) : (
                 <>
+                  {availableImportMonths.length === 0 && availableImportYears.length === 0 && availableImportLocations.length === 0 ? (
+                    <div style={{
+                      padding: '30px 20px',
+                      background: '#FEF3C7',
+                      border: '2px solid #F59E0B',
+                      borderRadius: '12px',
+                      textAlign: 'center'
+                    }}>
+                      <p style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        color: '#92400E',
+                        fontWeight: '600',
+                        margin: 0
+                      }}>
+                        ⚠️ Walang naka-store na data sa {getServerLabel(importServer)}
+                      </p>
+                      <p style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        color: '#92400E',
+                        marginTop: '8px'
+                      }}>
+                        Please import data first sa Bills collection sa {getServerLabel(importServer)}.
+                      </p>
+                    </div>
+                  ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
@@ -1939,7 +2079,6 @@ const Users = () => {
                             setShowImportPreview(false);
                           }}
                           className="modal-input"
-                          disabled={availableImportMonths.length === 0}
                           style={{
                             width: '100%',
                             padding: '10px 12px',
@@ -1949,28 +2088,14 @@ const Users = () => {
                             fontFamily: 'Inter, sans-serif',
                             fontSize: '14px',
                             color: '#0F172A',
-                            outline: 'none',
-                            transition: 'all 0.2s',
-                            cursor: availableImportMonths.length === 0 ? 'not-allowed' : 'pointer'
+                            outline: 'none'
                           }}
                         >
-                          <option value="">
-                            {availableImportMonths.length === 0 ? 'No months available' : 'Select Month...'}
-                          </option>
+                          <option value="">Select Month...</option>
                           {availableImportMonths.map(month => (
                             <option key={month} value={month}>{month}</option>
                           ))}
                         </select>
-                        {availableImportMonths.length > 0 && (
-                          <p style={{
-                            fontSize: '10px',
-                            color: importServerConfig?.color || '#64748B',
-                            marginTop: '2px',
-                            fontWeight: '600'
-                          }}>
-                            {availableImportMonths.length} available
-                          </p>
-                        )}
                       </div>
 
                       <div className="form-group">
@@ -1986,7 +2111,6 @@ const Users = () => {
                             setShowImportPreview(false);
                           }}
                           className="modal-input"
-                          disabled={availableImportYears.length === 0}
                           style={{
                             width: '100%',
                             padding: '10px 12px',
@@ -1996,28 +2120,14 @@ const Users = () => {
                             fontFamily: 'Inter, sans-serif',
                             fontSize: '14px',
                             color: '#0F172A',
-                            outline: 'none',
-                            transition: 'all 0.2s',
-                            cursor: availableImportYears.length === 0 ? 'not-allowed' : 'pointer'
+                            outline: 'none'
                           }}
                         >
-                          <option value="">
-                            {availableImportYears.length === 0 ? 'No years available' : 'Select Year...'}
-                          </option>
+                          <option value="">Select Year...</option>
                           {availableImportYears.map(year => (
                             <option key={year} value={year}>{year}</option>
                           ))}
                         </select>
-                        {availableImportYears.length > 0 && (
-                          <p style={{
-                            fontSize: '10px',
-                            color: importServerConfig?.color || '#64748B',
-                            marginTop: '2px',
-                            fontWeight: '600'
-                          }}>
-                            {availableImportYears.length} available
-                          </p>
-                        )}
                       </div>
 
                       <div className="form-group">
@@ -2033,7 +2143,6 @@ const Users = () => {
                             setShowImportPreview(false);
                           }}
                           className="modal-input"
-                          disabled={availableImportLocations.length === 0}
                           style={{
                             width: '100%',
                             padding: '10px 12px',
@@ -2043,33 +2152,18 @@ const Users = () => {
                             fontFamily: 'Inter, sans-serif',
                             fontSize: '14px',
                             color: '#0F172A',
-                            outline: 'none',
-                            transition: 'all 0.2s',
-                            cursor: availableImportLocations.length === 0 ? 'not-allowed' : 'pointer'
+                            outline: 'none'
                           }}
                         >
-                          <option value="">
-                            {availableImportLocations.length === 0 ? 'No locations available' : 'Select Location...'}
-                          </option>
+                          <option value="">Select Location...</option>
                           {availableImportLocations.map(location => (
                             <option key={location} value={location}>{location}</option>
                           ))}
                         </select>
-                        {availableImportLocations.length > 0 && (
-                          <p style={{
-                            fontSize: '10px',
-                            color: importServerConfig?.color || '#64748B',
-                            marginTop: '2px',
-                            fontWeight: '600'
-                          }}>
-                            {availableImportLocations.length} available
-                          </p>
-                        )}
                       </div>
                     </div>
-                  
+                  )}
 
-                  {/* PREVIEW BUTTON */}
                   {availableImportMonths.length > 0 && availableImportYears.length > 0 && availableImportLocations.length > 0 && (
                     <div style={{ marginTop: '16px' }}>
                       <button
@@ -2086,7 +2180,6 @@ const Users = () => {
                           fontSize: '14px',
                           fontWeight: '600',
                           cursor: 'pointer',
-                          transition: 'all 0.2s',
                           opacity: (!importMonth || !importYear || !importLocation || importLoading) ? '0.5' : '1'
                         }}
                       >
@@ -2104,14 +2197,10 @@ const Users = () => {
                         marginBottom: '8px'
                       }}>
                         <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                          📋 Found {importPreviewData.length} bills to import
+                          📋 Found {importPreviewData.length} bills
                         </span>
-                        <span style={{
-                          fontSize: '12px',
-                          color: importServerConfig?.color || '#64748B',
-                          fontWeight: '600'
-                        }}>
-                          From: {getServerLabel(importServer)} | {importMonth} {importYear}
+                        <span style={{ fontSize: '12px', color: importServerConfig?.color }}>
+                          {getServerLabel(importServer)} | {importMonth} {importYear}
                         </span>
                       </div>
 
@@ -2121,21 +2210,11 @@ const Users = () => {
                         border: '1px solid #E2E8F0',
                         borderRadius: '8px'
                       }}>
-                        <table style={{
-                          width: '100%',
-                          borderCollapse: 'collapse',
-                          fontSize: '12px'
-                        }}>
-                          <thead style={{
-                            background: '#F1F5F9',
-                            position: 'sticky',
-                            top: 0,
-                            zIndex: 1
-                          }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
                             <tr>
                               <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
                               <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
                               <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
                               <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
                             </tr>
@@ -2145,29 +2224,15 @@ const Users = () => {
                               <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                 <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
                                 <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
                                 <td style={{ padding: '6px 12px' }}>
                                   <span style={{
                                     padding: '2px 10px',
                                     borderRadius: '12px',
                                     fontSize: '10px',
                                     fontWeight: '600',
-                                    background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
-                                    color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
-                                  }}>
-                                    {bill.consumerType || 'N/A'}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>
-                                  ₱{(bill.amount || 0).toFixed(2)}
-                                </td>
-                                <td style={{ padding: '6px 12px' }}>
-                                  <span style={{
-                                    padding: '2px 10px',
-                                    borderRadius: '12px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
-                                    color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
+                                    background: bill.status === 'paid' ? '#D1FAE5' : '#FEF3C7',
+                                    color: bill.status === 'paid' ? '#065F46' : '#92400E'
                                   }}>
                                     {bill.status || 'UNPAID'}
                                   </span>
@@ -2176,17 +2241,6 @@ const Users = () => {
                             ))}
                           </tbody>
                         </table>
-                        {importPreviewData.length > 50 && (
-                          <div style={{
-                            padding: '8px 12px',
-                            textAlign: 'center',
-                            background: '#F8FAFC',
-                            fontSize: '12px',
-                            color: '#64748B'
-                          }}>
-                            Showing first 50 of {importPreviewData.length} bills
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -2195,11 +2249,7 @@ const Users = () => {
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn btn-outline"
-                onClick={closeImportModal}
-                style={{ flex: 1 }}
-              >
+              <button className="btn btn-outline" onClick={closeImportModal} style={{ flex: 1 }}>
                 Cancel
               </button>
               <button
@@ -2216,7 +2266,6 @@ const Users = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
                   opacity: (importPreviewData.length === 0 || importLoading) ? '0.5' : '1'
                 }}
               >
@@ -2249,252 +2298,261 @@ const Users = () => {
       )}
 
       {/* ============================================================
-          EXPORT MODAL
+          EXPORT / REPLACE MODAL - SERVER-SPECIFIC
           ============================================================ */}
       {showExportModal && (
         <div className="modal-overlay" onClick={closeExportModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ExportIcon width={28} height={28} color="#DC2626" />
-                Replace Bills in "bills" Collection
+              <h2 style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: exportServerConfig?.color || '#DC2626'
+              }}>
+                <ExportIcon width={28} height={28} color={exportServerConfig?.color || '#DC2626'} />
+                Replace Bills — {getServerLabel(exportServer)}
               </h2>
               <button className="close-btn" onClick={closeExportModal}>✕</button>
             </div>
 
+            {/* Server Badge */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 20px',
+                background: `${exportServerConfig?.color || '#DC2626'}15`,
+                border: `2px solid ${exportServerConfig?.color || '#DC2626'}`,
+                borderRadius: '12px'
+              }}>
+                <span style={{
+                  fontSize: '18px',
+                  fontWeight: '800',
+                  color: exportServerConfig?.color || '#DC2626',
+                  letterSpacing: '1px'
+                }}>
+                  🗄️ {getServerLabel(exportServer).toUpperCase()}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: exportServerConfig?.color || '#DC2626',
+                  opacity: 0.8,
+                  fontWeight: '600'
+                }}>
+                  {exportServerConfig?.project}
+                </span>
+              </div>
+            </div>
+
             <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select a <strong>Server</strong>, <strong>Month</strong>, and <strong>Location</strong> to <strong>REPLACE</strong> bills in the
-                <strong> "bills" </strong> collection with data from the <strong> "import" </strong> collection.
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+                Pilia ang <strong>Month</strong> ug <strong>Location</strong> para i-<strong>REPLACE</strong>
+                ang bills sa <strong>"{getServerLabel(exportServer)} → bills"</strong> gamit ang data gikan sa
+                <strong> "{getServerLabel(exportServer)} → import"</strong>.
               </p>
 
-              <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label style={{
+              {exportOptionsLoading ? (
+                <div style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: '600',
-                  marginBottom: '6px',
-                  color: exportServerConfig?.color || '#0F172A',
-                  fontSize: '13px'
+                  justifyContent: 'center',
+                  padding: '40px 20px',
+                  gap: '12px'
                 }}>
-                  <ServerIcon width={18} height={18} color={exportServerConfig?.color || '#DC2626'} />
-                  Server <span className="required" style={{ color: '#DC2626' }}>*</span>
-                </label>
-                <select
-                  value={exportServer}
-                  onChange={(e) => {
-                    setExportServer(e.target.value);
-                    setExportPreviewData([]);
-                    setShowExportPreview(false);
-                    setExportMonth('');
-                    setExportLocation('');
-                  }}
-                  className="modal-input"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: '#F8FAFC',
-                    border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}`,
-                    borderRadius: '8px',
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: `4px solid ${exportServerConfig?.color || '#DC2626'}20`,
+                    borderTop: `4px solid ${exportServerConfig?.color || '#DC2626'}`,
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite'
+                  }} />
+                  <span style={{
                     fontFamily: 'Inter, sans-serif',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: exportServerConfig?.color || '#0F172A',
-                    outline: 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {SERVER_CONFIGS.map(s => (
-                    <option key={s.key} value={s.key}>
-                      {s.label} ({s.project})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
-                    Month <span className="required" style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <select
-                    value={exportMonth}
-                    onChange={(e) => setExportMonth(e.target.value)}
-                    className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
-                      color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="">Select Month...</option>
-                    {availableExportMonths.map(month => (
-                      <option key={month} value={month}>{month}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                    <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
-                    Location <span className="required" style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <select
-                    value={exportLocation}
-                    onChange={(e) => setExportLocation(e.target.value)}
-                    className="modal-input"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: '#F8FAFC',
-                      border: '2px solid #E2E8F0',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '15px',
-                      color: '#0F172A',
-                      outline: 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <option value="">Select Location...</option>
-                    {availableExportLocations.map(location => (
-                      <option key={location} value={location}>{location}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px' }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={previewExport}
-                  disabled={!exportMonth || !exportLocation || exportLoading}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: exportServerConfig?.color || '#DC2626',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    opacity: (!exportMonth || !exportLocation || exportLoading) ? '0.5' : '1'
-                  }}
-                >
-                  {exportLoading ? '⏳ Loading...' : `🔍 Preview Imported Bills from ${getServerLabel(exportServer)}`}
-                </button>
-              </div>
-
-              {showExportPreview && exportPreviewData.length > 0 && (
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '8px'
+                    fontSize: '13px',
+                    color: exportServerConfig?.color || '#DC2626',
+                    fontWeight: '600'
                   }}>
-                    <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                      📋 Found {exportPreviewData.length} imported bills to export
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#DC2626', fontWeight: '600' }}>
-                      Will REPLACE all existing bills for {exportMonth} in {exportLocation} on {getServerLabel(exportServer)}
-                    </span>
-                  </div>
-
-                  <div style={{
-                    maxHeight: '200px',
-                    overflow: 'auto',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '8px'
-                  }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: '12px'
+                    Loading available months and locations from {getServerLabel(exportServer)}...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {availableExportMonths.length === 0 && availableExportLocations.length === 0 ? (
+                    <div style={{
+                      padding: '30px 20px',
+                      background: '#FEF3C7',
+                      border: '2px solid #F59E0B',
+                      borderRadius: '12px',
+                      textAlign: 'center'
                     }}>
-                      <thead style={{
-                        background: '#F1F5F9',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 1
+                      <p style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        color: '#92400E',
+                        fontWeight: '600',
+                        margin: 0
                       }}>
-                        <tr>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Type</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {exportPreviewData.slice(0, 50).map((bill) => (
-                          <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
-                            <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
-                            <td style={{ padding: '6px 12px' }}>
-                              <span style={{
-                                padding: '2px 10px',
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                background: bill.consumerType === 'COMMERCIAL' ? '#DBEAFE' : '#D1FAE5',
-                                color: bill.consumerType === 'COMMERCIAL' ? '#1E40AF' : '#065F46'
-                              }}>
-                                {bill.consumerType || 'N/A'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '6px 12px', fontWeight: '600' }}>
-                              ₱{(bill.amount || 0).toFixed(2)}
-                            </td>
-                            <td style={{ padding: '6px 12px' }}>
-                              <span style={{
-                                padding: '2px 10px',
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                background: bill.status === 'paid' ? '#D1FAE5' : bill.status === 'overdue' ? '#FEE2E2' : '#FEF3C7',
-                                color: bill.status === 'paid' ? '#065F46' : bill.status === 'overdue' ? '#991B1B' : '#92400E'
-                              }}>
-                                {bill.status || 'UNPAID'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {exportPreviewData.length > 50 && (
-                      <div style={{
-                        padding: '8px 12px',
-                        textAlign: 'center',
-                        background: '#F8FAFC',
+                        ⚠️ Walang data sa "{getServerLabel(exportServer)} → import" collection
+                      </p>
+                      <p style={{
+                        fontFamily: 'Inter, sans-serif',
                         fontSize: '12px',
-                        color: '#64748B'
+                        color: '#92400E',
+                        marginTop: '8px'
                       }}>
-                        Showing first 50 of {exportPreviewData.length} bills
+                        Please Import Data first sa {getServerLabel(exportServer)}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                          <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                          Month <span className="required" style={{ color: '#DC2626' }}>*</span>
+                        </label>
+                        <select
+                          value={exportMonth}
+                          onChange={(e) => {
+                            setExportMonth(e.target.value);
+                            setExportPreviewData([]);
+                            setShowExportPreview(false);
+                          }}
+                          className="modal-input"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            background: '#F8FAFC',
+                            border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}40`,
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '15px',
+                            color: '#0F172A',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="">Select Month...</option>
+                          {availableExportMonths.map(month => (
+                            <option key={month} value={month}>{month}</option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </div>
-                </div>
+
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
+                          <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
+                          Location <span className="required" style={{ color: '#DC2626' }}>*</span>
+                        </label>
+                        <select
+                          value={exportLocation}
+                          onChange={(e) => {
+                            setExportLocation(e.target.value);
+                            setExportPreviewData([]);
+                            setShowExportPreview(false);
+                          }}
+                          className="modal-input"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            background: '#F8FAFC',
+                            border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}40`,
+                            borderRadius: '8px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '15px',
+                            color: '#0F172A',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="">Select Location...</option>
+                          {availableExportLocations.map(location => (
+                            <option key={location} value={location}>{location}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {availableExportMonths.length > 0 && availableExportLocations.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={previewExport}
+                        disabled={!exportMonth || !exportLocation || exportLoading}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          background: exportServerConfig?.color || '#DC2626',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          opacity: (!exportMonth || !exportLocation || exportLoading) ? '0.5' : '1'
+                        }}
+                      >
+                        {exportLoading ? '⏳ Loading...' : `🔍 Preview Imported Bills from ${getServerLabel(exportServer)}`}
+                      </button>
+                    </div>
+                  )}
+
+                  {showExportPreview && exportPreviewData.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '8px'
+                      }}>
+                        <span style={{ fontWeight: '600', color: '#0F172A' }}>
+                          📋 Found {exportPreviewData.length} imported bills
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#DC2626', fontWeight: '600' }}>
+                          Will REPLACE existing bills
+                        </span>
+                      </div>
+
+                      <div style={{
+                        maxHeight: '200px',
+                        overflow: 'auto',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px'
+                      }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
+                            <tr>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {exportPreviewData.slice(0, 50).map((bill) => (
+                              <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                                <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn btn-outline"
-                onClick={closeExportModal}
-                style={{ flex: 1 }}
-              >
+              <button className="btn btn-outline" onClick={closeExportModal} style={{ flex: 1 }}>
                 Cancel
               </button>
               <button
@@ -2511,7 +2569,6 @@ const Users = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
                   opacity: (exportPreviewData.length === 0 || exportLoading) ? '0.5' : '1'
                 }}
               >

@@ -1,13 +1,19 @@
 // src/components/bills/BillForm.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { collection, addDoc, updateDoc, doc, query, getDocs, where } from 'firebase/firestore';
+import { getDbByServer, getServerLabel } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './BillForm.css';
+
+// ============================================================
+// OR NUMBER STORAGE (SERVER 4)
+// ============================================================
+const OR_SERVER_KEY = 'server4';
+const OR_COLLECTION = 'or_numbers';
 
 // ============================================================
 // HARDCODED SVG ICONS
@@ -40,7 +46,6 @@ const Calendar03Icon = (props) => (
     <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M12.1258 14H12.0008M12.1258 18H12.0008M7.625 14H7.5M7.625 18H7.5M16.625 14H16.5M12.2508 14C12.2508 14.1381 12.1389 14.25 12.0008 14.25C11.8628 14.25 11.7508 14.1381 11.7508 14C11.7508 13.8619 11.8628 13.75 12.0008 13.75C12.1389 13.75 12.2508 13.8619 12.2508 14ZM12.2508 18C12.2508 18.1381 12.1389 18.25 12.0008 18.25C11.8628 18.25 11.7508 18.1381 11.7508 18C11.7508 17.8619 11.8628 17.75 12.0008 17.75C12.1389 17.75 12.2508 17.8619 12.2508 18ZM7.75 14C7.75 14.1381 7.63807 14.25 7.5 14.25C7.36193 14.25 7.25 14.1381 7.25 14C7.25 13.8619 7.36193 13.75 7.5 13.75C7.63807 13.75 7.75 13.8619 7.75 14ZM7.75 18C7.75 18.1381 7.63807 18.25 7.5 18.25C7.36193 18.25 7.25 18.1381 7.25 18C7.25 17.8619 7.36193 17.75 7.5 17.75C7.63807 17.75 7.75 17.8619 7.75 18ZM16.75 14C16.75 14.1381 16.6381 14.25 16.5 14.25C16.3619 14.25 16.25 14.1381 16.25 14C16.25 13.8619 16.3619 13.75 16.5 13.75C16.6381 13.75 16.75 13.8619 16.75 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -51,16 +56,6 @@ const ApartmentIcon = (props) => (
     <path d="M8 21.5V18.5" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17.5 7.5H13.5V21.5H17.5C19.3856 21.5 20.3284 21.5 20.9142 20.9142C21.5 20.3284 21.5 19.3856 21.5 17.5V11.5C21.5 9.61438 21.5 8.67157 20.9142 8.08579C20.3284 7.5 19.3856 7.5 17.5 7.5Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17 10.5H18M17 13.5H18M17 16.5H18" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-  </svg>
-);
-
-const DuplexIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"} {...props}>
-    <path d="M18.5 6L12.916 2.27735C12.6448 2.0965 12.326 2 12 2C11.674 2 11.3552 2.0965 11.084 2.27735L5.5 6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M20 14L12.916 9.27735C12.6448 9.0965 12.326 9 12 9C11.674 9 11.3552 9.0965 11.084 9.27735L4 14" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M18.5 13.5V18C18.5 19.8856 18.5 20.8284 17.9142 21.4142C17.3284 22 16.3856 22 14.5 22H9.5C7.61438 22 6.67157 22 6.08579 21.4142C5.5 20.8284 5.5 19.8856 5.5 18V13.5" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M17 5V12M7 5V12" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M14 22V18C14 16.8954 13.1046 16 12 16C10.8954 16 10 16.8954 10 18V22" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -90,76 +85,306 @@ const Note01Icon = (props) => (
   </svg>
 );
 
-// ============================================================
-// BILL FORM COMPONENT
-// ============================================================
+const ReceiptIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"} {...props}>
+    <path d="M4 2V22L7 20L10 22L13 20L16 22L20 19.5V2H4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8 7H16M8 11H16M8 15H12" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
+// ============================================================
+// FETCH NEXT AVAILABLE OR NUMBER (from Server 4)
+// ============================================================
+const fetchNextAvailableOR = async () => {
+  try {
+    const orDb = getDbByServer(OR_SERVER_KEY);
+    const orRef = collection(orDb, OR_COLLECTION);
+
+    const q = query(orRef, where('status', '==', 'available'));
+    const snap = await getDocs(q);
+
+    if (snap.empty) return null;
+
+    const sortedDocs = snap.docs.sort((a, b) => {
+      const aNum = parseInt(String(a.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      const bNum = parseInt(String(b.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      return aNum - bNum;
+    });
+
+    const orDoc = sortedDocs[0];
+    const orData = orDoc.data();
+
+    return {
+      id: orDoc.id,
+      orNumber: String(orData.orNumber),
+      batchId: orData.batchId || null,
+      ...orData
+    };
+  } catch (error) {
+    console.error('❌ Error fetching OR:', error);
+    return null;
+  }
+};
+
+// ============================================================
+// GENERATE NEXT WSIN
+// ============================================================
+const generateNextWSIN = async (serverKey) => {
+  try {
+    const db = getDbByServer(serverKey);
+    const billsRef = collection(db, 'bills');
+    const snap = await getDocs(billsRef);
+
+    let maxNum = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const billNumber = String(data.billNumber || '').trim();
+      const matches = billNumber.match(/\d+/g);
+      if (matches && matches.length > 0) {
+        const lastNum = parseInt(matches[matches.length - 1], 10);
+        if (!isNaN(lastNum) && lastNum > maxNum) {
+          maxNum = lastNum;
+        }
+      }
+    });
+
+    const nextNum = maxNum + 1;
+    const nextWSIN = String(nextNum).padStart(4, '0');
+
+    console.log(`🔢 Next WSIN for ${serverKey}: ${nextWSIN} (previous max: ${maxNum})`);
+    return nextWSIN;
+  } catch (error) {
+    console.error('❌ Error generating WSIN:', error);
+    return '0001';
+  }
+};
+
+// ============================================================
+// FETCH UNIQUE LOCATIONS from current server
+// ============================================================
+const fetchAvailableLocations = async (serverKey) => {
+  try {
+    const db = getDbByServer(serverKey);
+    const billsRef = collection(db, 'bills');
+    const snap = await getDocs(billsRef);
+
+    const locationSet = new Set();
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const loc = data.location;
+      if (loc && String(loc).trim() !== '' && String(loc).toUpperCase() !== 'N/A') {
+        locationSet.add(String(loc).trim());
+      }
+    });
+
+    const sortedLocations = Array.from(locationSet).sort();
+
+    console.log(`📍 Found ${sortedLocations.length} unique locations in ${serverKey}:`, sortedLocations);
+    return sortedLocations;
+  } catch (error) {
+    console.error('❌ Error fetching locations:', error);
+    return [];
+  }
+};
+
+// ============================================================
+// SCHEMA
+// ============================================================
 const schema = yup.object().shape({
-  billNumber: yup.string().required('Bill number is required'),
+  billNumber: yup.string().required('WSIN is required'),
   consumerName: yup.string().required('Consumer name is required'),
   location: yup.string().required('Location is required'),
   consumerType: yup.string().required('Consumer type is required'),
-  amount: yup.number().required('Amount is required').positive('Must be positive'),
-  dueDate: yup.string().required('Due date is required'),
-  status: yup.string().required('Status is required'),
   month: yup.string(),
   year: yup.string(),
-  previousReading: yup.number(),
-  presentReading: yup.number(),
-  consumption: yup.number(),
   notes: yup.string()
 });
 
-const BillForm = ({ bill, onClose, onSave }) => {
+// ============================================================
+// BILL FORM COMPONENT
+// ============================================================
+const BillForm = ({ bill, onClose, onSave, serverKey }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const [loadingMeta, setLoadingMeta] = useState(true);
+  const [availableOR, setAvailableOR] = useState(null);
+  const [loadingOR, setLoadingOR] = useState(false);
+  const [orError, setOrError] = useState('');
+
+  // Location state
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+
+  const targetServer = serverKey || bill?.serverSource || 'server1';
+
+  const currentYear = new Date().getFullYear().toString();
+  const monthsList = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const currentMonth = monthsList[new Date().getMonth()];
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: bill || {
+    defaultValues: bill ? {
+      billNumber: bill.billNumber || '',
+      consumerName: bill.consumerName || '',
+      location: bill.location || '',
+      consumerType: bill.consumerType || 'RESIDENTIAL',
+      amount: bill.amount || 1000,
+      dueDate: bill.dueDate || '',
+      status: bill.status || 'unpaid',
+      month: bill.month || currentMonth,
+      year: bill.year || currentYear,
+      previousReading: bill.previousReading || 0,
+      presentReading: bill.presentReading || 0,
+      consumption: bill.consumption || 0,
+      notes: bill.notes || ''
+    } : {
       billNumber: '',
       consumerName: '',
       location: '',
       consumerType: 'RESIDENTIAL',
-      amount: '',
+      amount: 1000,
       dueDate: '',
       status: 'unpaid',
-      month: '',
-      year: new Date().getFullYear().toString(),
-      previousReading: '',
-      presentReading: '',
-      consumption: '',
+      month: currentMonth,
+      year: currentYear,
+      previousReading: 0,
+      presentReading: 0,
+      consumption: 0,
       notes: ''
     }
   });
 
+  // ============================================================
+  // AUTO-FILL on new bill
+  // ============================================================
+  useEffect(() => {
+    if (bill) {
+      setLoadingMeta(false);
+      // Load locations for edit mode
+      loadLocations();
+      return;
+    }
+
+    const loadMeta = async () => {
+      setLoadingMeta(true);
+
+      try {
+        // 1. Auto-generate WSIN
+        const nextWSIN = await generateNextWSIN(targetServer);
+        setValue('billNumber', nextWSIN);
+
+        // 2. Auto-fetch OR Number
+        setLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setAvailableOR(or);
+        } else {
+          setOrError('No available OR Number in Server 4');
+        }
+        setLoadingOR(false);
+
+        // 3. Lock auto-filled fields
+        setValue('previousReading', 0);
+        setValue('presentReading', 0);
+        setValue('consumption', 0);
+        setValue('amount', 1000);
+
+        // 4. Load locations
+        await loadLocations();
+      } catch (error) {
+        console.error('Error loading form metadata:', error);
+      }
+
+      setLoadingMeta(false);
+    };
+
+    loadMeta();
+  }, [bill, targetServer, setValue]);
+
+  const loadLocations = async () => {
+    setLoadingLocations(true);
+    const locations = await fetchAvailableLocations(targetServer);
+    setAvailableLocations(locations);
+    setLoadingLocations(false);
+  };
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
   const onSubmit = async (data) => {
     if (!user) {
       toast.error('You must be logged in to add bills');
       return;
     }
-    
+
+    if (!bill && !availableOR) {
+      toast.error('No available OR Number. Please add OR Numbers in Admin Dashboard.');
+      return;
+    }
+
     setLoading(true);
     try {
+      const targetDb = getDbByServer(targetServer);
+
       const billData = {
-        ...data,
-        amount: parseFloat(data.amount),
-        previousReading: data.previousReading ? parseFloat(data.previousReading) : 0,
-        presentReading: data.presentReading ? parseFloat(data.presentReading) : 0,
-        consumption: data.consumption ? parseFloat(data.consumption) : 0,
+        billNumber: data.billNumber,
+        consumerName: data.consumerName,
+        location: data.location,
+        consumerType: data.consumerType,
+        month: data.month,
+        year: data.year,
+        amount: 1000,
+        previousReading: 0,
+        presentReading: 0,
+        consumption: 0,
+        dueDate: `${data.year}-${String(monthsList.indexOf(data.month) + 1).padStart(2, '0')}-15`,
+        status: 'unpaid',
+        notes: data.notes || '',
         userId: user.uid,
+        serverSource: targetServer,
         updatedAt: new Date().toISOString()
       };
 
+      if (!bill && availableOR) {
+        billData.paymentCode = availableOR.orNumber;
+        billData.orNumber = availableOR.orNumber;
+        billData.orBatchId = availableOR.batchId;
+      }
+
       if (bill) {
-        await updateDoc(doc(db, 'bills', bill.id), billData);
-        toast.success('Bill updated successfully!');
+        await updateDoc(doc(targetDb, 'bills', bill.id), billData);
+        toast.success('✅ Bill updated successfully!');
       } else {
         billData.createdAt = new Date().toISOString();
-        await addDoc(collection(db, 'bills'), billData);
-        toast.success('Bill added successfully!');
+        await addDoc(collection(targetDb, 'bills'), billData);
+
+        // Mark OR as assigned
+        if (availableOR) {
+          try {
+            const orDb = getDbByServer(OR_SERVER_KEY);
+            const orRef = doc(orDb, OR_COLLECTION, availableOR.id);
+            await updateDoc(orRef, {
+              status: 'assigned',
+              assignedAt: new Date().toISOString(),
+              assignedBy: user?.email || 'Unknown',
+              assignedToBill: billData.billNumber,
+              assignedToConsumer: billData.consumerName,
+              serverSource: targetServer
+            });
+          } catch (orErr) {
+            console.warn('⚠️ Could not mark OR as assigned:', orErr);
+          }
+        }
+
+        toast.success(`✅ Bill added to ${getServerLabel(targetServer)}!`);
+        if (availableOR) {
+          toast.success(`📋 OR Number: ${availableOR.orNumber}`);
+        }
       }
-      
+
       onSave();
       onClose();
     } catch (error) {
@@ -176,236 +401,354 @@ const BillForm = ({ bill, onClose, onSave }) => {
         <div className="modal-header">
           <div className="modal-header-left">
             <span className="modal-header-icon">
-              {bill ? <FileDollarIcon width={28} height={28} /> : <FileDollarIcon width={28} height={28} />}
+              <FileDollarIcon width={28} height={28} />
             </span>
             <div>
               <h3>{bill ? 'Edit Bill' : 'Add New Bill'}</h3>
               <p className="modal-subtitle">
-                {bill ? 'Update the bill details below' : 'Fill in the bill information below'}
+                {bill
+                  ? `Update bill in ${getServerLabel(targetServer)}`
+                  : `Adding to ${getServerLabel(targetServer)}`}
               </p>
             </div>
           </div>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* ROW 1: Bill Number | Consumer Name | Location */}
-          <div className="form-row-3">
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><FileDollarIcon width={18} height={18} /></span>
-                Bill Number (WSIN) <span className="required">*</span>
-              </label>
-              <input
-                {...register('billNumber')}
-                type="text"
-                placeholder="e.g., 1001"
-                className={`modal-input ${errors.billNumber ? 'error' : ''}`}
-              />
-              {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><User02Icon width={18} height={18} /></span>
-                Consumer Name <span className="required">*</span>
-              </label>
-              <input
-                {...register('consumerName')}
-                type="text"
-                placeholder="Enter consumer name"
-                className={`modal-input ${errors.consumerName ? 'error' : ''}`}
-              />
-              {errors.consumerName && <span className="error-message">{errors.consumerName.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><Location03Icon width={18} height={18} /></span>
-                Location <span className="required">*</span>
-              </label>
-              <input
-                {...register('location')}
-                type="text"
-                placeholder="Enter location"
-                className={`modal-input ${errors.location ? 'error' : ''}`}
-              />
-              {errors.location && <span className="error-message">{errors.location.message}</span>}
-            </div>
+        {loadingMeta ? (
+          <div style={{
+            padding: '60px 20px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              border: '5px solid #19475220',
+              borderTop: '5px solid #194752',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite'
+            }} />
+            <p style={{ color: '#194752', fontSize: '14px', fontWeight: '600', margin: 0 }}>
+              Auto-generating WSIN & fetching OR Number...
+            </p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)}>
+            {/* ROW 1: WSIN | Consumer Name | Location */}
+            <div className="form-row-3">
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><FileDollarIcon width={18} height={18} /></span>
+                  WSIN (Auto) <span className="required">*</span>
+                </label>
+                <input
+                  {...register('billNumber')}
+                  type="text"
+                  readOnly
+                  className="modal-input"
+                  style={{
+                    background: '#F0FDF4',
+                    border: '2px solid #16A34A',
+                    color: '#166534',
+                    fontWeight: '800',
+                    cursor: 'not-allowed'
+                  }}
+                />
+                {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
+              </div>
 
-          {/* ROW 2: Month | Year | Consumer Type */}
-          <div className="form-row-3">
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><Calendar03Icon width={18} height={18} /></span>
-                Month
-              </label>
-              <select {...register('month')} className="modal-input">
-                <option value="">Select Month</option>
-                <option value="JANUARY">January</option>
-                <option value="FEBRUARY">February</option>
-                <option value="MARCH">March</option>
-                <option value="APRIL">April</option>
-                <option value="MAY">May</option>
-                <option value="JUNE">June</option>
-                <option value="JULY">July</option>
-                <option value="AUGUST">August</option>
-                <option value="SEPTEMBER">September</option>
-                <option value="OCTOBER">October</option>
-                <option value="NOVEMBER">November</option>
-                <option value="DECEMBER">December</option>
-              </select>
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><User02Icon width={18} height={18} /></span>
+                  Consumer Name <span className="required">*</span>
+                </label>
+                <input
+                  {...register('consumerName')}
+                  type="text"
+                  placeholder="Enter consumer name"
+                  className={`modal-input ${errors.consumerName ? 'error' : ''}`}
+                />
+                {errors.consumerName && <span className="error-message">{errors.consumerName.message}</span>}
+              </div>
+
+              {/* ✅ LOCATION DROPDOWN — NO ADD BUTTON */}
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><Location03Icon width={18} height={18} /></span>
+                  Location <span className="required">*</span>
+                </label>
+
+                {loadingLocations ? (
+                  <div style={{
+                    padding: '10px 14px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#64748B',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Loading locations...
+                  </div>
+                ) : (
+                  <select
+                    {...register('location')}
+                    className={`modal-input ${errors.location ? 'error' : ''}`}
+                  >
+                    <option value="">-- Select Location --</option>
+                    {availableLocations.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                    {availableLocations.length === 0 && (
+                      <option value="" disabled>
+                        (No locations yet)
+                      </option>
+                    )}
+                  </select>
+                )}
+
+                {errors.location && <span className="error-message">{errors.location.message}</span>}
+              </div>
             </div>
 
-            <div className="form-group">
+            {/* ROW 2: Month | Year | Consumer Type */}
+            <div className="form-row-3">
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><Calendar03Icon width={18} height={18} /></span>
+                  Month
+                </label>
+                <select {...register('month')} className="modal-input">
+                  {monthsList.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><Calendar03Icon width={18} height={18} /></span>
+                  Year
+                </label>
+                <input
+                  {...register('year')}
+                  type="text"
+                  placeholder={currentYear}
+                  className="modal-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><ApartmentIcon width={18} height={18} /></span>
+                  Consumer Type <span className="required">*</span>
+                </label>
+                <select {...register('consumerType')} className="modal-input">
+                  <option value="RESIDENTIAL">Residential</option>
+                  <option value="COMMERCIAL">Commercial</option>
+                </select>
+                {errors.consumerType && <span className="error-message">{errors.consumerType.message}</span>}
+              </div>
+            </div>
+
+            {/* ROW 3: Previous | Present | Consumption (all locked = 0) */}
+            <div className="form-row-3">
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
+                  Previous Reading 🔒
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  value={0}
+                  className="modal-input"
+                  style={{
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    color: '#64748B',
+                    cursor: 'not-allowed'
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
+                  Present Reading 🔒
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  value={0}
+                  className="modal-input"
+                  style={{
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    color: '#64748B',
+                    cursor: 'not-allowed'
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
+                  Consumption 🔒
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  value={0}
+                  className="modal-input"
+                  style={{
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    color: '#64748B',
+                    cursor: 'not-allowed'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* ROW 4: Amount (locked) | OR Number (auto) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '14px'
+            }}>
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><PhilippinePesoIcon width={18} height={18} /></span>
+                  Amount 🔒
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  value={1000}
+                  className="modal-input"
+                  style={{
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    color: '#64748B',
+                    cursor: 'not-allowed',
+                    fontWeight: '700'
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><ReceiptIcon width={18} height={18} /></span>
+                  OR Number (Auto) 🔒
+                </label>
+                {loadingOR ? (
+                  <div style={{
+                    padding: '12px 14px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#64748B',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching OR Number...
+                  </div>
+                ) : availableOR ? (
+                  <input
+                    type="text"
+                    value={availableOR.orNumber}
+                    readOnly
+                    className="modal-input"
+                    style={{
+                      background: '#F0FDF4',
+                      border: '2px solid #16A34A',
+                      color: '#166534',
+                      cursor: 'not-allowed',
+                      fontWeight: '800'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    padding: '12px 14px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#991B1B',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ {orError || 'No available OR'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ROW 5: Notes */}
+            <div className="form-group full-width">
               <label>
-                <span className="label-icon"><Calendar03Icon width={18} height={18} /></span>
-                Year
+                <span className="label-icon"><Note01Icon width={18} height={18} /></span>
+                Notes (Optional)
               </label>
               <input
-                {...register('year')}
+                {...register('notes')}
                 type="text"
-                placeholder="2026"
+                placeholder="Additional notes..."
                 className="modal-input"
               />
             </div>
 
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><ApartmentIcon width={18} height={18} /></span>
-                Consumer Type <span className="required">*</span>
-              </label>
-              <select {...register('consumerType')} className="modal-input">
-                <option value="RESIDENTIAL"><ApartmentIcon width={16} height={16} /> Residential</option>
-                <option value="COMMERCIAL"><DuplexIcon width={16} height={16} /> Commercial</option>
-              </select>
-              {errors.consumerType && <span className="error-message">{errors.consumerType.message}</span>}
-            </div>
-          </div>
-
-          {/* ROW 3: Previous Reading | Present Reading | Consumption */}
-          <div className="form-row-3">
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                Previous Reading
-              </label>
-              <input
-                {...register('previousReading')}
-                type="number"
-                placeholder="0"
-                step="0.01"
-                className="modal-input"
-              />
+            {/* Info Note */}
+            <div style={{
+              padding: '12px 16px',
+              background: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              borderRadius: '10px',
+              marginTop: '8px',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '16px' }}>ℹ️</span>
+              <span style={{
+                fontSize: '12px',
+                color: '#1E40AF',
+                fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
+                lineHeight: '1.5'
+              }}>
+                WSIN is auto-generated. Location shows existing locations in <strong>{getServerLabel(targetServer)}</strong>.
+              </span>
             </div>
 
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                Present Reading
-              </label>
-              <input
-                {...register('presentReading')}
-                type="number"
-                placeholder="0"
-                step="0.01"
-                className="modal-input"
-              />
+            {/* Modal Actions */}
+            <div className="modal-actions">
+              <button type="button" className="btn btn-outline" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading || (!bill && !availableOR)}
+              >
+                {loading ? (
+                  <>
+                    <span className="btn-spinner-small"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>{bill ? '💾 Update Bill' : '➕ Add Bill'}</>
+                )}
+              </button>
             </div>
-
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                Consumption
-              </label>
-              <input
-                {...register('consumption')}
-                type="number"
-                placeholder="0"
-                step="0.01"
-                className="modal-input"
-              />
-            </div>
-          </div>
-
-          {/* ROW 4: Amount | Due Date | Status */}
-          <div className="form-row-3">
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><PhilippinePesoIcon width={18} height={18} /></span>
-                Amount (₱) <span className="required">*</span>
-              </label>
-              <input
-                {...register('amount')}
-                type="number"
-                placeholder="0.00"
-                step="0.01"
-                className={`modal-input ${errors.amount ? 'error' : ''}`}
-              />
-              {errors.amount && <span className="error-message">{errors.amount.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><Calendar03Icon width={18} height={18} /></span>
-                Due Date <span className="required">*</span>
-              </label>
-              <input
-                {...register('dueDate')}
-                type="date"
-                className={`modal-input ${errors.dueDate ? 'error' : ''}`}
-              />
-              {errors.dueDate && <span className="error-message">{errors.dueDate.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>
-                <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                Status <span className="required">*</span>
-              </label>
-              <select {...register('status')} className="modal-input">
-                <option value="unpaid">⏳ Unpaid</option>
-                <option value="paid">✅ Paid</option>
-                <option value="overdue">⚠️ Overdue</option>
-              </select>
-              {errors.status && <span className="error-message">{errors.status.message}</span>}
-            </div>
-          </div>
-
-          {/* ROW 5: Notes (Full Width) */}
-          <div className="form-group full-width">
-            <label>
-              <span className="label-icon"><Note01Icon width={18} height={18} /></span>
-              Notes (Optional)
-            </label>
-            <input
-              {...register('notes')}
-              type="text"
-              placeholder="Additional notes..."
-              className="modal-input"
-            />
-          </div>
-
-          {/* Modal Actions */}
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="btn-spinner-small"></span>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  {bill ? '💾 Update Bill' : '➕ Add Bill'}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -65,6 +65,7 @@ const Navbar = () => {
     navItems = [
       { path: '/admin', label: 'DASHBOARD' },
       { path: '/users', label: 'USERS' },
+       { path: '/paid', label: 'PAID' },
       { path: '/profile', label: 'PROFILE' },
     ];
   } else {

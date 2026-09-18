@@ -1,6 +1,6 @@
 // src/components/admin/AdminDashboard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, deleteDoc, writeBatch, updateDoc, addDoc, setDoc } from 'firebase/firestore';
 import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, getServerColor, SERVER_CONFIGS } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -12,6 +12,14 @@ import '../bills/BillStyles.css';
 import './AdminStyles.css';
 
 const EXCEL_PASSWORD = 'Water_2026';
+
+// ============================================================
+// OR NUMBER STORAGE (SERVER 4)
+// ============================================================
+const OR_SERVER_KEY = 'server4';
+const OR_COLLECTION = 'or_numbers';
+const USED_OR_COLLECTION = 'used_or_numbers';
+const OR_BATCH_SIZE = 50;
 
 // ============================================================
 // HARD-CODED SVG ICONS
@@ -72,7 +80,7 @@ const DuplexIcon = (props) => (
     <path d="M20 14L12.916 9.27735C12.6448 9.0965 12.326 9 12 9C11.674 9 11.3552 9.0965 11.084 9.27735L4 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M18.5 13.5V18C18.5 19.8856 18.5 20.8284 17.9142 21.4142C17.3284 22 16.3856 22 14.5 22H9.5C7.61438 22 6.67157 22 6.08579 21.4142C5.5 20.8284 5.5 19.8856 5.5 18V13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17 5V12M7 5V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M14 22V18C14 16.8954 13.1046 16 12 16C10.8954 16 10 16.8954 10 18V22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M14 22V18C14 16.8954 13.1046 16 12 16C10.8954 16 10 15.6569 10 18V22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -96,6 +104,13 @@ const CalendarAddIcon = (props) => (
   </svg>
 );
 
+const ReceiptIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M4 2V22L7 20L10 22L13 20L16 22L20 19.5V2H4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8 7H16M8 11H16M8 15H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const ExportPaidIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
     <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -104,6 +119,30 @@ const ExportPaidIcon = (props) => (
     <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     <circle cx="16" cy="17" r="4" stroke="#22C55E" strokeWidth="2" fill="none"/>
     <path d="M14.5 17L15.5 18L17.5 16" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ImportIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M12 3V12M12 12L9.5 9.5M12 12L14.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 17.5C3.5 16.5 2 14.5 2 12C2 7.02944 6.02944 3 11 3C15.9706 3 20 7.02944 20 12C20 14.5 18.5 16.5 17 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 21V13M12 21L9.5 18.5M12 21L14.5 18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ExportIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 6.5C3.5 7.5 2 9.5 2 12C2 16.9706 6.02944 21 11 21C15.9706 21 20 16.9706 20 12C20 9.5 18.5 7.5 17 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 3V11M12 11L9.5 8.5M12 11L14.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const AddBillIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M4 2V22L7 20L10 22L13 20L16 22L20 19.5V2H4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 8V15M8.5 11.5H15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -329,6 +368,98 @@ const getConsumerPeriodOptions = (billsData) => {
 };
 
 // ============================================================
+// OR HELPERS
+// ============================================================
+const fetchNextAvailableOR = async () => {
+  try {
+    const orDb = getDbByServer(OR_SERVER_KEY);
+    const orRef = collection(orDb, OR_COLLECTION);
+
+    console.log('🔍 Admin: Fetching available OR from SERVER 4');
+
+    const q = query(
+      orRef,
+      where('status', '==', 'available')
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      console.warn('⚠️ No available OR numbers in Server 4');
+      return null;
+    }
+
+    const sortedDocs = snap.docs.sort((a, b) => {
+      const aNum = parseInt(String(a.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      const bNum = parseInt(String(b.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
+      return aNum - bNum;
+    });
+
+    const orDoc = sortedDocs[0];
+    const orData = orDoc.data();
+
+    console.log('✅ Admin: Next available OR:', orData.orNumber);
+    return {
+      id: orDoc.id,
+      orNumber: String(orData.orNumber),
+      batchId: orData.batchId || null,
+      ...orData
+    };
+  } catch (error) {
+    console.error('❌ Admin: Error fetching OR:', error);
+    return null;
+  }
+};
+
+const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail) => {
+  try {
+    const orDb = getDbByServer(OR_SERVER_KEY);
+    const orRef = doc(orDb, OR_COLLECTION, orDocId);
+    const usedRef = collection(orDb, USED_OR_COLLECTION);
+
+    const usedAt = new Date().toISOString();
+
+    await updateDoc(orRef, {
+      status: 'used',
+      usedAt,
+      usedBy: userEmail || 'Unknown',
+      billId: billInfo?.id || null,
+      billNumber: billInfo?.billNumber || null,
+      consumerName: billInfo?.consumerName || null,
+      paymentCode,
+      serverSource: billInfo?.serverSource || null,
+      referenceNumber: billInfo?.referenceNumber || null
+    });
+
+    const usedDocId = `${orNumber}_${Date.now()}`;
+    await setDoc(doc(usedRef, usedDocId), {
+      orNumber,
+      originalOrDocId: orDocId,
+      status: 'used',
+      usedAt,
+      usedBy: userEmail || 'Unknown',
+      billId: billInfo?.id || null,
+      billNumber: billInfo?.billNumber || null,
+      consumerName: billInfo?.consumerName || null,
+      consumerAddress: billInfo?.location || null,
+      month: billInfo?.month || null,
+      year: billInfo?.year || null,
+      amount: billInfo?.amount || 0,
+      paymentCode,
+      referenceNumber: billInfo?.referenceNumber || null,
+      serverSource: billInfo?.serverSource || null,
+      archivedAt: usedAt
+    });
+
+    console.log(`✅ Admin: OR ${orNumber} marked as used`);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Admin: Error marking OR as used:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================================
 // ADMIN DASHBOARD COMPONENT
 // ============================================================
 
@@ -338,14 +469,8 @@ const AdminDashboard = () => {
   const [filteredBills, setFilteredBills] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // ============================================================
-  // DEFAULT SERVER = SERVER 1
-  // ============================================================
   const [selectedServer, setSelectedServer] = useState('server1');
   
-  // ============================================================
-  // PAGINATION STATE (10 rows per page)
-  // ============================================================
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
   
@@ -370,6 +495,10 @@ const AdminDashboard = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   
+  const [availableOR, setAvailableOR] = useState(null);
+  const [loadingOR, setLoadingOR] = useState(false);
+  const [orFetchError, setOrFetchError] = useState('');
+  
   const [tableType, setTableType] = useState('regular');
   
   const [showPayAllModal, setShowPayAllModal] = useState(false);
@@ -378,12 +507,18 @@ const AdminDashboard = () => {
   const [payAllPaymentCode, setPayAllPaymentCode] = useState('');
   const [payAllPaymentError, setPayAllPaymentError] = useState('');
   const [isPayingAll, setIsPayingAll] = useState(false);
+  const [payAllAvailableOR, setPayAllAvailableOR] = useState(null);
+  const [payAllLoadingOR, setPayAllLoadingOR] = useState(false);
+  const [payAllOrFetchError, setPayAllOrFetchError] = useState('');
   
   const [showCutoffPayModal, setShowCutoffPayModal] = useState(false);
   const [cutoffBillToPay, setCutoffBillToPay] = useState(null);
   const [cutoffPaymentCode, setCutoffPaymentCode] = useState('');
   const [cutoffPaymentError, setCutoffPaymentError] = useState('');
   const [isPayingCutoff, setIsPayingCutoff] = useState(false);
+  const [cutoffAvailableOR, setCutoffAvailableOR] = useState(null);
+  const [cutoffLoadingOR, setCutoffLoadingOR] = useState(false);
+  const [cutoffOrFetchError, setCutoffOrFetchError] = useState('');
   
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportLocation, setSelectedExportLocation] = useState('all');
@@ -414,14 +549,44 @@ const AdminDashboard = () => {
   const [showServerSelectModal, setShowServerSelectModal] = useState(false);
   const [selectedImportServer, setSelectedImportServer] = useState(null);
 
-  // Reset current page inig mag-usab ang filters, server, o table type
+  const [showORModal, setShowORModal] = useState(false);
+  const [orFrom, setOrFrom] = useState('');
+  const [orTo, setOrTo] = useState('');
+  const [orToTouched, setOrToTouched] = useState(false);
+  const [orSaving, setOrSaving] = useState(false);
+
+  const [orStats, setOrStats] = useState({ available: 0, used: 0 });
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, selectedServer, tableType]);
 
-  // ============================================================
-  // FETCH BILLS - LAZY LOAD per server
-  // ============================================================
+  useEffect(() => {
+    loadORStats();
+  }, []);
+
+  const loadORStats = async () => {
+    try {
+      const orDb = getDbByServer(OR_SERVER_KEY);
+      const orRef = collection(orDb, OR_COLLECTION);
+
+      const availableQuery = query(orRef, where('status', '==', 'available'));
+      const usedQuery = query(orRef, where('status', '==', 'used'));
+
+      const [availableSnap, usedSnap] = await Promise.all([
+        getDocs(availableQuery),
+        getDocs(usedQuery)
+      ]);
+
+      setOrStats({
+        available: availableSnap.size,
+        used: usedSnap.size
+      });
+    } catch (error) {
+      console.error('Error loading OR stats:', error);
+    }
+  };
+
   const fetchBills = useCallback(async (serverKey) => {
     if (!user) return;
     
@@ -505,6 +670,21 @@ const AdminDashboard = () => {
     if (showPayModal) {
       setPaymentCode('');
       setPaymentError('');
+      setAvailableOR(null);
+      setOrFetchError('');
+
+      const loadOR = async () => {
+        setLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setAvailableOR(or);
+          setPaymentCode(or.orNumber);
+        } else {
+          setOrFetchError('No available OR number in Server 4. Please add OR numbers first.');
+        }
+        setLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showPayModal]);
 
@@ -512,6 +692,21 @@ const AdminDashboard = () => {
     if (showPayAllModal) {
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
+      setPayAllAvailableOR(null);
+      setPayAllOrFetchError('');
+
+      const loadOR = async () => {
+        setPayAllLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setPayAllAvailableOR(or);
+          setPayAllPaymentCode(or.orNumber);
+        } else {
+          setPayAllOrFetchError('No available OR number in Server 4.');
+        }
+        setPayAllLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showPayAllModal]);
 
@@ -519,6 +714,21 @@ const AdminDashboard = () => {
     if (showCutoffPayModal) {
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
+      setCutoffAvailableOR(null);
+      setCutoffOrFetchError('');
+
+      const loadOR = async () => {
+        setCutoffLoadingOR(true);
+        const or = await fetchNextAvailableOR();
+        if (or) {
+          setCutoffAvailableOR(or);
+          setCutoffPaymentCode(or.orNumber);
+        } else {
+          setCutoffOrFetchError('No available OR number in Server 4.');
+        }
+        setCutoffLoadingOR(false);
+      };
+      loadOR();
     }
   }, [showCutoffPayModal]);
 
@@ -640,9 +850,6 @@ const AdminDashboard = () => {
     setFilterConsumerPeriod('all');
   };
 
-  // ============================================================
-  // SERVER CHANGE
-  // ============================================================
   const handleServerChange = (e) => {
     const newServer = e.target.value;
     setSelectedServer(newServer);
@@ -660,9 +867,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // ============================================================
-  // PAGINATION HELPERS
-  // ============================================================
   const getCurrentPageData = () => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
@@ -764,7 +968,8 @@ const AdminDashboard = () => {
     try {
       const referenceNumber = `CUTOFF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const amountToPay = cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0;
-      const targetDb = getDbByServer(cutoffBillToPay.serverSource || selectedServer);
+      const originalServer = cutoffBillToPay.serverSource || selectedServer;
+      const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', cutoffBillToPay.id);
       
       await updateDoc(billRef, {
@@ -787,8 +992,29 @@ const AdminDashboard = () => {
         }
       });
 
+      if (cutoffAvailableOR) {
+        await markORAsUsed(
+          cutoffAvailableOR.orNumber,
+          cutoffAvailableOR.id,
+          {
+            id: cutoffBillToPay.id,
+            billNumber: cutoffBillToPay.billNumber,
+            consumerName: cutoffBillToPay.consumerName,
+            location: cutoffBillToPay.location,
+            month: cutoffBillToPay.month,
+            year: cutoffBillToPay.year,
+            amount: amountToPay,
+            serverSource: originalServer,
+            referenceNumber
+          },
+          cutoffPaymentCode,
+          user?.email || 'Unknown'
+        );
+      }
+
       toast.success(`✅ Cut-off bill ${cutoffBillToPay.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${amountToPay.toFixed(2)}`);
+      toast.success(`📋 OR Number: ${cutoffPaymentCode}`);
 
       setShowCutoffPayModal(false);
 
@@ -802,7 +1028,9 @@ const AdminDashboard = () => {
       setCutoffBillToPay(null);
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
+      setCutoffAvailableOR(null);
       fetchBills(selectedServer);
+      loadORStats();
     } catch (error) {
       console.error('❌ Cutoff payment error:', error);
       if (error.code === 'permission-denied') {
@@ -927,6 +1155,25 @@ const AdminDashboard = () => {
       }
 
       if (successCount > 0) {
+        if (payAllAvailableOR) {
+          await markORAsUsed(
+            payAllAvailableOR.orNumber,
+            payAllAvailableOR.id,
+            {
+              id: 'PAY_ALL',
+              billNumber: payAllBills[0]?.billNumber || 'MULTIPLE',
+              consumerName: payAllConsumerName,
+              month: 'MULTIPLE',
+              year: 'MULTIPLE',
+              amount: totalAmount,
+              serverSource: payAllBills[0]?.serverSource || selectedServer,
+              referenceNumber
+            },
+            payAllPaymentCode,
+            user?.email || 'Unknown'
+          );
+        }
+
         toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
         toast.success(`📋 OR Number: ${payAllPaymentCode}`);
@@ -958,7 +1205,9 @@ const AdminDashboard = () => {
       setPayAllBills([]);
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
+      setPayAllAvailableOR(null);
       fetchBills(selectedServer);
+      loadORStats();
     } catch (error) {
       console.error('❌ Pay All error:', error);
       toast.error('Error processing payment: ' + error.message);
@@ -997,7 +1246,8 @@ const AdminDashboard = () => {
         calculatedAmount = calculateBillAmount(selectedBill.consumerType, consumption);
       }
 
-      const targetDb = getDbByServer(selectedBill.serverSource || selectedServer);
+      const originalServer = selectedBill.serverSource || selectedServer;
+      const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', selectedBill.id);
       
       await updateDoc(billRef, {
@@ -1024,6 +1274,26 @@ const AdminDashboard = () => {
         }
       });
 
+      if (availableOR) {
+        await markORAsUsed(
+          availableOR.orNumber,
+          availableOR.id,
+          {
+            id: selectedBill.id,
+            billNumber: selectedBill.billNumber,
+            consumerName: selectedBill.consumerName,
+            location: selectedBill.location,
+            month: selectedBill.month,
+            year: selectedBill.year,
+            amount: calculatedAmount,
+            serverSource: originalServer,
+            referenceNumber
+          },
+          paymentCode,
+          user?.email || 'Unknown'
+        );
+      }
+
       await createNextMonthBill({
         ...selectedBill,
         consumption, amount: calculatedAmount, isDefective: isDefectiveReading,
@@ -1032,6 +1302,7 @@ const AdminDashboard = () => {
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${calculatedAmount.toFixed(2)}`);
+      toast.success(`📋 OR Number: ${paymentCode}`);
 
       setShowPayModal(false);
 
@@ -1045,7 +1316,9 @@ const AdminDashboard = () => {
       setSelectedBill(null);
       setPaymentCode('');
       setPaymentError('');
+      setAvailableOR(null);
       fetchBills(selectedServer);
+      loadORStats();
     } catch (error) {
       console.error('❌ Payment error details:', error);
       if (error.code === 'permission-denied') {
@@ -1234,31 +1507,29 @@ const AdminDashboard = () => {
             const presentReading = billData.presentReading || 0;
 
             const newBillData = {
-  ...billData,
-  month: nextMonth,
-  year: nextYear.toString(),
-  previousReading: presentReading,
-  presentReading: 0,
-  consumption: 0,
-  amount: 0,
-  status: 'unpaid',
-  dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
-  notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
-  userId: user?.uid || billData.userId || 'unknown',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  isRollover: true,
-  rolloverFrom: id,
-  rolloverFromMonth: newMonthMonth,
-  rolloverFromYear: newMonthYear,
-  rolloverLocation: newMonthLocation,
-  previousPresentReading: presentReading,
-  serverSource: serverKey
-};
+              ...billData,
+              month: nextMonth,
+              year: nextYear.toString(),
+              previousReading: presentReading,
+              presentReading: 0,
+              consumption: 0,
+              amount: 0,
+              status: 'unpaid',
+              dueDate: `${nextYear}-${String(nextIndex + 1).padStart(2, '0')}-15`,
+              notes: `Created from ${newMonthMonth} ${newMonthYear} rollover`,
+              userId: user?.uid || billData.userId || 'unknown',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              isRollover: true,
+              rolloverFrom: id,
+              rolloverFromMonth: newMonthMonth,
+              rolloverFromYear: newMonthYear,
+              rolloverLocation: newMonthLocation,
+              previousPresentReading: presentReading,
+              serverSource: serverKey
+            };
 
-// ✅ FIX: Preserve the original WSIN (billNumber) para magsunod gihapon
-// Kung naay billNumber sa original data, gamiton nato. Kung wala, fallback sa old format.
-newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).padStart(3, '0')}`;
+            newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).padStart(3, '0')}`;
 
             batch.set(doc(billsCollectionRef), newBillData);
             successCount++;
@@ -1908,26 +2179,204 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
 
   const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
 
+  // ============================================================
+  // OR NUMBER MODAL FUNCTIONS
+  // ============================================================
+  const openORModal = () => {
+    setOrFrom('');
+    setOrTo('');
+    setOrToTouched(false);
+    setShowORModal(true);
+  };
+
+  const closeORModal = () => {
+    setShowORModal(false);
+    setOrFrom('');
+    setOrTo('');
+    setOrToTouched(false);
+    setOrSaving(false);
+  };
+
+  const handleORFromChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+$/.test(value)) {
+      setOrFrom(value);
+      if (value.length > 0) {
+        const fromNum = parseInt(value);
+        if (!isNaN(fromNum)) {
+          setOrTo(String(fromNum + (OR_BATCH_SIZE - 1)));
+        }
+      } else {
+        setOrTo('');
+      }
+    }
+  };
+
+  const handleORToChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || /^\d+$/.test(value)) {
+      setOrTo(value);
+      setOrToTouched(true);
+    }
+  };
+
+  const handleSaveORNumbers = async () => {
+    if (!orFrom || !orTo) {
+      toast.error('Please enter both FROM and TO values');
+      return;
+    }
+
+    const fromNum = parseInt(orFrom);
+    const toNum = parseInt(orTo);
+
+    if (isNaN(fromNum) || isNaN(toNum)) {
+      toast.error('Invalid numbers');
+      return;
+    }
+
+    if (toNum < fromNum) {
+      toast.error('TO must be greater than FROM');
+      return;
+    }
+
+    if (toNum - fromNum + 1 !== OR_BATCH_SIZE) {
+      toast.error(`Batch size must be exactly ${OR_BATCH_SIZE} pieces. Current: ${toNum - fromNum + 1}`);
+      return;
+    }
+
+    setOrSaving(true);
+
+    try {
+      const archiveDb = getDbByServer(OR_SERVER_KEY);
+      const orCollectionRef = collection(archiveDb, OR_COLLECTION);
+      const batchId = `BATCH-${Date.now()}`;
+      const createdAt = new Date().toISOString();
+
+      let batch = writeBatch(archiveDb);
+      let batchCount = 0;
+      let savedCount = 0;
+
+      for (let i = fromNum; i <= toNum; i++) {
+        const orNumber = String(i);
+        const docRef = doc(orCollectionRef, orNumber);
+
+        batch.set(docRef, {
+          orNumber,
+          from: String(fromNum),
+          to: String(toNum),
+          batchId,
+          rangeStart: fromNum,
+          rangeEnd: toNum,
+          batchSize: OR_BATCH_SIZE,
+          status: 'available',
+          createdAt,
+          createdBy: user?.email || 'Unknown',
+          createdByUid: user?.uid || 'unknown',
+          usedAt: null,
+          usedBy: null,
+          billId: null,
+          paymentCode: null,
+          serverSource: OR_SERVER_KEY
+        });
+
+        savedCount++;
+        batchCount++;
+
+        if (batchCount >= 500) {
+          await batch.commit();
+          batch = writeBatch(archiveDb);
+          batchCount = 0;
+        }
+      }
+
+      if (batchCount > 0) await batch.commit();
+
+      toast.success(`✅ Saved ${savedCount} OR Numbers to Server 4!`, { duration: 5000 });
+      toast.success(`📋 Range: ${fromNum} → ${toNum}`, { duration: 5000 });
+      toast.success(`🆔 Batch ID: ${batchId}`, { duration: 5000, icon: '🗄️' });
+
+      await loadORStats();
+      closeORModal();
+    } catch (error) {
+      console.error('❌ Save OR Numbers error:', error);
+      if (error.code === 'permission-denied') {
+        toast.error('Permission denied. Check Server 4 Firestore rules!', { duration: 8000 });
+      } else {
+        toast.error('Error saving OR Numbers: ' + error.message, { duration: 8000 });
+      }
+    } finally {
+      setOrSaving(false);
+    }
+  };
+
+  const orPreviewCount = (() => {
+    if (!orFrom || !orTo) return 0;
+    const f = parseInt(orFrom);
+    const t = parseInt(orTo);
+    if (isNaN(f) || isNaN(t)) return 0;
+    return Math.max(0, t - f + 1);
+  })();
+
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <div className="admin-dashboard">
-      {/* Header */}
-      <div className="admin-dashboard-header">
-        <div className="header-left">
-          <h1>ADMIN DASHBOARD</h1>
-          <p>Manage all water bill records</p>
-        </div>
-        <div className="header-actions">
+      {/* ============================================================ */}
+      {/* 🎨 REDESIGNED HEADER */}
+      {/* ============================================================ */}
+      <div style={{
+        background: '#FFFFFF',
+        borderBottom: '3px solid #194752',
+        borderRadius: '12px',
+        padding: '20px 24px',
+        marginBottom: '24px',
+        marginTop: '-20px',
+        boxShadow: '0 2px 8px rgba(25, 71, 82, 0.06)'
+      }}>
+        {/* ROW 1: Title + Server Selector */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '20px',
+          paddingBottom: '16px',
+          borderBottom: '1px solid #E2E8F0'
+        }}>
+          <div>
+            <h1 style={{
+              fontFamily: 'JetBrains Mono, Inter, sans-serif',
+              fontSize: '30px',
+              fontWeight: '800',
+              color: '#15404b',
+              margin: 0,
+              letterSpacing: '-0.5px'
+            }}>
+              ADMIN DASHBOARD
+            </h1>
+            <p style={{
+              color: '#15404b',
+              fontSize: '15px',
+              margin: '4px 0 0 0',
+              opacity: 0.8
+            }}>
+              Manage all water bill records
+            </p>
+          </div>
+
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            background: '#FFFFFF',
+            gap: '10px',
+            background: '#F8FAFC',
             border: `2px solid ${currentServerConfig?.color || '#194752'}`,
-            borderRadius: '10px',
-            padding: '6px 12px',
+            borderRadius: '12px',
+            padding: '5px 16px',
             boxShadow: `0 2px 8px ${currentServerConfig?.color || '#194752'}22`
           }}>
-            <ServerIcon width={18} height={18} color={currentServerConfig?.color || '#194752'} />
+            <ServerIcon width={22} height={22} color={currentServerConfig?.color || '#194752'} />
             <span style={{
               fontSize: '12px',
               fontWeight: '700',
@@ -1943,16 +2392,16 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               disabled={loading}
               style={{
                 padding: '6px 10px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '6px',
+                background: '#FFFFFF',
+                border: `1px solid ${currentServerConfig?.color || '#194752'}`,
+                borderRadius: '8px',
                 fontFamily: 'Inter, sans-serif',
                 fontSize: '14px',
                 fontWeight: '700',
                 color: currentServerConfig?.color || '#194752',
                 outline: 'none',
                 cursor: loading ? 'wait' : 'pointer',
-                minWidth: '110px'
+                minWidth: '140px'
               }}
             >
               <option value="server1">🗄️ Server 1</option>
@@ -1962,82 +2411,341 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               <option value="server5">🗄️ Server 5</option>
               <option value="all">🌐 All Servers (Slow)</option>
             </select>
-          </div>
-
-          <div className="table-type-toggle">
-            <button className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`} onClick={() => setTableType('regular')}>
-              <RegularTableIcon />
-              REGULAR
-            </button>
-            <button className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`} onClick={() => setTableType('cutoff')}>
-              <CutoffTableIcon />
-              CUT-OFF
-            </button>
-          </div>
-
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>ADD BILL</button>
           
-          <button 
-            className="btn btn-secondary" 
-            onClick={() => setShowServerSelectModal(true)}
-            disabled={uploading}
-          >
-            IMPORT
-          </button>
-          
-          <button 
-            className="btn btn-secondary"
-            onClick={openExportModal}
-            disabled={bills.length === 0 || isExporting}
-          >
-            {isExporting ? '⏳ Exporting...' : 'EXPORT'}
-          </button>
-          
-          <button 
-            className="btn btn-success" 
-            onClick={openExportPaidConfirm}
-            disabled={bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid}
-            style={{
-              background: '#16A34A',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 24px',
-              border: 'none',
-              borderRadius: '10px',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            <ExportPaidIcon width={20} height={20} color="#ffffff" />
-            {isExportingPaid ? '⏳ Processing...' : 'EXPORT PAID'}
-          </button>
-          
-          <button 
-            className="btn btn-success" 
-            onClick={openNewMonthModal}
-            style={{
-              background: '#194752',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 24px',
-              border: 'none',
-              borderRadius: '10px',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            <CalendarAddIcon width={20} height={20} color="#ffffff" />
-            ADD NEW MONTH
-          </button>
+          <div className="table-type-toggle" style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`}
+                  onClick={() => setTableType('regular')}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  <RegularTableIcon />
+                  REGULAR
+                </button>
+                <button
+                  className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`}
+                  onClick={() => setTableType('cutoff')}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  <CutoffTableIcon />
+                  CUT-OFF
+                </button>
+              </div>
+              </div>
         </div>
+
+        {/* ROW 2: Buttons grouped by function */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '20px',
+          alignItems: 'flex-start'
+        }}>
+          {/* GROUP 1: Bill Actions */}
+          <div style={{
+            padding: '14px 16px',
+            background: '#F8FAFC',
+            borderRadius: '10px',
+            border: '1px solid #E2E8F0'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: '800',
+              color: '#194752',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ fontSize: '14px' }}>📋</span> BILL ACTIONS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={() => setShowForm(true)}
+                style={{
+                  padding: '10px 16px',
+                  background: '#194752',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#25606e'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#194752'}
+              >
+                <AddBillIcon width={18} height={18} color="#ffffff" />
+                ADD BILL
+              </button>
+              <button
+                onClick={openExportPaidConfirm}
+                disabled={bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid}
+                style={{
+                  padding: '10px 16px',
+                  background: '#194752',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: (bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  opacity: (bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => !(bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) && (e.currentTarget.style.background = '#15803D')}
+                onMouseLeave={(e) => !(bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) && (e.currentTarget.style.background = '#16A34A')}
+              >
+                <ExportPaidIcon width={18} height={18} color="#ffffff" />
+                {isExportingPaid ? 'PROCESSING...' : 'EXPORT PAID'}
+              </button>
+
+              
+            </div>
+          </div>
+
+          {/* GROUP 2: Data Actions */}
+          <div style={{
+            padding: '14px 16px',
+            background: '#F8FAFC',
+            borderRadius: '10px',
+            border: '1px solid #E2E8F0'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: '800',
+              color: '#194752',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ fontSize: '15px' }}></span> DATA ACTIONS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={() => setShowServerSelectModal(true)}
+                disabled={uploading}
+                style={{
+                  padding: '10px 16px',
+                  background: '#194752',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: uploading ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  opacity: uploading ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => !uploading && (e.currentTarget.style.background = '#194752')}
+                onMouseLeave={(e) => !uploading && (e.currentTarget.style.background = '#194752')}
+              >
+                <ImportIcon width={18} height={18} color="#ffffff" />
+                {uploading ? 'UPLOADING...' : 'IMPORT'}
+              </button>
+
+              <button
+                onClick={openExportModal}
+                disabled={bills.length === 0 || isExporting}
+                style={{
+                  padding: '10px 16px',
+                  background: '#194752',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: (bills.length === 0 || isExporting) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  opacity: (bills.length === 0 || isExporting) ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => !(bills.length === 0 || isExporting) && (e.currentTarget.style.background = '#194752')}
+                onMouseLeave={(e) => !(bills.length === 0 || isExporting) && (e.currentTarget.style.background = '#194752')}
+              >
+                <ExportIcon width={18} height={18} color="#ffffff" />
+                {isExporting ? 'EXPORTING...' : 'EXPORT'}
+              </button>
+
+              
+            </div>
+          </div>
+
+          {/* GROUP 3: Admin Tools */}
+          <div style={{
+            padding: '14px 16px',
+            background: '#F8FAFC',
+            borderRadius: '10px',
+            border: '1px solid #E2E8F0'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: '800',
+              color: '#194752',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span style={{ fontSize: '14px' }}>⚙️</span> ADMIN TOOLS
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={openNewMonthModal}
+                style={{
+                  padding: '10px 16px',
+                  background: 'linear-gradient(135deg, #194752, #25606e)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <CalendarAddIcon width={18} height={18} color="#ffffff" />
+                ADD NEW MONTH
+              </button>
+
+              <button
+                onClick={openORModal}
+                style={{
+                  padding: '10px 16px',
+                  background: '#194752',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(124, 58, 237, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.3)';
+                }}
+              >
+                <ReceiptIcon width={18} height={18} color="#ffffff" />
+                ADD OR NUMBER
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* OR STATS BANNER */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '20px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{
+          flex: 1,
+          minWidth: '180px',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
+          border: '2px solid #86EFAC',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <span style={{ fontSize: '24px' }}>✅</span>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Available ORs (Server 4)
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: '#16A34A', fontFamily: 'JetBrains Mono, monospace' }}>
+              {orStats.available}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          flex: 1,
+          minWidth: '180px',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
+          border: '2px solid #FECACA',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <span style={{ fontSize: '24px' }}>🔴</span>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Used ORs (Server 4)
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: '#DC2626', fontFamily: 'JetBrains Mono, monospace' }}>
+              {orStats.used}
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={loadORStats}
+          style={{
+            padding: '14px 20px',
+            background: '#F1F5F9',
+            border: '2px solid #E2E8F0',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '700',
+            color: '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          🔄 Refresh Stats
+        </button>
       </div>
 
       <input
@@ -2047,6 +2755,226 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         style={{ display: 'none' }}
         onChange={(e) => handleFileUpload(e, selectedImportServer)}
       />
+
+      {/* OR NUMBER MODAL */}
+      {showORModal && (
+        <div className="modal-overlay" onClick={closeORModal}>
+          <div 
+            className="modal-content" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '600px',
+              background: '#FFFFFF',
+              border: '3px solid #7C3AED',
+              borderRadius: '16px'
+            }}
+          >
+            <div className="modal-header" style={{ borderBottom: '3px solid #7C3AED', paddingBottom: '16px' }}>
+              <h2 style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                color: '#5B21B6',
+                fontSize: '24px',
+                fontWeight: '800',
+                letterSpacing: '1px',
+                margin: 0
+              }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                  padding: '8px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ReceiptIcon width={24} height={24} color="#ffffff" />
+                </span>
+                OFFICIAL NUMBER
+              </h2>
+              <button className="close-btn" onClick={closeORModal}>✕</button>
+            </div>
+
+            <div style={{ marginTop: '24px' }}>
+              <p style={{ 
+                color: '#64748B', 
+                fontSize: '14px', 
+                marginBottom: '24px',
+                textAlign: 'center',
+                lineHeight: '1.6'
+              }}>
+                Enter the <strong>FROM</strong> number below. The <strong>TO</strong> number
+                will be auto-generated with exactly <strong style={{ color: '#7C3AED' }}>{OR_BATCH_SIZE} pieces</strong>.
+              </p>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px',
+                marginBottom: '24px'
+              }}>
+                <div className="form-group">
+                  <label style={{ 
+                    display: 'block', 
+                    fontWeight: '700', 
+                    marginBottom: '8px', 
+                    color: '#5B21B6',
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    From <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={orFrom}
+                    onChange={handleORFromChange}
+                    placeholder="e.g., 1299900"
+                    maxLength="10"
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      background: '#F8FAFC',
+                      border: '3px solid #7C3AED',
+                      borderRadius: '12px',
+                      fontFamily: 'JetBrains Mono, Inter, sans-serif',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#5B21B6',
+                      outline: 'none',
+                      letterSpacing: '2px',
+                      textAlign: 'center',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ 
+                    display: 'block', 
+                    fontWeight: '700', 
+                    marginBottom: '8px', 
+                    color: '#5B21B6',
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    To <span style={{ color: '#94A3B8', fontSize: '12px', textTransform: 'none' }}>(auto)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={orTo}
+                    onChange={handleORToChange}
+                    placeholder="Auto-generated"
+                    maxLength="10"
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      background: '#F0FDF4',
+                      border: '3px solid #16A34A',
+                      borderRadius: '12px',
+                      fontFamily: 'JetBrains Mono, Inter, sans-serif',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#166534',
+                      outline: 'none',
+                      letterSpacing: '2px',
+                      textAlign: 'center',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {orFrom && orTo && (
+                <div style={{
+                  padding: '16px 20px',
+                  background: orPreviewCount === OR_BATCH_SIZE 
+                    ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
+                    : 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
+                  border: orPreviewCount === OR_BATCH_SIZE 
+                    ? '2px solid #86EFAC' 
+                    : '2px solid #FECACA',
+                  borderRadius: '12px',
+                  marginBottom: '24px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ 
+                    margin: 0, 
+                    fontSize: '14px', 
+                    color: '#64748B',
+                    fontWeight: '600'
+                  }}>
+                    Total OR Numbers to be generated:
+                  </p>
+                  <p style={{ 
+                    margin: '4px 0 0 0', 
+                    fontSize: '32px', 
+                    fontWeight: '800',
+                    color: orPreviewCount === OR_BATCH_SIZE ? '#16A34A' : '#DC2626',
+                    fontFamily: 'JetBrains Mono, Inter, sans-serif'
+                  }}>
+                    {orPreviewCount} {orPreviewCount === 1 ? 'piece' : 'pieces'}
+                  </p>
+                </div>
+              )}
+
+              <div style={{
+                padding: '12px 16px',
+                background: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: '10px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '18px' }}>🗄️</span>
+                <span style={{
+                  fontSize: '13px',
+                  color: '#1E40AF',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif'
+                }}>
+                  These OR Numbers will be stored in <strong>Server 4</strong> → collection <strong>`or_numbers`</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={closeORModal} 
+                style={{ flex: 1, padding: '14px' }}
+                disabled={orSaving}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSaveORNumbers}
+                disabled={orPreviewCount !== OR_BATCH_SIZE || orSaving}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  fontSize: '15px',
+                  fontWeight: '700',
+                  cursor: (orPreviewCount !== OR_BATCH_SIZE || orSaving) ? 'not-allowed' : 'pointer',
+                  opacity: (orPreviewCount !== OR_BATCH_SIZE || orSaving) ? '0.5' : '1',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                {orSaving ? '⏳ Saving...' : `💾 Save ${OR_BATCH_SIZE} OR Numbers`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SERVER SELECTION MODAL FOR IMPORT */}
       {showServerSelectModal && (
@@ -2092,14 +3020,6 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                       transition: 'all 0.25s ease',
                       boxShadow: `0 6px 20px ${server.color}40`
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                      e.currentTarget.style.boxShadow = `0 12px 30px ${server.color}66`;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                      e.currentTarget.style.boxShadow = `0 6px 20px ${server.color}40`;
-                    }}
                   >
                     <span style={{ fontSize: '30px' }}>🗄️</span>
                     <span style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '0.5px' }}>
@@ -2122,7 +3042,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         </div>
       )}
 
-      {/* CUTOFF PAY MODAL */}
+      {/* CUTOFF PAY MODAL - WITH AUTO OR */}
       {showCutoffPayModal && cutoffBillToPay && (
         <div className="modal-overlay" onClick={() => setShowCutoffPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
@@ -2174,17 +3094,69 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               </div>
 
               <div className="form-group">
-                <label>OR Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  className={`payment-input ${cutoffPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code"
-                  value={cutoffPaymentCode}
-                  onChange={handleCutoffPaymentCodeChange}
-                  maxLength="7"
-                  autoFocus
-                />
-                {cutoffPaymentError && <span className="error-text">{cutoffPaymentError}</span>}
+                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+                {cutoffLoadingOR ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching available OR Number...
+                  </div>
+                ) : cutoffAvailableOR ? (
+                  <>
+                    <input
+                      type="text"
+                      className="payment-input"
+                      value={cutoffPaymentCode}
+                      readOnly
+                      style={{
+                        background: '#F0FDF4',
+                        border: '2px solid #16A34A',
+                        color: '#166534',
+                        cursor: 'not-allowed',
+                        fontWeight: '800'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>✅</span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#166534'
+                      }}>
+                        Auto-assigned from Server 4 → Batch: {cutoffAvailableOR.batchId || 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    color: '#991B1B',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ {cutoffOrFetchError || 'No available OR numbers.'}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2193,7 +3165,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               <button 
                 className="btn btn-primary" 
                 onClick={confirmCutoffPay}
-                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff}
+                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR}
                 style={{
                   flex: 1,
                   background: '#DC2626',
@@ -2204,7 +3176,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff) ? '0.5' : '1'
+                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR) ? '0.5' : '1'
                 }}
               >
                 {isPayingCutoff ? '⏳ Processing...' : '✅ Confirm Payment'}
@@ -2268,7 +3240,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         </div>
       )}
 
-      {/* PAY ALL MODAL */}
+      {/* PAY ALL MODAL - WITH AUTO OR */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
@@ -2325,17 +3297,69 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               </div>
 
               <div className="form-group">
-                <label>OR Number <span className="required">*</span></label>
-                <input
-                  type="text"
-                  className={`payment-input ${payAllPaymentError ? 'error' : ''}`}
-                  placeholder="Enter 7-digit code"
-                  value={payAllPaymentCode}
-                  onChange={handlePayAllPaymentCodeChange}
-                  maxLength="7"
-                  autoFocus
-                />
-                {payAllPaymentError && <span className="error-text">{payAllPaymentError}</span>}
+                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+                {payAllLoadingOR ? (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#F1F5F9',
+                    border: '2px solid #E2E8F0',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ⏳ Fetching available OR Number...
+                  </div>
+                ) : payAllAvailableOR ? (
+                  <>
+                    <input
+                      type="text"
+                      className="payment-input"
+                      value={payAllPaymentCode}
+                      readOnly
+                      style={{
+                        background: '#F0FDF4',
+                        border: '2px solid #16A34A',
+                        color: '#166534',
+                        cursor: 'not-allowed',
+                        fontWeight: '800'
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: '#F0FDF4',
+                      border: '1px solid #86EFAC',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>✅</span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#166534'
+                      }}>
+                        Auto-assigned from Server 4 → Batch: {payAllAvailableOR.batchId || 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '8px',
+                    color: '#991B1B',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    ⚠️ {payAllOrFetchError || 'No available OR numbers.'}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2344,7 +3368,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
               <button 
                 className="btn btn-primary" 
                 onClick={confirmPayAll}
-                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll}
+                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR}
                 style={{
                   flex: 1,
                   background: '#16A34A',
@@ -2355,7 +3379,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll) ? '0.5' : '1'
+                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR) ? '0.5' : '1'
                 }}
               >
                 {isPayingAll ? '⏳ Processing...' : `✅ Pay All (${payAllBills.length} Bills)`}
@@ -2427,7 +3451,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
 
             <div style={{ marginBottom: '20px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px' }}>
-                Select Location, Month, and Year to rollover. Mag-fetch ra sa <strong>{selectedServer === 'all' ? 'tanan servers' : getServerLabel(selectedServer)}</strong>.
+                Select Location, Month, and Year to rollover.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
@@ -2567,9 +3591,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* REGULAR TABLE VIEW - WITH PAGINATION */}
-      {/* ============================================================ */}
+      {/* REGULAR TABLE VIEW */}
       {tableType === 'regular' && (
         <>
           <div className="stats-grid">
@@ -2804,8 +3826,23 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                           <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
                           <td>
                             <div className="admin-action-buttons">
-                              {displayStatus !== 'paid' && (
+                              {displayStatus !== 'paid' ? (
                                 <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
+                              ) : (
+                                <span style={{
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#194752',
+                                  background: '#F1F5F9',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.5px',
+                                  whiteSpace: 'nowrap',
+                                  border: '1px solid #E2E8F0'
+                                }}>
+                                  {bill.paymentCode || '—'}
+                                </span>
                               )}
                               <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
                               <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
@@ -2817,9 +3854,6 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                   </tbody>
                 </table>
 
-                {/* ============================================================ */}
-                {/* PAGINATION CONTROLS - REGULAR TABLE */}
-                {/* ============================================================ */}
                 {filteredBills.length > rowsPerPage && (
                   <div className="pagination-container" style={{
                     display: 'flex',
@@ -2956,9 +3990,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         </>
       )}
 
-      {/* ============================================================ */}
-      {/* CUT-OFF TABLE VIEW - WITH PAGINATION */}
-      {/* ============================================================ */}
+      {/* CUT-OFF TABLE VIEW */}
       {tableType === 'cutoff' && (
         <>
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -3010,18 +4042,6 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                   borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite'
                 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <p style={{ color: currentServerConfig?.color || '#194752', fontSize: '18px', fontWeight: '700', fontFamily: 'Inter, sans-serif', margin: 0, letterSpacing: '0.5px' }}>
-                    LOADING SERVER
-                  </p>
-                  <p style={{ color: '#64748B', fontSize: '14px', fontWeight: '500', fontFamily: 'Inter, sans-serif', margin: 0 }}>
-                    Fetching cut-off accounts from{' '}
-                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
-                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
-                    </span>
-                    ...
-                  </p>
-                </div>
               </div>
             ) : filteredBills.length === 0 ? (
               <div className="empty-state"><p>No cut-off accounts found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p></div>
@@ -3082,6 +4102,22 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                               {!isPaid && (
                                 <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>PAY</button>
                               )}
+                              {isPaid && bill.paymentCode && (
+                                <span style={{
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#194752',
+                                  background: '#F1F5F9',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.5px',
+                                  whiteSpace: 'nowrap',
+                                  border: '1px solid #E2E8F0'
+                                }}>
+                                  {bill.paymentCode}
+                                </span>
+                              )}
                               <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
                               <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
                             </div>
@@ -3091,140 +4127,6 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
                     })}
                   </tbody>
                 </table>
-
-                {/* ============================================================ */}
-                {/* PAGINATION CONTROLS - CUT-OFF TABLE */}
-                {/* ============================================================ */}
-                {filteredBills.length > rowsPerPage && (
-                  <div className="pagination-container" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 20px',
-                    borderTop: '1px solid #E2E8F0',
-                    background: '#F8FAFC',
-                    borderRadius: '0 0 12px 12px',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
-                      {getPaginationInfo()}
-                    </div>
-
-                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
-                        Previous
-                      </button>
-
-                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {(() => {
-                          const pages = [];
-                          const total = totalPages;
-                          const current = currentPage;
-                          
-                          if (total <= 7) {
-                            for (let i = 1; i <= total; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (current > 3) pages.push('...');
-                            const start = Math.max(2, current - 1);
-                            const end = Math.min(total - 1, current + 1);
-                            for (let i = start; i <= end; i++) pages.push(i);
-                            if (current < total - 2) pages.push('...');
-                            pages.push(total);
-                          }
-                          
-                          return pages.map((page, index) => {
-                            if (page === '...') {
-                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
-                            }
-                            
-                            const isActive = page === current;
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                style={{
-                                  padding: '8px 14px',
-                                  borderRadius: '8px',
-                                  border: isActive ? '2px solid #DC2626' : '1px solid #E2E8F0',
-                                  background: isActive ? '#DC2626' : '#FFFFFF',
-                                  color: isActive ? '#FFFFFF' : '#0F172A',
-                                  cursor: 'pointer',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: isActive ? '600' : '500',
-                                  minWidth: '40px'
-                                }}
-                              >
-                                {page}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Next
-                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
-                      </button>
-                    </div>
-
-                    <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
-                      <span>Rows:</span>
-                      <select
-                        value={rowsPerPage}
-                        onChange={(e) => toast.info('Rows per page is fixed at 10')}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid #E2E8F0',
-                          background: '#FFFFFF',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="10">10</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -3244,7 +4146,7 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
         </div>
       )}
 
-      {/* Pay Modal */}
+      {/* PAY MODAL - SINGLE BILL WITH AUTO OR */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -3282,25 +4184,89 @@ newBillData.billNumber = billData.billNumber || `${nextYear}-${String(i + 1).pad
             </div>
 
             <div className="form-group">
-              <label>OR Number <span className="required">*</span></label>
-              <input
-                type="text"
-                className={`payment-input ${paymentError ? 'error' : ''}`}
-                placeholder="Enter 7-digit code"
-                value={paymentCode}
-                onChange={handlePaymentCodeChange}
-                maxLength="7"
-                autoFocus
-              />
-              {paymentError && <span className="error-text">{paymentError}</span>}
+              <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
+              {loadingOR ? (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#F1F5F9',
+                  border: '2px solid #E2E8F0',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  color: '#64748B',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ⏳ Fetching available OR Number...
+                </div>
+              ) : availableOR ? (
+                <>
+                  <input
+                    type="text"
+                    className="payment-input"
+                    value={paymentCode}
+                    readOnly
+                    style={{
+                      background: '#F0FDF4',
+                      border: '2px solid #16A34A',
+                      color: '#166534',
+                      cursor: 'not-allowed',
+                      fontWeight: '800'
+                    }}
+                  />
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: '#F0FDF4',
+                    border: '1px solid #86EFAC',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>✅</span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#166534'
+                    }}>
+                      Auto-assigned from Server 4 → Batch: {availableOR.batchId || 'N/A'}
+                    </span>
+                  </div>
+                </>
+              ) : orFetchError ? (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#FEF2F2',
+                  border: '2px solid #FECACA',
+                  borderRadius: '8px',
+                  color: '#991B1B',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}>
+                  ⚠️ {orFetchError}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#FEF2F2',
+                  border: '2px solid #FECACA',
+                  borderRadius: '8px',
+                  color: '#991B1B',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}>
+                  ⚠️ No available OR numbers.
+                </div>
+              )}
             </div>
 
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
               <button 
-                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7) ? 'disabled' : ''}`}
+                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7 || !availableOR) ? 'disabled' : ''}`}
                 onClick={confirmPayBill}
-                disabled={!paymentCode || paymentCode.length !== 7 || isPaying}
+                disabled={!paymentCode || paymentCode.length !== 7 || isPaying || !availableOR}
               >
                 {isPaying ? 'Processing...' : 'Confirm Payment'}
               </button>
