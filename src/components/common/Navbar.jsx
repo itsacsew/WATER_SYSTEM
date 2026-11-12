@@ -52,28 +52,21 @@ const Navbar = () => {
     setIsMobileOpen(false);
   };
 
-  // Check if user is admin
   const isAdmin = userData?.role === 'admin';
 
-  // ============================================================
-  // NAV ITEMS - BASED ON USER ROLE
-  // ============================================================
   let navItems = [];
 
   if (isAdmin) {
-    // Admin sees: Admin, Users, Profile
     navItems = [
-      { path: '/admin', label: 'DASHBOARD' },
-      { path: '/users', label: 'USERS' },
-       { path: '/paid', label: 'PAID' },
-      { path: '/profile', label: 'PROFILE' },
+      { path: '/admin', label: 'Dashboard' },
+      { path: '/users', label: 'Users' },
+      { path: '/paid', label: 'Paid' },
+      { path: '/profile', label: 'Profile' },
     ];
   } else {
-    // Regular users see: Dashboard, Bill History, Profile
     navItems = [
-      { path: '/dashboard', label: 'DASHBOARD' },
-      
-      { path: '/profile', label: 'PROFILE' },
+      { path: '/dashboard', label: 'Dashboard' },
+      { path: '/profile', label: 'Profile' },
     ];
   }
 
@@ -81,14 +74,14 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="nav-container">
         {/* Brand */}
-        <Link 
-          to={isAdmin ? "/admin" : "/dashboard"} 
-          className="nav-brand" 
+        <Link
+          to={isAdmin ? '/admin' : '/dashboard'}
+          className="nav-brand"
           onClick={closeMobileMenu}
         >
-          <img 
-            src={logo} 
-            alt="Municipality of Liloan Official Seal" 
+          <img
+            src={logo}
+            alt="Municipality of Liloan Official Seal"
             className="auth-logo-img1"
             onError={(e) => {
               e.target.onerror = null;
@@ -97,7 +90,7 @@ const Navbar = () => {
           />
           <div className="nav-brand-text">
             <span className="nav-brand-name">WATERBILL</span>
-            <span className="nav-brand-sub">Management System</span>
+            <span className="nav-brand-sub">MANAGEMENT SYSTEM</span>
           </div>
         </Link>
 
@@ -115,15 +108,7 @@ const Navbar = () => {
               className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
               onClick={closeMobileMenu}
             >
-              <span className="nav-link-icon">{item.icon}</span>
               {item.label}
-              {/* Show badge for ADMIN link */}
-              {item.path === '/admin' && isAdmin && (
-                <span></span>
-              )}
-              {item.path === '/users' && isAdmin && (
-                <span></span>
-              )}
             </Link>
           ))}
         </div>
@@ -143,7 +128,6 @@ const Navbar = () => {
               </span>
               <span className="nav-user-role">
                 {getRoleLabel(userData?.role)}
-                {isAdmin && ' '}
               </span>
             </div>
           </div>

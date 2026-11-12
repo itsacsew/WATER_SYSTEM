@@ -41,50 +41,76 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: linear-gradient(145deg, #010030 20%, #0b0b5f 40%, #010030 80%);
-  color: #1a1a2e;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html, body {
+  width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-#root {
-  min-height: 100vh;
-  background: linear-gradient(145deg, #010030 20%, #194752 40%, #1e5664 60%, #010030 80%);
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: #F8FAFC;
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Main content adjustment for Navbar */
+#root {
+  min-height: 100vh;
+  width: 100%;
+  background: #F8FAFC;
+}
+
+.App {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ============================================================
+   NAVBAR LAYOUT (Full width, no side margins)
+   ============================================================ */
+.navbar-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ============================================================
+   MAIN CONTENT (Full Page — edge to edge)
+   ============================================================ */
 .main-content-navbar {
-  min-height: calc(100vh - 72px);
-  padding: 28px 36px;
-  
+  flex: 1;
+  width: 100%;
+  padding: 0;
+  margin: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scrollbar Styling */
+/* ============================================================
+   SCROLLBAR STYLING
+   ============================================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #715A5A;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #37353E;
+  background: #94A3B8;
 }
 
-/* Loading Spinner */
+/* ============================================================
+   LOADING SPINNER (Shared)
+   ============================================================ */
 .loading-spinner {
   display: flex;
   flex-direction: column;
@@ -93,21 +119,23 @@ body {
   min-height: 300px;
 }
 
-/* Responsive */
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 @media (max-width: 1024px) {
   .main-content-navbar {
-    padding: 24px 28px;
+    padding: 0;
   }
 }
 
 @media (max-width: 768px) {
   .main-content-navbar {
-    padding: 80px 16px 16px 16px;
+    padding: 0;
   }
 }
 
 @media (max-width: 480px) {
   .main-content-navbar {
-    padding: 76px 12px 12px 12px;
+    padding: 0;
   }
 }

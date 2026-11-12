@@ -1,143 +1,97 @@
 // src/components/admin/Users.jsx
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, where, doc, writeBatch, deleteDoc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
-import { db, db2, db3, db4, db5, getDbByServer, getServerLabel, getServerColor, SERVER_CONFIGS } from '../../firebase/config';
+import { collection, getDocs, query, orderBy, where, doc, writeBatch, setDoc } from 'firebase/firestore';
+import { db, getDbByServer, getServerLabel, SERVER_CONFIGS } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import './AdminStyles.css';
 import './Users.css';
 
 // ============================================================
-// HARD-CODED SVG ICONS
+// ICONS
 // ============================================================
-
-const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <circle cx="12" cy="7" r="4" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const UserIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <circle cx="12" cy="7" r="4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
-
-const UserCheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <circle cx="12" cy="7" r="4" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M16.5 10.5L19.5 13L24 8" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const PesoIcon = ({ size = 14, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M7 15V4C7 3.44772 7.44772 3 8 3H12C15.3137 3 18 5.68629 18 9C18 12.3137 15.3137 15 12 15H7Z" stroke={color} strokeWidth="1.5"/>
+    <path d="M4 7H20M4 11H20M7 15V21" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
-
-const UserXIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <circle cx="12" cy="7" r="4" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15 16L17.5 18.5M17.5 18.5L20 21M17.5 18.5L20 16M17.5 18.5L15 21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const ImportIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M12 3V15M12 15L7 10M12 15L17 10" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
-
-const CalendarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"#194752"} fill={"none"}>
-    <path d="M15.5 2V6M7.5 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M20.3985 8C20.2706 6.69989 19.9816 5.82475 19.3284 5.17157C18.1569 4 16.2712 4 12.5 4H10.5C6.72876 4 4.84315 4 3.67157 5.17157C2.5 6.34315 2.5 8.22876 2.5 12V14C2.5 17.7712 2.5 19.6569 3.67157 20.8284C4.47975 21.6366 5.6277 21.8873 7.5 21.965" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M2.5 10H7.5" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const ExportIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M12 15V3M12 3L7 8M12 3L17 8" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
-
-const PhilippinePesoIconSmall = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"#194752"} fill={"none"}>
-    <path d="M7 15V4C7 3.44772 7.44772 3 8 3H12C15.3137 3 18 5.68629 18 9C18 12.3137 15.3137 15 12 15H7Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M4 7H20" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M4 11H20" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7 15V21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const PrinterIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M6 9V3H18V9" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M6 18H4C2.89543 18 2 17.1046 2 16V11C2 9.89543 2.89543 9 4 9H20C21.1046 9 22 9.89543 22 11V16C22 17.1046 21.1046 18 20 18H18" stroke={color} strokeWidth="1.8"/>
+    <rect x="6" y="14" width="12" height="8" stroke={color} strokeWidth="1.8"/>
   </svg>
 );
-
-const ImportIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"currentColor"} fill={"none"}>
-    <path d="M12 3V12M12 12L9.5 9.5M12 12L14.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M5 17.5C3.5 16.5 2 14.5 2 12C2 7.02944 6.02944 3 11 3C15.9706 3 20 7.02944 20 12C20 14.5 18.5 16.5 17 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 21V13M12 21L9.5 18.5M12 21L14.5 18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const AddUserIcon = ({ size = 18, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <circle cx="9" cy="7" r="4" stroke={color} strokeWidth="1.5"/>
+    <path d="M9 14C4.5 14 2 16.5 2 19C2 20.1046 2.89543 21 4 21H14" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M19 14V22M15 18H23" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
-
-const ExportIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} color={"currentColor"} fill={"none"}>
-    <path d="M12 21V12M12 12L9.5 14.5M12 12L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M5 6.5C3.5 7.5 2 9.5 2 12C2 16.9706 6.02944 21 11 21C15.9706 21 20 16.9706 20 12C20 9.5 18.5 7.5 17 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 3V11M12 11L9.5 8.5M12 11L14.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const ServerIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <rect x="2" y="3" width="20" height="7" rx="1.5" stroke={color} strokeWidth="1.5"/>
+    <rect x="2" y="14" width="20" height="7" rx="1.5" stroke={color} strokeWidth="1.5"/>
+    <circle cx="6" cy="6.5" r="1" fill={color}/>
+    <circle cx="6" cy="17.5" r="1" fill={color}/>
   </svg>
 );
-
-const LocationIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <path d="M14.5 9C14.5 10.3807 13.3807 11.5 12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9Z" stroke="#194752" strokeWidth="1.5"/>
-    <path d="M18.2222 17C19.6167 18.9885 20.2838 20.0475 19.8865 20.8999C19.8466 20.9854 19.7999 21.0679 19.7469 21.1467C19.1724 22 17.6875 22 14.7178 22H9.28223C6.31251 22 4.82765 22 4.25311 21.1467C4.20005 21.0679 4.15339 20.9854 4.11355 20.8999C3.71619 20.0475 4.38326 18.9885 5.77778 17" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 17.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="#194752" strokeWidth="1.5"/>
+const EyeIcon = ({ size = 18, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M2 12C2 12 6 5 12 5C18 5 22 12 22 12C22 12 18 19 12 19C6 19 2 12 2 12Z" stroke={color} strokeWidth="1.5"/>
+    <circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.5"/>
   </svg>
 );
-
-const MonthIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const EyeOffIcon = ({ size = 18, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M2 2L22 22" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M6.7 6.7C3.8 8.4 2 12 2 12C2 12 6 19 12 19C14.2 19 16.1 18.2 17.6 17.1" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M10 10C9.4 10.6 9 11.3 9 12C9 13.7 10.3 15 12 15C12.7 15 13.4 14.6 14 14" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M20.3 15C21.5 13.2 22 12 22 12C22 12 18 5 12 5C11.5 5 11 5.1 10.5 5.2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
-
-const YearIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#194752"} fill={"none"}>
-    <path d="M16 2V6M8 2V6" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 10H21" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M8 15L10 17.5L16 14" stroke="#194752" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const SearchIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <circle cx="11" cy="11" r="7" stroke={color} strokeWidth="1.8"/>
+    <path d="M20 20L17 17" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
-
-const AddUserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"}>
-    <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 14C7 14 4 16.5 4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19C20 16.5 17 14 12 14Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M19 12V17M16.5 14.5H21.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const ServerIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
-    <rect x="2" y="3" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-    <rect x="2" y="14" width="20" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
-    <circle cx="6" cy="6.5" r="1" fill="currentColor"/>
-    <circle cx="6" cy="17.5" r="1" fill="currentColor"/>
-    <circle cx="10" cy="6.5" r="1" fill="currentColor"/>
-    <circle cx="10" cy="17.5" r="1" fill="currentColor"/>
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
-    <path d="M2 8C2 8 6.47715 3 12 3C17.5228 3 22 8 22 8" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M21.544 13.045C21.848 13.4713 22 13.6845 22 14C22 14.3155 21.848 14.5287 21.544 14.955C20.1779 16.8706 16.6892 21 12 21C7.31078 21 3.8221 16.8706 2.45604 14.955C2.15201 14.5287 2 14.3155 2 14C2 13.6845 2.15201 13.4713 2.45604 13.045C3.8221 11.1294 7.31078 7 12 7C16.6892 7 20.1779 11.1294 21.544 13.045Z" stroke="#a0aec0" strokeWidth="1.5"/>
-    <path d="M15 14C15 12.3431 13.6569 11 12 11C10.3431 11 9 12.3431 9 14C9 15.6569 10.3431 17 12 17C13.6569 17 15 15.6569 15 14Z" stroke="#a0aec0" strokeWidth="1.5"/>
-  </svg>
-);
-
-const EyeOffIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"#a0aec0"} fill={"none"}>
-    <path d="M6.43385 6.51953C4.22009 7.89049 2.93281 9.86457 2.31858 11.0339C2.10621 11.4382 2.00003 11.6403 2 12.0082C1.99997 12.3761 2.10584 12.5777 2.3176 12.981C3.32862 14.9066 6.16702 19.0195 11.9669 19.0195C14.2454 19.0195 16.0669 18.3848 17.5 17.4972" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9.87868 9.87868C9.33579 10.4216 9 11.1716 9 12C9 13.6569 10.3431 15 12 15C12.8284 15 13.5784 14.6642 14.1213 14.1213" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M2 2L22 22" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M10 5.14847C10.5934 5.05255 11.224 5 11.8936 5C17.7747 5 20.6528 9.05385 21.6779 10.9517C21.8927 11.3492 22 11.548 22 11.9106C22 12.2733 21.8921 12.4727 21.6765 12.8717C21.3678 13.4428 20.8916 14.2085 20.2167 15" stroke="#a0aec0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+const RefreshIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={size} height={size} fill="none">
+    <path d="M20 11C20 6.6 16.4 3 12 3C8.7 3 5.8 5 4.5 7.9M4 4V8H8" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 13C4 17.4 7.6 21 12 21C15.3 21 18.2 19 19.5 16.1M20 20V16H16" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 // ============================================================
-// USERS COMPONENT
+// MONTH ORDER
 // ============================================================
+const MONTH_ORDER = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 
-const MONTH_ORDER = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-                     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const Users = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
@@ -148,19 +102,18 @@ const Users = () => {
   const [billsCount, setBillsCount] = useState({});
   const [paidBillsCount, setPaidBillsCount] = useState({});
 
-  // ========== SERVER SELECTION STATE ==========
   const [selectedServer, setSelectedServer] = useState('server1');
   const [serverBills, setServerBills] = useState([]);
   const [serverBillsLoading, setServerBillsLoading] = useState(false);
+  // ✅ Track which server button is loading (to show spinner only on clicked button)
+  const [loadingServerKey, setLoadingServerKey] = useState(null);
 
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    adminCount: 0,
-    userCount: 0,
-    staffCount: 0
-  });
+  const [stats, setStats] = useState({ totalUsers: 0, adminCount: 0, userCount: 0, staffCount: 0 });
 
-  // ========== IMPORT MODAL STATE ==========
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMonth, setPrintMonth] = useState('');
+  const [printYear, setPrintYear] = useState('');
+
   const [showImportModal, setShowImportModal] = useState(false);
   const [importServer, setImportServer] = useState('server1');
   const [importMonth, setImportMonth] = useState('');
@@ -170,893 +123,430 @@ const Users = () => {
   const [availableImportMonths, setAvailableImportMonths] = useState([]);
   const [availableImportYears, setAvailableImportYears] = useState([]);
   const [importLoading, setImportLoading] = useState(false);
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
-  const [showImportProgress, setShowImportProgress] = useState(false);
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [showImportPreview, setShowImportPreview] = useState(false);
   const [importOptionsLoading, setImportOptionsLoading] = useState(false);
 
-  // ========== EXPORT/REPLACE MODAL STATE ==========
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportServer, setExportServer] = useState('server1'); // ✅ Set by button
+  const [exportServer, setExportServer] = useState('server1');
   const [exportMonth, setExportMonth] = useState('');
   const [exportLocation, setExportLocation] = useState('');
   const [availableExportLocations, setAvailableExportLocations] = useState([]);
   const [availableExportMonths, setAvailableExportMonths] = useState([]);
   const [exportLoading, setExportLoading] = useState(false);
-  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
-  const [showExportProgress, setShowExportProgress] = useState(false);
   const [exportPreviewData, setExportPreviewData] = useState([]);
   const [showExportPreview, setShowExportPreview] = useState(false);
-  const [exportOptionsLoading, setExportOptionsLoading] = useState(false); // ✅ NEW
+  const [exportOptionsLoading, setExportOptionsLoading] = useState(false);
 
-  // ========== ADD USER MODAL STATE ==========
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [addUserLoading, setAddUserLoading] = useState(false);
-  const [addUserForm, setAddUserForm] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'user'
-  });
+  const [addUserForm, setAddUserForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', role: 'user' });
   const [addUserErrors, setAddUserErrors] = useState({});
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [showAddConfirmPassword, setShowAddConfirmPassword] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchServerBills(selectedServer); }, [selectedServer]);
+  useEffect(() => { filterUsers(); }, [users, searchTerm, filterRole]);
 
-  // ✅ Re-fetch server-specific bills inig change sa selectedServer
-  useEffect(() => {
-    fetchServerBills(selectedServer);
-  }, [selectedServer]);
-
-  useEffect(() => {
-    filterUsers();
-  }, [users, searchTerm, filterRole]);
-
-  // ============================================================
-  // ✅ COMPUTE COUNTS BASE SA SERVER-SPECIFIC BILLS
-  // ============================================================
   useEffect(() => {
     if (users.length > 0) {
       const countMap = {};
       const paidMap = {};
-
       users.forEach(u => {
         const userBills = serverBills.filter(bill => bill.userId === u.uid);
         countMap[u.uid] = userBills.length;
         paidMap[u.uid] = userBills.filter(bill => bill.status === 'paid').length;
       });
-
       setBillsCount(countMap);
       setPaidBillsCount(paidMap);
     }
   }, [serverBills, users]);
 
-  // ============================================================
-  // ✅ FETCH SERVER-SPECIFIC BILLS
-  // ============================================================
+  // ✅ UPDATED: Accepts a serverKey so we know which button to show spinner on
   const fetchServerBills = async (serverKey) => {
     setServerBillsLoading(true);
+    setLoadingServerKey(serverKey);
     try {
       const targetDb = getDbByServer(serverKey);
-      const billsRef = collection(targetDb, 'bills');
-      const querySnapshot = await getDocs(billsRef);
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
-      setServerBills(billsData);
-      console.log(`✅ Loaded ${billsData.length} bills from ${getServerLabel(serverKey)}`);
-    } catch (error) {
-      console.error(`Error loading bills from ${getServerLabel(serverKey)}:`, error);
+      const snap = await getDocs(collection(targetDb, 'bills'));
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setServerBills(data);
+    } catch (e) {
+      console.error(e);
       setServerBills([]);
     }
     setServerBillsLoading(false);
+    setLoadingServerKey(null);
   };
 
-  // ============================================================
-  // ✅ EXTRACT FILTER OPTIONS PER SERVER (for import)
-  // ============================================================
-  const extractImportOptionsFromBills = (billsData) => {
-    const locations = new Set();
-    const months = new Set();
-    const years = new Set();
-
-    billsData.forEach((bill) => {
-      if (bill.location && bill.location !== 'N/A') locations.add(bill.location);
-      if (bill.month && bill.month !== 'N/A') months.add(bill.month);
-      if (bill.year && bill.year !== 'N/A') years.add(bill.year.toString());
-    });
-
-    return {
-      locations: Array.from(locations).sort(),
-      months: Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)),
-      years: Array.from(years).sort((a, b) => Number(b) - Number(a)),
-    };
-  };
-
-  // ============================================================
-  // ✅ EXTRACT FILTER OPTIONS PER SERVER (for export/replace)
-  // ============================================================
-  const extractExportOptionsFromImport = (importData) => {
-    const locations = new Set();
-    const months = new Set();
-
-    importData.forEach((item) => {
-      if (item.location && item.location !== 'N/A') locations.add(item.location);
-      if (item.month && item.month !== 'N/A') months.add(item.month);
-    });
-
-    return {
-      locations: Array.from(locations).sort(),
-      months: Array.from(months).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)),
-    };
-  };
-
-  // ============================================================
-  // ✅ HANDLE SERVER BUTTON CLICK (load data)
-  // ============================================================
-  const handleServerClick = (serverKey) => {
-    setSelectedServer(serverKey);
-    toast.success(`Loading data from ${getServerLabel(serverKey)}...`, {
-      icon: '🗄️',
-      duration: 2000,
-      style: {
-        background: SERVER_CONFIGS.find(s => s.key === serverKey)?.color + '15',
-        color: SERVER_CONFIGS.find(s => s.key === serverKey)?.color,
-        border: `1px solid ${SERVER_CONFIGS.find(s => s.key === serverKey)?.color}`
-      }
-    });
-  };
-
-  // ============================================================
-  // FETCH USERS
-  // ============================================================
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const usersData = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ id: doc.id, ...doc.data() });
+      const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
+      const data = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      setUsers(data);
+      setFilteredUsers(data);
+      setStats({
+        totalUsers: data.length,
+        adminCount: data.filter(u => u.role === 'admin').length,
+        userCount: data.filter(u => u.role === 'user' || !u.role).length,
+        staffCount: data.filter(u => u.role === 'staff').length,
       });
-
-      setUsers(usersData);
-      setFilteredUsers(usersData);
-
-      const totalUsers = usersData.length;
-      const adminCount = usersData.filter(u => u.role === 'admin').length;
-      const userCount = usersData.filter(u => u.role === 'user' || !u.role).length;
-      const staffCount = usersData.filter(u => u.role === 'staff').length;
-
-      setStats({ totalUsers, adminCount, userCount, staffCount });
-    } catch (error) {
-      console.error('Error fetching users:', error);
+    } catch (e) {
+      console.error(e);
       toast.error('Error loading users');
     }
     setLoading(false);
   };
 
   const filterUsers = () => {
-    let filtered = [...users];
-
+    let f = [...users];
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(user =>
-        user.displayName?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term)
-      );
+      const t = searchTerm.toLowerCase();
+      f = f.filter(u => u.displayName?.toLowerCase().includes(t) || u.email?.toLowerCase().includes(t));
     }
-
-    if (filterRole !== 'all') {
-      filtered = filtered.filter(user =>
-        (user.role || 'user') === filterRole
-      );
-    }
-
-    setFilteredUsers(filtered);
+    if (filterRole !== 'all') f = f.filter(u => (u.role || 'user') === filterRole);
+    setFilteredUsers(f);
   };
 
-  // ============================================================
-  // ADD USER FUNCTIONS
-  // ============================================================
-  const openAddUserModal = () => {
-    setAddUserForm({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      role: 'user'
+  const handleServerClick = (key) => {
+    if (key === selectedServer) return; // already selected
+    setSelectedServer(key);
+  };
+
+  // ============ PRINT ============
+  const getAvailablePrintMonths = () => {
+    const s = new Set();
+    serverBills.forEach(b => { if (b.month && b.month !== 'N/A') s.add(String(b.month).toUpperCase()); });
+    return Array.from(s).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+  };
+  const getAvailablePrintYears = () => {
+    const s = new Set();
+    serverBills.forEach(b => { if (b.year && b.year !== 'N/A') s.add(String(b.year)); });
+    return Array.from(s).sort((a, b) => Number(b) - Number(a));
+  };
+
+  const openPrintModal = () => {
+    if (serverBills.length === 0) { toast.error(`No bills to print!`); return; }
+    setPrintMonth(''); setPrintYear(''); setShowPrintModal(true);
+  };
+
+  const handleConfirmPrint = () => {
+    if (!printMonth || !printYear) { toast.error('Please select Month and Year'); return; }
+    const filtered = serverBills.filter(b =>
+      String(b.month || '').toUpperCase() === printMonth.toUpperCase() &&
+      String(b.year || '') === String(printYear)
+    );
+    if (filtered.length === 0) { toast.error('No bills found'); return; }
+
+    const isDef = (r) => { if (!r && r !== 0) return false; const s = String(r).toUpperCase().trim(); return s === 'DEFECTIVE' || s === 'D' || s === 'DEF' || s.includes('DEFECTIVE'); };
+    const isNA = (r) => { if (!r && r !== 0) return false; const s = String(r).toUpperCase().trim(); return s === 'N/A' || s === 'NA' || s === 'NULL' || s === '-'; };
+    const isCut = (b) => {
+      const s = String(b.status || '').toUpperCase().trim();
+      if (s === 'CUTOFF' || s === 'CUT-OFF' || s === 'CUT OFF') return true;
+      return isNA(b.presentReading) && isNA(b.previousReading);
+    };
+    const fmtD = (d) => { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return d; } };
+
+    const sorted = [...filtered].sort((a, b) => (parseInt(String(a.billNumber||'0').replace(/\D/g,''),10)||0) - (parseInt(String(b.billNumber||'0').replace(/\D/g,''),10)||0));
+
+    const rows = sorted.map((b, i) => {
+      const c = isCut(b);
+      const pD = isDef(b.presentReading);
+      const vD = isDef(b.previousReading);
+      return `<tr style="background:${i%2?'#F8FAFC':'#FFF'}">
+        <td style="padding:8px;border:1px solid #CBD5E1;font-weight:600">${i+1}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;font-weight:bold;white-space:nowrap">${b.billNumber||'N/A'}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1">${b.consumerName||'N/A'}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;text-align:center;color:${pD?'#DC2626':'#000'}">${c?'N/A':(pD?'DEFECTIVE':(b.presentReading??'0'))}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;text-align:center;color:${vD?'#DC2626':'#000'}">${c?'N/A':(vD?'DEFECTIVE':(b.previousReading??'0'))}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;text-align:center;font-weight:bold;background:#F0FDF4">${c?'N/A':(b.consumption??'0')}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;text-align:center;font-family:monospace;font-weight:bold">${b.paymentCode||'—'}</td>
+        <td style="padding:8px;border:1px solid #CBD5E1;text-align:center;font-size:11px">${b.paidAt?fmtD(b.paidAt):'—'}</td>
+      </tr>`;
+    }).join('');
+
+    const locSet = new Set();
+    filtered.forEach(b => { if (b.location && b.location !== 'N/A') locSet.add(String(b.location).trim()); });
+    const locDisplay = locSet.size ? Array.from(locSet).sort().join(', ') : 'N/A';
+    const paidCount = sorted.filter(b => b.status === 'paid').length;
+
+    const html = `<!DOCTYPE html><html><head><title>Bills Report</title>
+    <style>* { margin:0; padding:0; box-sizing:border-box; } @page { size:A4 landscape; margin:10mm; }
+    body { font-family:'Times New Roman',serif; padding:20px; color:#000; }
+    .container { max-width:1200px; margin:0 auto; }
+    .header { text-align:center; padding-bottom:14px; border-bottom:3px double #000; margin-bottom:20px; }
+    .header h1 { font-size:25px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; }
+    .header .municipality { font-size:17px; font-style:italic; margin:4px 0 8px; }
+    .header h2 { font-size:20px; font-weight:bold; letter-spacing:3px; text-transform:uppercase; }
+    .header .meta-line { font-size:19px; font-weight:bold; letter-spacing:1.5px; margin-top:6px; }
+    .header .location-line { font-size:18px; font-weight:bold; letter-spacing:1px; margin-top:4px; text-transform:uppercase; }
+    .header .info { font-size:16px; margin-top:8px; font-style:italic; }
+    table { width:100%; border-collapse:collapse; font-size:16px; }
+    thead th { padding:10px 8px; text-align:left; font-weight:bold; text-transform:uppercase; border:2px solid #000; white-space:nowrap; }
+    .summary { margin-top:20px; padding-top:14px; border-top:2px solid #000; display:flex; justify-content:space-between; font-size:17px; font-weight:bold; text-transform:uppercase; letter-spacing:1px; }
+    .footer { margin-top:30px; padding-top:16px; border-top:1px dashed #94A3B8; text-align:center; font-size:15px; font-style:italic; }
+    .controls { text-align:center; padding:16px; background:#f8fafc; border-bottom:1px solid #e2e8f0; margin-bottom:20px; }
+    .controls button { padding:10px 28px; margin:0 6px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+    .print-btn { background:#111827; color:white; } .close-btn { background:#e2e8f0; color:#1e293b; }
+    @media print { .controls { display:none; } body { padding:0; } }
+    </style></head><body>
+    <div class="controls"><button class="print-btn" onclick="window.print()">🖨️ Print</button><button class="close-btn" onclick="window.close()">Close</button></div>
+    <div class="container"><div class="header">
+    <h1>LGU LILOAN WATER SYSTEM</h1><p class="municipality">Municipality of Liloan, Southern Leyte</p>
+    <h2>BILLS REPORT — ${getServerLabel(selectedServer).toUpperCase()}</h2>
+    <div class="meta-line">MONTH: ${printMonth} | YEAR: ${printYear}</div>
+    <div class="location-line">LOCATION: ${locDisplay}</div>
+    <p class="info">Generated: ${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})} | Total Records: ${sorted.length}</p></div>
+    <table><thead><tr><th>#</th><th>WSIN</th><th>Consumer Name</th><th style="text-align:center">Present Reading</th><th style="text-align:center">Previous Reading</th><th style="text-align:center">Consumption (m³)</th><th style="text-align:center">OR Number</th><th style="text-align:center">Date Paid</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="summary"><div>Total Records: ${sorted.length}</div><div>Paid: ${paidCount}</div><div>Unpaid: ${sorted.length-paidCount}</div></div>
+    <div class="footer">This is a system-generated report. No signature required.</div></div>
+    <script>setTimeout(()=>window.print(),500);</script></body></html>`;
+
+    const w = window.open('', '_blank', 'width=1400,height=900');
+    if (!w) { toast.error('Please allow popups'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    toast.success(`🖨️ Print preview opened!`);
+    setShowPrintModal(false);
+  };
+
+  // ============ IMPORT / EXPORT ============
+  const extractImportOptions = (data) => {
+    const l = new Set(), m = new Set(), y = new Set();
+    data.forEach(b => {
+      if (b.location && b.location !== 'N/A') l.add(b.location);
+      if (b.month && b.month !== 'N/A') m.add(b.month);
+      if (b.year && b.year !== 'N/A') y.add(b.year.toString());
     });
-    setAddUserErrors({});
-    setShowAddPassword(false);
-    setShowAddConfirmPassword(false);
-    setIsPasswordFocused(false);
-    setShowAddUserModal(true);
+    return { locations: Array.from(l).sort(), months: Array.from(m).sort((a,b)=>MONTH_ORDER.indexOf(a)-MONTH_ORDER.indexOf(b)), years: Array.from(y).sort((a,b)=>Number(b)-Number(a)) };
+  };
+  const extractExportOptions = (data) => {
+    const l = new Set(), m = new Set();
+    data.forEach(i => { if (i.location && i.location !== 'N/A') l.add(i.location); if (i.month && i.month !== 'N/A') m.add(i.month); });
+    return { locations: Array.from(l).sort(), months: Array.from(m).sort((a,b)=>MONTH_ORDER.indexOf(a)-MONTH_ORDER.indexOf(b)) };
   };
 
-  const closeAddUserModal = () => {
-    setShowAddUserModal(false);
-    setAddUserForm({
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      role: 'user'
-    });
-    setAddUserErrors({});
-    setShowAddPassword(false);
-    setShowAddConfirmPassword(false);
-    setIsPasswordFocused(false);
-  };
-
-  const validateAddUserForm = () => {
-    const errors = {};
-
-    if (!addUserForm.fullName.trim()) {
-      errors.fullName = 'Full name is required';
-    }
-
-    if (!addUserForm.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(addUserForm.email)) {
-      errors.email = 'Invalid email address';
-    }
-
-    if (!addUserForm.password) {
-      errors.password = 'Password is required';
-    } else if (addUserForm.password.length < 14) {
-      errors.password = 'Password must be at least 14 characters';
-    } else if (!/[a-z]/.test(addUserForm.password)) {
-      errors.password = 'Must contain at least one lowercase letter';
-    } else if (!/[A-Z]/.test(addUserForm.password)) {
-      errors.password = 'Must contain at least one uppercase letter';
-    } else if (!/[0-9]/.test(addUserForm.password)) {
-      errors.password = 'Must contain at least one number';
-    }
-
-    if (!addUserForm.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
-    } else if (addUserForm.password !== addUserForm.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-
-    setAddUserErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleAddUserSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateAddUserForm()) {
-      return;
-    }
-
-    setAddUserLoading(true);
-
-    try {
-      const usersRef = collection(db, 'users');
-      const emailQuery = query(usersRef, where('email', '==', addUserForm.email));
-      const emailSnapshot = await getDocs(emailQuery);
-
-      if (!emailSnapshot.empty) {
-        toast.error('User with this email already exists!');
-        setAddUserLoading(false);
-        return;
-      }
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        addUserForm.email,
-        addUserForm.password
-      );
-
-      const uid = userCredential.user.uid;
-
-      const now = new Date();
-      const timestamp = now.toISOString();
-
-      const userData = {
-        createdAt: timestamp,
-        displayName: addUserForm.fullName,
-        email: addUserForm.email,
-        lastLogin: timestamp,
-        preferences: {
-          notifications: true,
-          theme: "light"
-        },
-        role: addUserForm.role,
-        uid: uid,
-        updatedAt: timestamp
-      };
-
-      await setDoc(doc(db, 'users', uid), userData);
-
-      toast.success(`✅ User "${addUserForm.fullName}" created successfully!`);
-      toast.success(`🔑 User can now login with their email and password`);
-
-      await fetchUsers();
-      closeAddUserModal();
-    } catch (error) {
-      console.error('Error creating user:', error);
-
-      if (error.code === 'auth/email-already-in-use') {
-        toast.error('Email already in use! Please use a different email.');
-      } else if (error.code === 'auth/weak-password') {
-        toast.error('Password is too weak! Please use a stronger password.');
-      } else if (error.code === 'auth/invalid-email') {
-        toast.error('Invalid email address!');
-      } else {
-        toast.error('Error creating user: ' + error.message);
-      }
-    }
-
-    setAddUserLoading(false);
-  };
-
-  const checkRequirement = (regex) => {
-    return regex.test(addUserForm.password);
-  };
-
-  // ============================================================
-  // ✅ IMPORT FUNCTIONS - SERVER-SPECIFIC WITH SMART DROPDOWNS
-  // ============================================================
-  const openImportModalForServer = async (serverKey) => {
-    setImportServer(serverKey);
-    setImportMonth('');
-    setImportYear('');
-    setImportLocation('');
-    setImportPreviewData([]);
-    setShowImportPreview(false);
-    setAvailableImportLocations([]);
-    setAvailableImportMonths([]);
-    setAvailableImportYears([]);
-
+  const openImportModalForServer = async (key) => {
+    setImportServer(key); setImportMonth(''); setImportYear(''); setImportLocation('');
+    setImportPreviewData([]); setShowImportPreview(false);
     setImportOptionsLoading(true);
-
     try {
-      const targetDb = getDbByServer(serverKey);
-      const billsRef = collection(targetDb, 'bills');
-      const querySnapshot = await getDocs(billsRef);
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
-
-      const options = extractImportOptionsFromBills(billsData);
-      setAvailableImportLocations(options.locations);
-      setAvailableImportMonths(options.months);
-      setAvailableImportYears(options.years);
-    } catch (error) {
-      console.error(`Error fetching import options from ${getServerLabel(serverKey)}:`, error);
-      toast.error(`Error loading filter options from ${getServerLabel(serverKey)}`);
-    } finally {
-      setImportOptionsLoading(false);
-    }
-
+      const dbRef = getDbByServer(key);
+      const snap = await getDocs(collection(dbRef, 'bills'));
+      const data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      const opts = extractImportOptions(data);
+      setAvailableImportLocations(opts.locations);
+      setAvailableImportMonths(opts.months);
+      setAvailableImportYears(opts.years);
+    } catch (e) { toast.error('Error loading options'); }
+    setImportOptionsLoading(false);
     setShowImportModal(true);
   };
 
-  const closeImportModal = () => {
-    setShowImportModal(false);
-    setImportMonth('');
-    setImportYear('');
-    setImportLocation('');
-    setImportPreviewData([]);
-    setShowImportPreview(false);
-    setAvailableImportLocations([]);
-    setAvailableImportMonths([]);
-    setAvailableImportYears([]);
-  };
-
   const previewImport = async () => {
-    if (!importMonth || !importYear || !importLocation) {
-      toast.error('Please select Month, Year, and Location');
-      return;
-    }
-
+    if (!importMonth || !importYear || !importLocation) { toast.error('Select all fields'); return; }
     setImportLoading(true);
-
     try {
-      const targetDb = getDbByServer(importServer);
-      const serverLabel = getServerLabel(importServer);
-
-      const billsRef = collection(targetDb, 'bills');
-      const q = query(
-        billsRef,
-        where('month', '==', importMonth),
-        where('year', '==', importYear),
-        where('location', '==', importLocation)
-      );
-      const querySnapshot = await getDocs(q);
-
-      const billsData = [];
-      querySnapshot.forEach((doc) => {
-        billsData.push({ id: doc.id, ...doc.data() });
-      });
-
-      if (billsData.length === 0) {
-        toast.error(`No bills found for ${importMonth} ${importYear} in ${importLocation} on ${serverLabel}`);
-        setImportLoading(false);
-        return;
-      }
-
-      setImportPreviewData(billsData);
-      setShowImportPreview(true);
-      toast.success(`Found ${billsData.length} bills from ${serverLabel}`);
-    } catch (error) {
-      console.error('Error previewing import:', error);
-      toast.error('Error fetching bills: ' + error.message);
-    }
-
+      const dbRef = getDbByServer(importServer);
+      const q = query(collection(dbRef, 'bills'), where('month','==',importMonth), where('year','==',importYear), where('location','==',importLocation));
+      const snap = await getDocs(q);
+      const data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      if (data.length === 0) { toast.error('No bills found'); setImportLoading(false); return; }
+      setImportPreviewData(data); setShowImportPreview(true);
+      toast.success(`Found ${data.length} bills`);
+    } catch (e) { toast.error(e.message); }
     setImportLoading(false);
   };
 
   const confirmImport = async () => {
-    if (importPreviewData.length === 0) {
-      toast.error('No data to import');
-      return;
-    }
-
+    if (!importPreviewData.length) return;
     setImportLoading(true);
-    setShowImportProgress(true);
-    setImportProgress({ current: 0, total: importPreviewData.length });
-
     try {
-      const targetDb = getDbByServer(importServer);
-      const serverLabel = getServerLabel(importServer);
-
-      const importCollectionRef = collection(targetDb, 'import');
-      let successCount = 0;
-      let errorCount = 0;
-
-      let batch = writeBatch(targetDb);
-      let batchCount = 0;
-
+      const dbRef = getDbByServer(importServer);
+      const collRef = collection(dbRef, 'import');
+      let batch = writeBatch(dbRef), bc = 0, ok = 0;
       for (let i = 0; i < importPreviewData.length; i++) {
-        try {
-          const bill = importPreviewData[i];
-          const { id, ...billData } = bill;
-
-          const importData = {
-            ...billData,
-            importedAt: new Date().toISOString(),
-            importedBy: user?.email || 'Unknown',
-            importedByUid: user?.uid || 'unknown',
-            originalBillId: id,
-            importBatch: `${importMonth}_${importYear}_${importLocation}_${Date.now()}`,
-            importMonth: importMonth,
-            importYear: importYear,
-            importLocation: importLocation,
-            sourceCollection: 'bills',
-            sourceServer: importServer
-          };
-
-          const docRef = doc(importCollectionRef);
-          batch.set(docRef, importData);
-          successCount++;
-          batchCount++;
-
-          setImportProgress({ current: i + 1, total: importPreviewData.length });
-
-          if (batchCount >= 500) {
-            await batch.commit();
-            batch = writeBatch(targetDb);
-            batchCount = 0;
-          }
-        } catch (error) {
-          console.error('Error adding import document:', error);
-          errorCount++;
-        }
+        const { id, ...data } = importPreviewData[i];
+        batch.set(doc(collRef), {
+          ...data, importedAt: new Date().toISOString(), importedBy: user?.email || 'Unknown',
+          importedByUid: user?.uid || 'unknown', originalBillId: id,
+          importBatch: `${importMonth}_${importYear}_${importLocation}_${Date.now()}`,
+          importMonth, importYear, importLocation, sourceCollection: 'bills', sourceServer: importServer
+        });
+        ok++; bc++;
+        if (bc >= 500) { await batch.commit(); batch = writeBatch(dbRef); bc = 0; }
       }
-
-      if (batchCount > 0) {
-        await batch.commit();
-      }
-
-      if (successCount > 0) {
-        toast.success(`✅ Imported ${successCount} bills to "${serverLabel} → import" collection!`);
-        closeImportModal();
-      }
-
-      if (errorCount > 0) {
-        toast.error(`⚠️ ${errorCount} bills failed to import`);
-      }
-    } catch (error) {
-      console.error('Error during import:', error);
-      toast.error('Error importing data: ' + error.message);
-    } finally {
-      setImportLoading(false);
-      setShowImportProgress(false);
-      setImportProgress({ current: 0, total: 0 });
-    }
+      if (bc > 0) await batch.commit();
+      toast.success(`✅ Imported ${ok} bills!`);
+      setShowImportModal(false);
+    } catch (e) { toast.error('Error: ' + e.message); }
+    setImportLoading(false);
   };
 
-  // ============================================================
-  // ✅ EXPORT/REPLACE FUNCTIONS - SERVER-SPECIFIC
-  // ============================================================
-  const openExportModalForServer = async (serverKey) => {
-    setExportServer(serverKey); // ✅ Set by which button clicked
-    setExportMonth('');
-    setExportLocation('');
-    setExportPreviewData([]);
-    setShowExportPreview(false);
-    setAvailableExportLocations([]);
-    setAvailableExportMonths([]);
-
+  const openExportModalForServer = async (key) => {
+    setExportServer(key); setExportMonth(''); setExportLocation('');
+    setExportPreviewData([]); setShowExportPreview(false);
     setExportOptionsLoading(true);
-
     try {
-      const targetDb = getDbByServer(serverKey);
-      const importRef = collection(targetDb, 'import');
-      const querySnapshot = await getDocs(importRef);
-      const importData = [];
-      querySnapshot.forEach((doc) => {
-        importData.push({ id: doc.id, ...doc.data() });
-      });
-
-      const options = extractExportOptionsFromImport(importData);
-      setAvailableExportLocations(options.locations);
-      setAvailableExportMonths(options.months);
-
-      console.log(`✅ Loaded export options from ${getServerLabel(serverKey)}:`, options);
-    } catch (error) {
-      console.error(`Error fetching export options from ${getServerLabel(serverKey)}:`, error);
-      toast.error(`Error loading export options from ${getServerLabel(serverKey)}`);
-    } finally {
-      setExportOptionsLoading(false);
-    }
-
+      const dbRef = getDbByServer(key);
+      const snap = await getDocs(collection(dbRef, 'import'));
+      const data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      const opts = extractExportOptions(data);
+      setAvailableExportLocations(opts.locations);
+      setAvailableExportMonths(opts.months);
+    } catch (e) { toast.error('Error loading options'); }
+    setExportOptionsLoading(false);
     setShowExportModal(true);
   };
 
-  const closeExportModal = () => {
-    setShowExportModal(false);
-    setExportMonth('');
-    setExportLocation('');
-    setExportPreviewData([]);
-    setShowExportPreview(false);
-    setAvailableExportLocations([]);
-    setAvailableExportMonths([]);
-  };
-
   const previewExport = async () => {
-    if (!exportMonth || !exportLocation) {
-      toast.error('Please select both Month and Location');
-      return;
-    }
-
+    if (!exportMonth || !exportLocation) { toast.error('Select Month and Location'); return; }
     setExportLoading(true);
-
     try {
-      const targetDb = getDbByServer(exportServer);
-      const serverLabel = getServerLabel(exportServer);
-
-      const importRef = collection(targetDb, 'import');
-      const q = query(
-        importRef,
-        where('month', '==', exportMonth),
-        where('location', '==', exportLocation)
-      );
-      const querySnapshot = await getDocs(q);
-
-      const importData = [];
-      querySnapshot.forEach((doc) => {
-        importData.push({ id: doc.id, ...doc.data() });
-      });
-
-      if (importData.length === 0) {
-        toast.error(`No imported bills found for ${exportMonth} in ${exportLocation} on ${serverLabel}`);
-        setExportLoading(false);
-        return;
-      }
-
-      setExportPreviewData(importData);
-      setShowExportPreview(true);
-      toast.success(`Found ${importData.length} imported bills from ${serverLabel}`);
-    } catch (error) {
-      console.error('Error previewing export:', error);
-      toast.error('Error fetching imported bills: ' + error.message);
-    }
-
+      const dbRef = getDbByServer(exportServer);
+      const q = query(collection(dbRef, 'import'), where('month','==',exportMonth), where('location','==',exportLocation));
+      const snap = await getDocs(q);
+      const data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
+      if (data.length === 0) { toast.error('No imported bills found'); setExportLoading(false); return; }
+      setExportPreviewData(data); setShowExportPreview(true);
+      toast.success(`Found ${data.length} imported bills`);
+    } catch (e) { toast.error(e.message); }
     setExportLoading(false);
   };
 
   const confirmExport = async () => {
-    if (exportPreviewData.length === 0) {
-      toast.error('No data to export');
-      return;
-    }
-
+    if (!exportPreviewData.length) return;
     setExportLoading(true);
-    setShowExportProgress(true);
-    setExportProgress({ current: 0, total: exportPreviewData.length * 3 });
-
     try {
-      const targetDb = getDbByServer(exportServer);
-      const serverLabel = getServerLabel(exportServer);
+      const dbRef = getDbByServer(exportServer);
+      const billsRef = collection(dbRef, 'bills');
+      const year = exportPreviewData[0]?.year || new Date().getFullYear().toString();
 
-      const billsCollectionRef = collection(targetDb, 'bills');
-      let successCount = 0;
-      let errorCount = 0;
-      let deleteCount = 0;
-      let deleteErrorCount = 0;
-
-      const exportYear = exportPreviewData[0]?.year || new Date().getFullYear().toString();
-
-      const existingBillsQuery = query(
-        billsCollectionRef,
-        where('month', '==', exportMonth),
-        where('year', '==', exportYear),
-        where('location', '==', exportLocation)
-      );
-      const existingSnapshot = await getDocs(existingBillsQuery);
-
-      const existingBillIds = [];
-      existingSnapshot.forEach((doc) => {
-        existingBillIds.push(doc.id);
-      });
-
-      const existingCount = existingBillIds.length;
-
-      if (existingCount > 0) {
-        toast(`🗑️ Found ${existingCount} existing bills in "${exportLocation}" on ${serverLabel}. Replacing...`, {
-          icon: '🔄',
-          duration: 4000,
-          style: {
-            background: '#FEF3C7',
-            color: '#92400E',
-            border: '1px solid #F59E0B'
-          }
-        });
-
-        let deleteBatch = writeBatch(targetDb);
-        let deleteBatchCount = 0;
-
-        for (let i = 0; i < existingBillIds.length; i++) {
-          try {
-            const docRef = doc(targetDb, 'bills', existingBillIds[i]);
-            deleteBatch.delete(docRef);
-            deleteCount++;
-            deleteBatchCount++;
-
-            if (deleteBatchCount >= 500) {
-              await deleteBatch.commit();
-              deleteBatch = writeBatch(targetDb);
-              deleteBatchCount = 0;
-            }
-          } catch (error) {
-            console.error('Error deleting existing bill:', error);
-            deleteErrorCount++;
-          }
-        }
-
-        if (deleteBatchCount > 0) {
-          await deleteBatch.commit();
-        }
-
-        toast.success(`🗑️ Deleted ${deleteCount} existing bills from ${serverLabel}`);
+      const existingSnap = await getDocs(query(billsRef, where('month','==',exportMonth), where('year','==',year), where('location','==',exportLocation)));
+      const existingIds = []; existingSnap.forEach(d => existingIds.push(d.id));
+      let dbatch = writeBatch(dbRef), dbc = 0;
+      for (const id of existingIds) {
+        dbatch.delete(doc(dbRef, 'bills', id)); dbc++;
+        if (dbc >= 500) { await dbatch.commit(); dbatch = writeBatch(dbRef); dbc = 0; }
       }
+      if (dbc > 0) await dbatch.commit();
 
-      let exportBatch = writeBatch(targetDb);
-      let exportBatchCount = 0;
-      const importDocIds = [];
-
+      let ok = 0, bc = 0;
+      let batch = writeBatch(dbRef);
+      const importIds = [];
       for (let i = 0; i < exportPreviewData.length; i++) {
-        try {
-          const importDoc = exportPreviewData[i];
-          const { id, ...importData } = importDoc;
-
-          importDocIds.push(id);
-
-          const {
-            importedAt,
-            importedBy,
-            importedByUid,
-            originalBillId,
-            importBatch,
-            importMonth: impMonth,
-            importYear: impYear,
-            importLocation: impLocation,
-            sourceCollection,
-            sourceServer,
-            ...cleanBillData
-          } = importData;
-
-          const billData = {
-            ...cleanBillData,
-            exportedAt: new Date().toISOString(),
-            exportedFrom: id,
-            exportedFromCollection: 'import',
-            exportedBy: user?.email || 'Unknown',
-            exportedByUid: user?.uid || 'unknown',
-            exportBatch: `${exportMonth}_${exportLocation}_${Date.now()}`,
-            exportMonth: exportMonth,
-            exportLocation: exportLocation,
-            createdAt: importData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isReplacement: true,
-            replacedAt: new Date().toISOString(),
-            replacedFrom: id,
-            replacedMonth: exportMonth,
-            replacedYear: exportYear,
-            replacedLocation: exportLocation,
-            serverSource: exportServer
-          };
-
-          const docRef = doc(billsCollectionRef);
-          exportBatch.set(docRef, billData);
-          successCount++;
-          exportBatchCount++;
-
-          setExportProgress({ current: i + 1, total: exportPreviewData.length * 3 });
-
-          if (exportBatchCount >= 500) {
-            await exportBatch.commit();
-            exportBatch = writeBatch(targetDb);
-            exportBatchCount = 0;
-          }
-        } catch (error) {
-          console.error('Error exporting bill:', error);
-          errorCount++;
-        }
+        const { id, ...data } = exportPreviewData[i];
+        importIds.push(id);
+        const { importedAt, importedBy, importedByUid, originalBillId, importBatch, importMonth: im, importYear: iy, importLocation: il, sourceCollection, sourceServer, ...clean } = data;
+        batch.set(doc(billsRef), {
+          ...clean, exportedAt: new Date().toISOString(), exportedFrom: id,
+          exportedBy: user?.email || 'Unknown', exportedByUid: user?.uid || 'unknown',
+          exportBatch: `${exportMonth}_${exportLocation}_${Date.now()}`, exportMonth, exportLocation,
+          createdAt: data.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(),
+          isReplacement: true, replacedAt: new Date().toISOString(), replacedFrom: id,
+          replacedMonth: exportMonth, replacedYear: year, replacedLocation: exportLocation, serverSource: exportServer
+        });
+        ok++; bc++;
+        if (bc >= 500) { await batch.commit(); batch = writeBatch(dbRef); bc = 0; }
       }
+      if (bc > 0) await batch.commit();
 
-      if (exportBatchCount > 0) {
-        await exportBatch.commit();
+      let dbatch2 = writeBatch(dbRef), dbc2 = 0;
+      for (const iid of importIds) {
+        dbatch2.delete(doc(dbRef, 'import', iid)); dbc2++;
+        if (dbc2 >= 500) { await dbatch2.commit(); dbatch2 = writeBatch(dbRef); dbc2 = 0; }
       }
+      if (dbc2 > 0) await dbatch2.commit();
 
-      if (successCount > 0) {
-        setExportProgress({ current: exportPreviewData.length, total: exportPreviewData.length * 3 });
-
-        let deleteImportBatch = writeBatch(targetDb);
-        let deleteImportBatchCount = 0;
-
-        for (let i = 0; i < importDocIds.length; i++) {
-          try {
-            const docId = importDocIds[i];
-            const docRef = doc(targetDb, 'import', docId);
-            deleteImportBatch.delete(docRef);
-            deleteImportBatchCount++;
-
-            setExportProgress({
-              current: exportPreviewData.length + i + 1,
-              total: exportPreviewData.length * 3
-            });
-
-            if (deleteImportBatchCount >= 500) {
-              await deleteImportBatch.commit();
-              deleteImportBatch = writeBatch(targetDb);
-              deleteImportBatchCount = 0;
-            }
-          } catch (error) {
-            console.error('Error deleting import document:', error);
-            deleteErrorCount++;
-          }
-        }
-
-        if (deleteImportBatchCount > 0) {
-          await deleteImportBatch.commit();
-        }
-      }
-
-      if (successCount > 0) {
-        let message = `✅ Successfully exported ${successCount} bills to "${serverLabel} → bills"!`;
-        if (deleteCount > 0) {
-          message += ` 🔄 Replaced ${deleteCount} existing bills.`;
-        }
-        toast.success(message);
-        toast.success(`🗑️ Cleaned up ${importDocIds.length} bills from import collection`);
-        closeExportModal();
-        // Re-fetch server bills para ma-update ang counts
-        fetchServerBills(selectedServer);
-      }
-
-      if (errorCount > 0) {
-        toast.error(`⚠️ ${errorCount} bills failed to export`);
-      }
-
-      if (deleteErrorCount > 0) {
-        toast.error(`⚠️ ${deleteErrorCount} bills failed to delete`);
-      }
-    } catch (error) {
-      console.error('Error during export:', error);
-      toast.error('Error exporting data: ' + error.message);
-    } finally {
-      setExportLoading(false);
-      setShowExportProgress(false);
-      setExportProgress({ current: 0, total: 0 });
-    }
+      toast.success(`✅ Replaced with ${ok} bills!`);
+      setShowExportModal(false);
+      fetchServerBills(selectedServer);
+    } catch (e) { toast.error('Error: ' + e.message); }
+    setExportLoading(false);
   };
 
-  // ============================================================
-  // HELPER FUNCTIONS
-  // ============================================================
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    if (timestamp.toDate) {
-      return timestamp.toDate().toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+  // ============ ADD USER ============
+  const openAddUserModal = () => {
+    setAddUserForm({ fullName: '', email: '', password: '', confirmPassword: '', role: 'user' });
+    setAddUserErrors({}); setShowAddPassword(false); setShowAddConfirmPassword(false);
+    setShowAddUserModal(true);
+  };
+
+  const checkReq = (regex) => regex.test(addUserForm.password);
+
+  const validateAddUser = () => {
+    const e = {};
+    if (!addUserForm.fullName.trim()) e.fullName = 'Full name required';
+    if (!addUserForm.email.trim()) e.email = 'Email required';
+    else if (!/\S+@\S+\.\S+/.test(addUserForm.email)) e.email = 'Invalid email';
+    if (!addUserForm.password) e.password = 'Password required';
+    else if (addUserForm.password.length < 14) e.password = 'Min 14 characters';
+    else if (!/[a-z]/.test(addUserForm.password)) e.password = 'Need lowercase';
+    else if (!/[A-Z]/.test(addUserForm.password)) e.password = 'Need uppercase';
+    else if (!/[0-9]/.test(addUserForm.password)) e.password = 'Need number';
+    if (!addUserForm.confirmPassword) e.confirmPassword = 'Confirm password';
+    else if (addUserForm.password !== addUserForm.confirmPassword) e.confirmPassword = 'Passwords do not match';
+    setAddUserErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleAddUserSubmit = async (ev) => {
+    ev.preventDefault();
+    if (!validateAddUser()) return;
+    setAddUserLoading(true);
+    try {
+      const emailCheck = await getDocs(query(collection(db, 'users'), where('email', '==', addUserForm.email)));
+      if (!emailCheck.empty) { toast.error('Email already exists!'); setAddUserLoading(false); return; }
+      const cred = await createUserWithEmailAndPassword(auth, addUserForm.email, addUserForm.password);
+      const uid = cred.user.uid;
+      const ts = new Date().toISOString();
+      await setDoc(doc(db, 'users', uid), {
+        createdAt: ts, displayName: addUserForm.fullName, email: addUserForm.email,
+        lastLogin: ts, preferences: { notifications: true, theme: 'light' },
+        role: addUserForm.role, uid, updatedAt: ts
       });
+      toast.success(`✅ User "${addUserForm.fullName}" created!`);
+      await fetchUsers();
+      setShowAddUserModal(false);
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') toast.error('Email already in use!');
+      else if (err.code === 'auth/weak-password') toast.error('Password too weak!');
+      else toast.error('Error: ' + err.message);
     }
-    if (timestamp.seconds) {
-      return new Date(timestamp.seconds * 1000).toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    return new Date(timestamp).toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    setAddUserLoading(false);
   };
 
-  const getRoleBadge = (role) => {
-    const roles = {
-      admin: { label: 'Administrator', class: 'role-admin' },
-      user: { label: 'User', class: 'role-user' },
-      staff: { label: 'Staff', class: 'role-staff' }
-    };
-    return roles[role] || roles.user;
+  // ============ HELPERS ============
+  const formatDate = (ts) => {
+    if (!ts) return 'N/A';
+    let d;
+    if (ts.toDate) d = ts.toDate();
+    else if (ts.seconds) d = new Date(ts.seconds * 1000);
+    else d = new Date(ts);
+    return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
-
-  const getInitials = (displayName, email) => {
-    if (displayName) {
-      return displayName.charAt(0).toUpperCase();
-    }
-    return email?.charAt(0).toUpperCase() || 'U';
-  };
-
-  const getStatusDot = (lastLogin) => {
-    if (!lastLogin) return 'offline';
-    const now = new Date();
-    let lastDate;
-    if (lastLogin.toDate) {
-      lastDate = lastLogin.toDate();
-    } else if (lastLogin.seconds) {
-      lastDate = new Date(lastLogin.seconds * 1000);
-    } else {
-      lastDate = new Date(lastLogin);
-    }
-    const diffHours = (now - lastDate) / (1000 * 60 * 60);
-    if (diffHours < 2) return 'online';
-    if (diffHours < 24) return 'recent';
+  const getRoleBadge = (r) => ({ admin: { label: 'Admin', class: 'role-admin' }, user: { label: 'User', class: 'role-user' }, staff: { label: 'Staff', class: 'role-staff' } }[r] || { label: 'User', class: 'role-user' });
+  const getInitials = (n, e) => n ? n.charAt(0).toUpperCase() : (e?.charAt(0).toUpperCase() || 'U');
+  const getStatusDot = (ts) => {
+    if (!ts) return 'offline';
+    let d;
+    if (ts.toDate) d = ts.toDate(); else if (ts.seconds) d = new Date(ts.seconds * 1000); else d = new Date(ts);
+    const h = (new Date() - d) / 3600000;
+    if (h < 2) return 'online';
+    if (h < 24) return 'recent';
     return 'offline';
   };
-
-  const getStatusLabel = (status) => {
-    const labels = {
-      online: '🟢 Online',
-      recent: '🟡 Recently Active',
-      offline: '⚫ Offline'
-    };
-    return labels[status] || '⚫ Offline';
-  };
-
-  const activeFilterCount = filterRole !== 'all' ? 1 : 0;
+  const getStatusLabel = (s) => ({ online: 'Online', recent: 'Recent', offline: 'Offline' }[s] || 'Offline');
 
   if (loading) {
     return (
       <div className="loading-spinner">
-        <div className="spinner-3d"></div>
-        <p style={{ color: '#ffffff', marginTop: '16px', fontFamily: 'Inter, sans-serif' }}>Loading users...</p>
+        <div className="spinner"></div>
+        <p style={{ color: '#374151', marginTop: 16 }}>Loading users...</p>
       </div>
     );
   }
@@ -1064,885 +554,430 @@ const Users = () => {
   const importServerConfig = SERVER_CONFIGS.find(s => s.key === importServer);
   const exportServerConfig = SERVER_CONFIGS.find(s => s.key === exportServer);
   const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
+  const availablePrintMonths = getAvailablePrintMonths();
+  const availablePrintYears = getAvailablePrintYears();
+  const filteredPrintCount = printMonth && printYear ? serverBills.filter(b => String(b.month||'').toUpperCase() === printMonth.toUpperCase() && String(b.year||'') === String(printYear)).length : 0;
+  const previewLocations = (() => {
+    if (!printMonth || !printYear) return '';
+    const s = new Set();
+    serverBills.filter(b => String(b.month||'').toUpperCase() === printMonth.toUpperCase() && String(b.year||'') === String(printYear)).forEach(b => { if (b.location && b.location !== 'N/A') s.add(String(b.location).trim()); });
+    return s.size ? Array.from(s).sort().join(', ') : 'N/A';
+  })();
 
   return (
-    <div className="users-page">
-      {/* Header */}
-      <div className="users-header">
-        <div className="header-left">
-          <h1>👥 USERS</h1>
-          <p>Manage all registered users</p>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn btn-primary"
-            onClick={openAddUserModal}
-            style={{
-              background: '#194752',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <AddUserIcon />
-            ADD USER
-          </button>
+    <div className="users-dashboard">
 
-          <button className="btn btn-secondary" onClick={fetchUsers}>
-            🔄 Refresh
+      {/* ═══════════════════════════════════════════ */}
+      {/* HEADER                                        */}
+      {/* ═══════════════════════════════════════════ */}
+      <header className="dashboard-header">
+        <div className="dashboard-header-left">
+          <h1>User Management</h1>
+          <p>Manage accounts and permissions across all servers</p>
+        </div>
+
+        <div className="dashboard-header-right">
+          <button className="btn btn-outline" onClick={fetchUsers}>
+            <RefreshIcon size={16} color="#111827" />
+            <span>Refresh</span>
+          </button>
+          <button className="btn btn-outline" onClick={openPrintModal} disabled={!serverBills.length}>
+            <PrinterIcon size={16} color="#111827" />
+            <span>Print</span>
+          </button>
+          <button className="btn btn-primary" onClick={openAddUserModal}>
+            <AddUserIcon size={16} color="#FFFFFF" />
+            <span>Add User</span>
           </button>
         </div>
+      </header>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* 3-COLUMN LAYOUT                              */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="users-layout-3col">
+
+        {/* ══════════ LEFT COLUMN — IMPORT DATA ══════════ */}
+        <aside className="users-import-panel">
+          <div className="users-panel-title">
+            <ImportIcon size={16} color="#111827" />
+            <span>IMPORT DATA</span>
+          </div>
+          <div className="users-panel-body">
+            {SERVER_CONFIGS.map(s => (
+              <button
+                key={`i-${s.key}`}
+                className="users-import-btn"
+                onClick={() => openImportModalForServer(s.key)}
+              >
+                <ImportIcon size={14} color="#FFFFFF" />
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* ══════════ CENTER COLUMN ══════════ */}
+        <main className="users-center-col">
+
+          {/* ─────── SERVER BUTTONS ROW (with loading indicator) ─────── */}
+          <div className="users-server-row">
+            {SERVER_CONFIGS.map((server, idx) => {
+              const isActive = selectedServer === server.key;
+              const isLoading = loadingServerKey === server.key;
+              return (
+                <button
+                  key={server.key}
+                  onClick={() => handleServerClick(server.key)}
+                  disabled={serverBillsLoading}
+                  className={`users-server-btn ${isActive ? 'active' : ''} ${isLoading ? 'loading' : ''}`}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="users-server-spinner"></span>
+                      <span>LOADING...</span>
+                    </>
+                  ) : (
+                    <span>{server.label.toUpperCase()}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ─────── ACTIVE SERVER INFO BAR (black, matching image) ─────── */}
+          <div className="users-server-info-bar">
+            <div className="users-info-item">
+              <span className="users-info-label">CURRENTLY ACTIVE</span>
+              <span className="users-info-value">{getServerLabel(selectedServer)}</span>
+            </div>
+            <div className="users-info-item users-info-item-right">
+              <span className="users-info-label">BILLS LOADED</span>
+              <span className="users-info-value">{serverBillsLoading ? '...' : serverBills.length}</span>
+            </div>
+          </div>
+
+          {/* ─────── STATS ROW ─────── */}
+          <div className="users-stats-row">
+            <div className="users-stat-box">
+              <span className="users-stat-num">{stats.totalUsers}</span>
+              <span className="users-stat-lbl">TOTAL</span>
+            </div>
+            <div className="users-stat-box">
+              <span className="users-stat-num">{stats.adminCount}</span>
+              <span className="users-stat-lbl">ADMIN</span>
+            </div>
+            <div className="users-stat-box">
+              <span className="users-stat-num">{stats.userCount}</span>
+              <span className="users-stat-lbl">USER</span>
+            </div>
+            <div className="users-stat-box">
+              <span className="users-stat-num">{stats.staffCount}</span>
+              <span className="users-stat-lbl">STAFF</span>
+            </div>
+          </div>
+
+          {/* ─────── MAIN CONTENT PANEL (User Directory) ─────── */}
+          <div className="users-main-panel">
+            <div className="users-toolbar">
+              <div className="users-search-bar">
+                <SearchIcon size={16} color="#94A3B8" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button className="users-search-clear" onClick={() => setSearchTerm('')}>✕</button>
+                )}
+              </div>
+
+              <div className="users-filter-chips">
+                {[
+                  { v: 'all', l: 'ALL' },
+                  { v: 'admin', l: 'ADMIN' },
+                  { v: 'user', l: 'USER' },
+                  { v: 'staff', l: 'STAFF' },
+                ].map(r => (
+                  <button
+                    key={r.v}
+                    className={`users-chip ${filterRole === r.v ? 'active' : ''}`}
+                    onClick={() => setFilterRole(r.v)}
+                  >
+                    {r.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="users-table-wrap">
+              {filteredUsers.length === 0 ? (
+                <div className="users-empty">
+                  <div className="users-empty-icon">👥</div>
+                  <p className="users-empty-title">No users found</p>
+                  <p className="users-empty-sub">
+                    {searchTerm ? 'Try a different search.' : 'No registered users yet.'}
+                  </p>
+                </div>
+              ) : (
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Bills</th>
+                      <th>Paid</th>
+                      <th>Last Login</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map(u => {
+                      const role = getRoleBadge(u.role || 'user');
+                      const status = getStatusDot(u.lastLogin);
+                      const totalBills = billsCount[u.uid] || 0;
+                      const paidBills = paidBillsCount[u.uid] || 0;
+                      return (
+                        <tr key={u.id}>
+                          <td>
+                            <div className="users-table-user">
+                              <div className="users-table-avatar">
+                                {getInitials(u.displayName, u.email)}
+                              </div>
+                              <span className="users-table-name">{u.displayName || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td className="users-table-email">{u.email || 'N/A'}</td>
+                          <td>
+                            <span className={`users-role-badge ${role.class}`}>{role.label}</span>
+                          </td>
+                          <td>
+                            <span className={`users-status-badge ${status}`}>
+                              {getStatusLabel(status)}
+                            </span>
+                          </td>
+                          <td className="users-table-num">{totalBills}</td>
+                          <td className="users-table-num" style={{ color: '#16A34A' }}>{paidBills}</td>
+                          <td className="users-table-date">{formatDate(u.lastLogin)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </main>
+
+        {/* ══════════ RIGHT COLUMN — REPLACE BILLS ══════════ */}
+        <aside className="users-replace-panel">
+          <div className="users-panel-title">
+            <ExportIcon size={16} color="#111827" />
+            <span>REPLACE BILLS</span>
+          </div>
+          <div className="users-panel-body">
+            {SERVER_CONFIGS.map(s => (
+              <button
+                key={`r-${s.key}`}
+                className="users-replace-btn"
+                onClick={() => openExportModalForServer(s.key)}
+              >
+                <ExportIcon size={14} color="#FFFFFF" />
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
       </div>
 
-      {/* ============================================================ */}
-      {/* ✅ SERVER SELECTOR BUTTONS (Load Data) */}
-      {/* ============================================================ */}
-      <div style={{
-        marginBottom: '20px',
-        padding: '16px 20px',
-        background: 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
-        border: '2px solid #E2E8F0',
-        borderRadius: '14px'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '14px'
-        }}>
-          <ServerIcon width={22} height={22} color="#194752" />
-          <span style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '15px',
-            fontWeight: '700',
-            color: '#0F172A'
-          }}>
-            SELECT SERVER:
-          </span>
-          <span style={{
-            fontFamily: 'Inter, sans-serif',
-            fontSize: '12px',
-            color: '#64748B',
-            fontStyle: 'italic'
-          }}>
-            (Click to load data)
-          </span>
+      {/* ═══════════════════════════════════════════ */}
+      {/* FOOTER                                        */}
+      {/* ═══════════════════════════════════════════ */}
+      <footer className="dashboard-footer">
+        <div className="footer-left">
+          © {new Date().getFullYear()} Waterbill Management System — Municipality of Liloan
         </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px'
-        }}>
-          {SERVER_CONFIGS.map((server) => {
-            const isActive = selectedServer === server.key;
-            return (
-              <button
-                key={server.key}
-                onClick={() => handleServerClick(server.key)}
-                disabled={serverBillsLoading}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  padding: '14px 12px',
-                  background: isActive
-                    ? `linear-gradient(135deg, ${server.color}, ${server.color}dd)`
-                    : '#FFFFFF',
-                  color: isActive ? '#FFFFFF' : server.color,
-                  border: `3px solid ${isActive ? server.color : server.color + '40'}`,
-                  borderRadius: '12px',
-                  cursor: serverBillsLoading ? 'wait' : 'pointer',
-                  fontFamily: 'Inter, sans-serif',
-                  transition: 'all 0.25s ease',
-                  boxShadow: isActive
-                    ? `0 8px 24px ${server.color}50`
-                    : '0 2px 8px rgba(0,0,0,0.05)',
-                  transform: isActive ? 'translateY(-3px) scale(1.02)' : 'none',
-                  position: 'relative',
-                  opacity: serverBillsLoading ? 0.6 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive && !serverBillsLoading) {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.boxShadow = `0 8px 24px ${server.color}30`;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive && !serverBillsLoading) {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
-                  }
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ServerIcon width={20} height={20} color={isActive ? '#FFFFFF' : server.color} />
-                  <span style={{
-                    fontSize: '15px',
-                    fontWeight: '800',
-                    letterSpacing: '0.5px'
-                  }}>
-                    {server.label.toUpperCase()}
-                  </span>
-                </div>
-                <span style={{
-                  fontSize: '10px',
-                  opacity: 0.8,
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  wordBreak: 'break-all'
-                }}>
-                  {server.project}
-                </span>
-
-                {isActive && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '6px',
-                    right: '10px',
-                    fontSize: '10px',
-                    fontWeight: '800',
-                    background: 'rgba(255,255,255,0.25)',
-                    padding: '2px 8px',
-                    borderRadius: '8px',
-                    letterSpacing: '0.5px'
-                  }}>
-                    ✓ ACTIVE
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="footer-right">
+          <span>v1.0.0</span>
+          <span className="footer-separator">•</span>
+          <span>All rights reserved</span>
         </div>
+      </footer>
 
-        {/* ✅ ACTIVE SERVER INFO BANNER */}
-        <div style={{
-          marginTop: '14px',
-          padding: '10px 16px',
-          background: `${currentServerConfig?.color}15`,
-          border: `1.5px solid ${currentServerConfig?.color}60`,
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '18px' }}>🗄️</span>
-            <span style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '13px',
-              fontWeight: '700',
-              color: currentServerConfig?.color
-            }}>
-              Currently viewing data from: <strong>{getServerLabel(selectedServer)}</strong>
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {serverBillsLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{
-                  width: '14px',
-                  height: '14px',
-                  border: `2px solid ${currentServerConfig?.color}40`,
-                  borderTop: `2px solid ${currentServerConfig?.color}`,
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite'
-                }} />
-                <span style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  color: currentServerConfig?.color,
-                  fontWeight: '600'
-                }}>
-                  Loading...
+      {/* ═══════════════════════════════════════════ */}
+      {/* MODALS (unchanged)                            */}
+      {/* ═══════════════════════════════════════════ */}
+
+      {/* PRINT MODAL */}
+      {showPrintModal && (
+        <div className="modal-overlay" onClick={() => setShowPrintModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PrinterIcon size={20} color="#111827" /> Print Bills Report
+              </h2>
+              <button className="close-btn" onClick={() => setShowPrintModal(false)}>✕</button>
+            </div>
+
+            <div style={{ padding: '20px 8px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', background: '#F3F4F6', border: '2px solid #111827', borderRadius: 12, fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                  🗄️ {getServerLabel(selectedServer).toUpperCase()}
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>({serverBills.length} bills)</span>
                 </span>
               </div>
-            ) : (
-              <span style={{
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '12px',
-                background: currentServerConfig?.color,
-                color: '#FFFFFF',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontWeight: '700'
-              }}>
-                📊 {serverBills.length} bills loaded
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* ============================================================ */}
-      {/* ✅ ACTION BUTTONS: IMPORT + REPLACE PER SERVER */}
-      {/* ============================================================ */}
-      <div style={{
-        marginBottom: '20px',
-        padding: '16px 20px',
-        background: '#FFFFFF',
-        border: '2px solid #E2E8F0',
-        borderRadius: '14px'
-      }}>
-        {/* IMPORT SECTION */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '10px'
-          }}>
-            <ImportIcon width={18} height={18} color="#194752" />
-            <span style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '14px',
-              fontWeight: '700',
-              color: '#194752',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              📥 Import Data (per server)
-            </span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '10px'
-          }}>
-            {SERVER_CONFIGS.map((server) => (
-              <button
-                key={`import-${server.key}`}
-                onClick={() => openImportModalForServer(server.key)}
-                style={{
-                  padding: '10px 12px',
-                  background: server.color,
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s',
-                  boxShadow: `0 2px 8px ${server.color}40`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 6px 16px ${server.color}60`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = `0 2px 8px ${server.color}40`;
-                }}
-              >
-                <ImportIcon width={14} height={14} color="#FFFFFF" />
-                IMPORT {server.label.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 8, color: '#111827', fontSize: 12, textTransform: 'uppercase' }}>Month *</label>
+                  <select value={printMonth} onChange={e => setPrintMonth(e.target.value)} className="modal-input" style={{ fontWeight: 700 }}>
+                    <option value="">Select Month</option>
+                    {availablePrintMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: 8, color: '#111827', fontSize: 12, textTransform: 'uppercase' }}>Year *</label>
+                  <select value={printYear} onChange={e => setPrintYear(e.target.value)} className="modal-input" style={{ fontWeight: 700 }}>
+                    <option value="">Select Year</option>
+                    {availablePrintYears.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
 
-        {/* DIVIDER */}
-        <div style={{
-          height: '1px',
-          background: '#E2E8F0',
-          margin: '16px 0'
-        }} />
-
-        {/* REPLACE BILLS SECTION */}
-        <div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '10px'
-          }}>
-            <ExportIcon width={18} height={18} color="#DC2626" />
-            <span style={{
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '14px',
-              fontWeight: '700',
-              color: '#DC2626',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              🔄 Replace Bills (per server)
-            </span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '10px'
-          }}>
-            {SERVER_CONFIGS.map((server) => (
-              <button
-                key={`replace-${server.key}`}
-                onClick={() => openExportModalForServer(server.key)}
-                style={{
-                  padding: '10px 12px',
-                  background: `linear-gradient(135deg, #DC2626, ${server.color})`,
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s',
-                  boxShadow: `0 2px 8px #DC262640`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 6px 16px #DC262660`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = `0 2px 8px #DC262640`;
-                }}
-              >
-                <ExportIcon width={14} height={14} color="#FFFFFF" />
-                REPLACE {server.label.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="users-stats-grid">
-        <div className="user-stat-card">
-          <div className="user-stat-icon">
-            <UserIcon />
-          </div>
-          <div>
-            <p className="user-stat-label">Total Users</p>
-            <p className="user-stat-number">{stats.totalUsers}</p>
-          </div>
-        </div>
-        <div className="user-stat-card stat-admin">
-          <div className="user-stat-icon">
-            <UserCheckIcon />
-          </div>
-          <div>
-            <p className="user-stat-label">Admins</p>
-            <p className="user-stat-number">{stats.adminCount}</p>
-          </div>
-        </div>
-        <div className="user-stat-card stat-user">
-          <div className="user-stat-icon">
-            <UserIcon />
-          </div>
-          <div>
-            <p className="user-stat-label">Users</p>
-            <p className="user-stat-number">{stats.userCount}</p>
-          </div>
-        </div>
-        <div className="user-stat-card stat-staff">
-          <div className="user-stat-icon">
-            <UserXIcon />
-          </div>
-          <div>
-            <p className="user-stat-label">Staff</p>
-            <p className="user-stat-number">{stats.staffCount}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="search-filter-container">
-        <div className="search-wrapper">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="🔍 Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            className="filter-select"
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Administrator</option>
-            <option value="user">User</option>
-            <option value="staff">Staff</option>
-          </select>
-          <span className="result-count">
-            {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
-          </span>
-        </div>
-        <div className="filter-actions">
-          {activeFilterCount > 0 && (
-            <button className="btn-clear" onClick={() => setFilterRole('all')}>
-              ✕ Clear Filters
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Users Table */}
-      <div className="table-container">
-        {filteredUsers.length === 0 ? (
-          <div className="empty-state">
-            <p>No users found. {searchTerm ? 'Try adjusting your search.' : 'No registered users yet.'}</p>
-          </div>
-        ) : (
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>
-                  Total Bills
-                  <div style={{
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    color: currentServerConfig?.color || '#194752',
-                    textTransform: 'none',
-                    marginTop: '2px'
-                  }}>
-                    ({getServerLabel(selectedServer)})
+              {printMonth && printYear && (
+                <div style={{ padding: 16, background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)', border: '2px solid #86EFAC', borderRadius: 12, textAlign: 'center' }}>
+                  <p style={{ fontSize: 11, color: '#166534', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>Bills to be printed</p>
+                  <p style={{ fontSize: 28, fontWeight: 800, color: '#16A34A', margin: '4px 0 8px', fontFamily: 'JetBrains Mono, monospace' }}>{filteredPrintCount}</p>
+                  <div style={{ paddingTop: 8, borderTop: '1px dashed #86EFAC', fontSize: 11, color: '#166534', fontWeight: 600 }}>
+                    📍 {previewLocations}
                   </div>
-                </th>
-                <th>
-                  Paid Bills
-                  <div style={{
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    color: currentServerConfig?.color || '#194752',
-                    textTransform: 'none',
-                    marginTop: '2px'
-                  }}>
-                    ({getServerLabel(selectedServer)})
-                  </div>
-                </th>
-                <th>Last Login</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((userData) => {
-                const role = getRoleBadge(userData.role || 'user');
-                const status = getStatusDot(userData.lastLogin);
-                const totalBills = billsCount[userData.uid] || 0;
-                const paidBills = paidBillsCount[userData.uid] || 0;
+                </div>
+              )}
+            </div>
 
-                return (
-                  <tr key={userData.id}>
-                    <td>
-                      <div className="user-cell">
-                        <div className="user-avatar-small">
-                          {getInitials(userData.displayName, userData.email)}
-                        </div>
-                        <span className="user-name">{userData.displayName || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="user-email">{userData.email || 'N/A'}</td>
-                    <td>
-                      <span className={`role-badge ${role.class}`}>
-                        {role.label}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status-dot ${status}`}>
-                        {getStatusLabel(status)}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="bill-count">
-                        <CalendarIcon />
-                        {totalBills}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="paid-count">
-                        <PhilippinePesoIconSmall />
-                        {paidBills}
-                      </span>
-                    </td>
-                    <td className="last-login">
-                      {formatDate(userData.lastLogin)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setShowPrintModal(false)} style={{ flex: 1 }}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleConfirmPrint}
+                disabled={!printMonth || !printYear}
+                style={{ flex: 1 }}
+              >
+                <PrinterIcon size={16} color="#FFF" /> PRINT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* ============================================================
-          ADD USER MODAL
-          ============================================================ */}
+      {/* ADD USER MODAL */}
       {showAddUserModal && (
-        <div className="modal-overlay" onClick={closeAddUserModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+        <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 880 }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <AddUserIcon width={28} height={28} color="#194752" />
-                Create New User Account
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AddUserIcon size={22} color="#111827" /> Create New User
               </h2>
-              <button className="close-btn" onClick={closeAddUserModal}>✕</button>
+              <button className="close-btn" onClick={() => setShowAddUserModal(false)}>✕</button>
             </div>
 
             <form onSubmit={handleAddUserSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div className="form-group">
-                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
-                      Full Name <span className="required" style={{ color: '#DC2626' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter full name"
-                      value={addUserForm.fullName}
-                      onChange={(e) => setAddUserForm({ ...addUserForm, fullName: e.target.value })}
-                      className={`modal-input ${addUserErrors.fullName ? 'error' : ''}`}
-                      style={{
-                        width: '100%',
-                        padding: '10px 14px',
-                        background: '#F8FAFC',
-                        border: `2px solid ${addUserErrors.fullName ? '#DC2626' : '#E2E8F0'}`,
-                        borderRadius: '8px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
-                        color: '#0F172A',
-                        outline: 'none',
-                        transition: 'all 0.2s',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                    {addUserErrors.fullName && (
-                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
-                        {addUserErrors.fullName}
-                      </span>
-                    )}
+              <div className="form-two-column">
+                <div className="form-column">
+                  <div className="form-section-label">
+                    <span className="form-section-icon">👤</span> PERSONAL INFORMATION
                   </div>
 
                   <div className="form-group">
-                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
-                      Email Address <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>
+                      Full Name <span style={{ color: '#DC2626' }}>*</span>
                     </label>
-                    <input
-                      type="email"
-                      placeholder="name@company.com"
-                      value={addUserForm.email}
-                      onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
-                      className={`modal-input ${addUserErrors.email ? 'error' : ''}`}
-                      style={{
-                        width: '100%',
-                        padding: '10px 14px',
-                        background: '#F8FAFC',
-                        border: `2px solid ${addUserErrors.email ? '#DC2626' : '#E2E8F0'}`,
-                        borderRadius: '8px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
-                        color: '#0F172A',
-                        outline: 'none',
-                        transition: 'all 0.2s',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                    {addUserErrors.email && (
-                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
-                        {addUserErrors.email}
-                      </span>
-                    )}
+                    <input type="text" placeholder="Enter full name" value={addUserForm.fullName} onChange={e => setAddUserForm({ ...addUserForm, fullName: e.target.value })}
+                      style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: `2px solid ${addUserErrors.fullName ? '#DC2626' : '#E5E7EB'}`, borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    {addUserErrors.fullName && <span style={{ color: '#DC2626', fontSize: 12, marginTop: 4, display: 'block' }}>{addUserErrors.fullName}</span>}
                   </div>
 
                   <div className="form-group">
-                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
-                      Role <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>
+                      Email Address <span style={{ color: '#DC2626' }}>*</span>
                     </label>
-                    <select
-                      value={addUserForm.role}
-                      onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
-                      className="modal-input"
-                      style={{
-                        width: '100%',
-                        padding: '10px 14px',
-                        background: '#F8FAFC',
-                        border: '2px solid #E2E8F0',
-                        borderRadius: '8px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
-                        color: '#0F172A',
-                        outline: 'none',
-                        transition: 'all 0.2s',
-                        boxSizing: 'border-box',
-                        appearance: 'auto'
-                      }}
-                    >
+                    <input type="email" placeholder="name@company.com" value={addUserForm.email} onChange={e => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                      style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: `2px solid ${addUserErrors.email ? '#DC2626' : '#E5E7EB'}`, borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    {addUserErrors.email && <span style={{ color: '#DC2626', fontSize: 12, marginTop: 4, display: 'block' }}>{addUserErrors.email}</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>
+                      Role <span style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <select value={addUserForm.role} onChange={e => setAddUserForm({ ...addUserForm, role: e.target.value })}
+                      style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }}>
                       <option value="user">👤 User</option>
                       <option value="admin">👑 Administrator</option>
                       <option value="staff">👔 Staff</option>
                     </select>
-                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                      Select the role for this user. Admin has full access.
-                    </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="form-column">
+                  <div className="form-section-label">
+                    <span className="form-section-icon">🔒</span> SECURITY
+                  </div>
+
                   <div className="form-group">
-                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
-                      Password <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>
+                      Password <span style={{ color: '#DC2626' }}>*</span>
                     </label>
-                    <div className="password-input-wrapper" style={{ position: 'relative' }}>
-                      <input
-                        type={showAddPassword ? 'text' : 'password'}
-                        placeholder="Create a strong password"
-                        value={addUserForm.password}
-                        onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
-                        onFocus={() => setIsPasswordFocused(true)}
-                        onBlur={() => setIsPasswordFocused(false)}
-                        className={`modal-input ${addUserErrors.password ? 'error' : ''}`}
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          paddingRight: '44px',
-                          background: '#F8FAFC',
-                          border: `2px solid ${addUserErrors.password ? '#DC2626' : '#E2E8F0'}`,
-                          borderRadius: '8px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '14px',
-                          color: '#0F172A',
-                          outline: 'none',
-                          transition: 'all 0.2s',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle-btn"
-                        onClick={() => setShowAddPassword(!showAddPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          color: '#94A3B8'
-                        }}
-                      >
-                        {showAddPassword ? <EyeIcon /> : <EyeOffIcon />}
+                    <div style={{ position: 'relative' }}>
+                      <input type={showAddPassword ? 'text' : 'password'} placeholder="Strong password" value={addUserForm.password}
+                        onChange={e => setAddUserForm({ ...addUserForm, password: e.target.value })}
+                        style={{ width: '100%', padding: '12px 44px 12px 14px', background: '#F9FAFB', border: `2px solid ${addUserErrors.password ? '#DC2626' : '#E5E7EB'}`, borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={() => setShowAddPassword(!showAddPassword)}
+                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                        {showAddPassword ? <EyeIcon color="#6B7280" /> : <EyeOffIcon color="#6B7280" />}
                       </button>
                     </div>
-                    {addUserErrors.password && (
-                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
-                        {addUserErrors.password}
-                      </span>
-                    )}
+                    {addUserErrors.password && <span style={{ color: '#DC2626', fontSize: 12, marginTop: 4, display: 'block' }}>{addUserErrors.password}</span>}
 
-                    <div className={`password-requirements ${isPasswordFocused || addUserForm.password.length > 0 ? 'visible' : ''}`} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '2px 16px',
-                      marginTop: '4px',
-                      maxHeight: (isPasswordFocused || addUserForm.password.length > 0) ? '100px' : '0',
-                      overflow: 'hidden',
-                      opacity: (isPasswordFocused || addUserForm.password.length > 0) ? '1' : '0',
-                      transition: 'all 0.3s ease'
-                    }}>
-                      <div className={`requirement ${checkRequirement(/[a-z]/) ? 'met' : ''}`} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '11px',
-                        color: checkRequirement(/[a-z]/) ? '#194752' : '#94A3B8',
-                        transition: 'all 0.3s'
-                      }}>
-                        <span className="dot" style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: checkRequirement(/[a-z]/) ? '#194752' : '#E2E8F0',
-                          flexShrink: 0,
-                          transition: 'all 0.3s'
-                        }}></span>
-                        Lowercase
-                      </div>
-                      <div className={`requirement ${checkRequirement(/[A-Z]/) ? 'met' : ''}`} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '11px',
-                        color: checkRequirement(/[A-Z]/) ? '#194752' : '#94A3B8',
-                        transition: 'all 0.3s'
-                      }}>
-                        <span className="dot" style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: checkRequirement(/[A-Z]/) ? '#194752' : '#E2E8F0',
-                          flexShrink: 0,
-                          transition: 'all 0.3s'
-                        }}></span>
-                        Uppercase
-                      </div>
-                      <div className={`requirement ${checkRequirement(/[0-9]/) ? 'met' : ''}`} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '11px',
-                        color: checkRequirement(/[0-9]/) ? '#194752' : '#94A3B8',
-                        transition: 'all 0.3s'
-                      }}>
-                        <span className="dot" style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: checkRequirement(/[0-9]/) ? '#194752' : '#E2E8F0',
-                          flexShrink: 0,
-                          transition: 'all 0.3s'
-                        }}></span>
-                        Number
-                      </div>
-                      <div className={`requirement ${addUserForm.password.length >= 14 ? 'met' : ''}`} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '11px',
-                        color: addUserForm.password.length >= 14 ? '#194752' : '#94A3B8',
-                        transition: 'all 0.3s'
-                      }}>
-                        <span className="dot" style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: addUserForm.password.length >= 14 ? '#194752' : '#E2E8F0',
-                          flexShrink: 0,
-                          transition: 'all 0.3s'
-                        }}></span>
-                        14+ characters
-                      </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 8 }}>
+                      {[
+                        { ok: checkReq(/[a-z]/), l: 'Lowercase' },
+                        { ok: checkReq(/[A-Z]/), l: 'Uppercase' },
+                        { ok: checkReq(/[0-9]/), l: 'Number' },
+                        { ok: addUserForm.password.length >= 14, l: '14+ chars' },
+                      ].map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: r.ok ? '#111827' : '#9CA3AF', fontWeight: r.ok ? 700 : 500 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.ok ? '#111827' : '#E5E7EB' }}></span>
+                          {r.l}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   <div className="form-group">
-                    <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#0F172A', fontSize: '13px' }}>
-                      Confirm Password <span className="required" style={{ color: '#DC2626' }}>*</span>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>
+                      Confirm Password <span style={{ color: '#DC2626' }}>*</span>
                     </label>
-                    <div className="password-input-wrapper" style={{ position: 'relative' }}>
-                      <input
-                        type={showAddConfirmPassword ? 'text' : 'password'}
-                        placeholder="Confirm password"
-                        value={addUserForm.confirmPassword}
-                        onChange={(e) => setAddUserForm({ ...addUserForm, confirmPassword: e.target.value })}
-                        className={`modal-input ${addUserErrors.confirmPassword ? 'error' : ''}`}
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          paddingRight: '44px',
-                          background: '#F8FAFC',
-                          border: `2px solid ${addUserErrors.confirmPassword ? '#DC2626' : '#E2E8F0'}`,
-                          borderRadius: '8px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '14px',
-                          color: '#0F172A',
-                          outline: 'none',
-                          transition: 'all 0.2s',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle-btn"
-                        onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          color: '#94A3B8'
-                        }}
-                      >
-                        {showAddConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
+                    <div style={{ position: 'relative' }}>
+                      <input type={showAddConfirmPassword ? 'text' : 'password'} placeholder="Confirm" value={addUserForm.confirmPassword}
+                        onChange={e => setAddUserForm({ ...addUserForm, confirmPassword: e.target.value })}
+                        style={{ width: '100%', padding: '12px 44px 12px 14px', background: '#F9FAFB', border: `2px solid ${addUserErrors.confirmPassword ? '#DC2626' : '#E5E7EB'}`, borderRadius: 10, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
+                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                        {showAddConfirmPassword ? <EyeIcon color="#6B7280" /> : <EyeOffIcon color="#6B7280" />}
                       </button>
                     </div>
-                    {addUserErrors.confirmPassword && (
-                      <span className="error-message" style={{ color: '#DC2626', fontSize: '12px', marginTop: '2px', display: 'block' }}>
-                        {addUserErrors.confirmPassword}
-                      </span>
-                    )}
+                    {addUserErrors.confirmPassword && <span style={{ color: '#DC2626', fontSize: 12, marginTop: 4, display: 'block' }}>{addUserErrors.confirmPassword}</span>}
                   </div>
                 </div>
               </div>
 
-              <div className="modal-actions" style={{ display: 'flex', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={closeAddUserModal}
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={addUserLoading}
-                  style={{
-                    flex: 1,
-                    background: '#194752',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {addUserLoading ? (
-                    <>
-                      <span className="btn-spinner-small" style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: '#FFFFFF',
-                        borderRadius: '50%',
-                        animation: 'spin 0.6s linear infinite'
-                      }}></span>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <AddUserIcon width={18} height={18} color="#ffffff" />
-                      Create User
-                    </>
-                  )}
+              <div className="modal-actions" style={{ display: 'flex', gap: 12, marginTop: 24, paddingTop: 20, borderTop: '1px solid #E5E7EB' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setShowAddUserModal(false)} style={{ flex: 1 }}>Cancel</button>
+                <button type="submit" disabled={addUserLoading} className="btn btn-primary" style={{ flex: 1 }}>
+                  {addUserLoading ? '⏳ Creating...' : <><AddUserIcon size={16} color="#FFF" /> Create User</>}
                 </button>
               </div>
             </form>
@@ -1950,655 +985,174 @@ const Users = () => {
         </div>
       )}
 
-      {/* ============================================================
-          IMPORT MODAL - SERVER-SPECIFIC WITH SMART DROPDOWNS
-          ============================================================ */}
+      {/* IMPORT MODAL */}
       {showImportModal && (
-        <div className="modal-overlay" onClick={closeImportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+        <div className="modal-overlay" onClick={() => setShowImportModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 850 }}>
             <div className="modal-header">
-              <h2 style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: importServerConfig?.color || '#194752'
-              }}>
-                <ImportIcon width={28} height={28} color={importServerConfig?.color || '#194752'} />
-                Import Data — {getServerLabel(importServer)}
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#111827' }}>
+                <ImportIcon size={22} color="#111827" /> Import Data — {getServerLabel(importServer)}
               </h2>
-              <button className="close-btn" onClick={closeImportModal}>✕</button>
+              <button className="close-btn" onClick={() => setShowImportModal(false)}>✕</button>
             </div>
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '8px 20px',
-                background: `${importServerConfig?.color || '#194752'}15`,
-                border: `2px solid ${importServerConfig?.color || '#194752'}`,
-                borderRadius: '12px'
-              }}>
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: '800',
-                  color: importServerConfig?.color || '#194752',
-                  letterSpacing: '1px'
-                }}>
-                  🗄️ {getServerLabel(importServer).toUpperCase()}
-                </span>
-                <span style={{
-                  fontSize: '11px',
-                  color: importServerConfig?.color || '#194752',
-                  opacity: 0.8,
-                  fontWeight: '600'
-                }}>
-                  {importServerConfig?.project}
-                </span>
+            {importOptionsLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 40, gap: 12 }}>
+                <div style={{ width: 40, height: 40, border: '4px solid #E5E7EB', borderTop: '4px solid #111827', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>Loading options...</span>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
-                Pilia ang <strong>Month</strong>, <strong>Year</strong>, ug <strong>Location</strong> para
-                i-import ang bills gikan sa <strong>"{getServerLabel(importServer)} → bills"</strong> ngadto sa
-                <strong> "{getServerLabel(importServer)} → import"</strong> collection.
-              </p>
-
-              {importOptionsLoading ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '40px 20px',
-                  gap: '12px'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: `4px solid ${importServerConfig?.color || '#194752'}20`,
-                    borderTop: `4px solid ${importServerConfig?.color || '#194752'}`,
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  <span style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '13px',
-                    color: importServerConfig?.color || '#194752',
-                    fontWeight: '600'
-                  }}>
-                    Loading available months, years, and locations from {getServerLabel(importServer)}...
-                  </span>
-                </div>
-              ) : (
-                <>
-                  {availableImportMonths.length === 0 && availableImportYears.length === 0 && availableImportLocations.length === 0 ? (
-                    <div style={{
-                      padding: '30px 20px',
-                      background: '#FEF3C7',
-                      border: '2px solid #F59E0B',
-                      borderRadius: '12px',
-                      textAlign: 'center'
-                    }}>
-                      <p style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
-                        color: '#92400E',
-                        fontWeight: '600',
-                        margin: 0
-                      }}>
-                        ⚠️ Walang naka-store na data sa {getServerLabel(importServer)}
-                      </p>
-                      <p style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        color: '#92400E',
-                        marginTop: '8px'
-                      }}>
-                        Please import data first sa Bills collection sa {getServerLabel(importServer)}.
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            ) : (
+              <>
+                {availableImportMonths.length === 0 && availableImportYears.length === 0 && availableImportLocations.length === 0 ? (
+                  <div style={{ padding: '30px 20px', background: '#FEF3C7', border: '2px solid #F59E0B', borderRadius: 12, textAlign: 'center' }}>
+                    <p style={{ fontSize: 14, color: '#92400E', fontWeight: 600, margin: 0 }}>⚠️ No data on {getServerLabel(importServer)}</p>
+                  </div>
+                ) : (
+                  <div className="form-two-column">
+                    <div className="form-column">
+                      <div className="form-section-label"><span className="form-section-icon">📅</span> PERIOD</div>
                       <div className="form-group">
-                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                          <MonthIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                          Month <span className="required" style={{ color: '#DC2626' }}>*</span>
-                        </label>
-                        <select
-                          value={importMonth}
-                          onChange={(e) => {
-                            setImportMonth(e.target.value);
-                            setImportPreviewData([]);
-                            setShowImportPreview(false);
-                          }}
-                          className="modal-input"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: '#F8FAFC',
-                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
-                            borderRadius: '8px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            color: '#0F172A',
-                            outline: 'none'
-                          }}
-                        >
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>Month *</label>
+                        <select value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>
                           <option value="">Select Month...</option>
-                          {availableImportMonths.map(month => (
-                            <option key={month} value={month}>{month}</option>
-                          ))}
+                          {availableImportMonths.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                       </div>
-
                       <div className="form-group">
-                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                          <YearIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                          Year <span className="required" style={{ color: '#DC2626' }}>*</span>
-                        </label>
-                        <select
-                          value={importYear}
-                          onChange={(e) => {
-                            setImportYear(e.target.value);
-                            setImportPreviewData([]);
-                            setShowImportPreview(false);
-                          }}
-                          className="modal-input"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: '#F8FAFC',
-                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
-                            borderRadius: '8px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            color: '#0F172A',
-                            outline: 'none'
-                          }}
-                        >
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>Year *</label>
+                        <select value={importYear} onChange={e => setImportYear(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>
                           <option value="">Select Year...</option>
-                          {availableImportYears.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
+                          {availableImportYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                       </div>
-
+                    </div>
+                    <div className="form-column">
+                      <div className="form-section-label"><span className="form-section-icon">📍</span> LOCATION</div>
                       <div className="form-group">
-                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A', fontSize: '13px' }}>
-                          <LocationIcon width={16} height={16} style={{ display: 'inline', marginRight: '6px' }} />
-                          Location <span className="required" style={{ color: '#DC2626' }}>*</span>
-                        </label>
-                        <select
-                          value={importLocation}
-                          onChange={(e) => {
-                            setImportLocation(e.target.value);
-                            setImportPreviewData([]);
-                            setShowImportPreview(false);
-                          }}
-                          className="modal-input"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: '#F8FAFC',
-                            border: `2px solid ${importServerConfig?.color || '#E2E8F0'}40`,
-                            borderRadius: '8px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
-                            color: '#0F172A',
-                            outline: 'none'
-                          }}
-                        >
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>Location *</label>
+                        <select value={importLocation} onChange={e => setImportLocation(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>
                           <option value="">Select Location...</option>
-                          {availableImportLocations.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                          ))}
+                          {availableImportLocations.map(l => <option key={l} value={l}>{l}</option>)}
                         </select>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {availableImportMonths.length > 0 && availableImportYears.length > 0 && availableImportLocations.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={previewImport}
-                        disabled={!importMonth || !importYear || !importLocation || importLoading}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          background: importServerConfig?.color || '#194752',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          opacity: (!importMonth || !importYear || !importLocation || importLoading) ? '0.5' : '1'
-                        }}
-                      >
-                        {importLoading ? '⏳ Loading...' : `🔍 Preview Bills from ${getServerLabel(importServer)}`}
-                      </button>
-                    </div>
-                  )}
+                {availableImportMonths.length > 0 && availableImportLocations.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <button onClick={previewImport} disabled={!importMonth || !importYear || !importLocation || importLoading} className="btn btn-primary" style={{ width: '100%' }}>
+                      {importLoading ? '⏳ Loading...' : `🔍 Preview Bills`}
+                    </button>
+                  </div>
+                )}
 
-                  {showImportPreview && importPreviewData.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                          📋 Found {importPreviewData.length} bills
-                        </span>
-                        <span style={{ fontSize: '12px', color: importServerConfig?.color }}>
-                          {getServerLabel(importServer)} | {importMonth} {importYear}
-                        </span>
-                      </div>
-
-                      <div style={{
-                        maxHeight: '200px',
-                        overflow: 'auto',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '8px'
-                      }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                          <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
-                            <tr>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Status</th>
+                {showImportPreview && importPreviewData.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>📋 Found {importPreviewData.length} bills</span>
+                    <div style={{ maxHeight: 200, overflow: 'auto', border: '1px solid #E5E7EB', borderRadius: 10, marginTop: 10 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead style={{ background: '#F9FAFB', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ padding: '10px 12px', textAlign: 'left' }}>WSIN</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left' }}>Consumer</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left' }}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importPreviewData.slice(0, 50).map(b => (
+                            <tr key={b.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 600 }}>{b.billNumber || 'N/A'}</td>
+                              <td style={{ padding: '8px 12px' }}>{b.consumerName || 'N/A'}</td>
+                              <td style={{ padding: '8px 12px', fontWeight: 600 }}>₱{(b.amount || 0).toFixed(2)}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {importPreviewData.slice(0, 50).map((bill) => (
-                              <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
-                                <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
-                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
-                                <td style={{ padding: '6px 12px' }}>
-                                  <span style={{
-                                    padding: '2px 10px',
-                                    borderRadius: '12px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    background: bill.status === 'paid' ? '#D1FAE5' : '#FEF3C7',
-                                    color: bill.status === 'paid' ? '#065F46' : '#92400E'
-                                  }}>
-                                    {bill.status || 'UNPAID'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
+                  </div>
+                )}
+              </>
+            )}
 
-            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-outline" onClick={closeImportModal} style={{ flex: 1 }}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={confirmImport}
-                disabled={importPreviewData.length === 0 || importLoading}
-                style={{
-                  flex: 1,
-                  background: importServerConfig?.color || '#194752',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  opacity: (importPreviewData.length === 0 || importLoading) ? '0.5' : '1'
-                }}
-              >
-                {importLoading ? '⏳ Importing...' : `📥 Import ${importPreviewData.length} Bills to ${getServerLabel(importServer)}`}
+            <div className="modal-actions" style={{ display: 'flex', gap: 12, paddingTop: 16, borderTop: '1px solid #E5E7EB', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setShowImportModal(false)} style={{ flex: 1 }}>Cancel</button>
+              <button onClick={confirmImport} disabled={importPreviewData.length === 0 || importLoading} className="btn btn-primary" style={{ flex: 1 }}>
+                {importLoading ? '⏳ Importing...' : `📥 Import ${importPreviewData.length} Bills`}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Import Progress Modal */}
-      {showImportProgress && (
-        <div className="modal-overlay">
-          <div className="modal-content progress-modal">
-            <h3>📤 Importing Bills to "{getServerLabel(importServer)} → import"</h3>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%`,
-                  background: `linear-gradient(135deg, ${importServerConfig?.color || '#194752'}, ${importServerConfig?.color || '#124451'}dd)`
-                }}
-              />
-            </div>
-            <p className="progress-text">
-              {importProgress.current} / {importProgress.total} bills imported
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================
-          EXPORT / REPLACE MODAL - SERVER-SPECIFIC
-          ============================================================ */}
+      {/* EXPORT MODAL */}
       {showExportModal && (
-        <div className="modal-overlay" onClick={closeExportModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 850 }}>
             <div className="modal-header">
-              <h2 style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: exportServerConfig?.color || '#DC2626'
-              }}>
-                <ExportIcon width={28} height={28} color={exportServerConfig?.color || '#DC2626'} />
-                Replace Bills — {getServerLabel(exportServer)}
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#111827' }}>
+                <ExportIcon size={22} color="#111827" /> Replace Bills — {getServerLabel(exportServer)}
               </h2>
-              <button className="close-btn" onClick={closeExportModal}>✕</button>
+              <button className="close-btn" onClick={() => setShowExportModal(false)}>✕</button>
             </div>
 
-            {/* Server Badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '8px 20px',
-                background: `${exportServerConfig?.color || '#DC2626'}15`,
-                border: `2px solid ${exportServerConfig?.color || '#DC2626'}`,
-                borderRadius: '12px'
-              }}>
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: '800',
-                  color: exportServerConfig?.color || '#DC2626',
-                  letterSpacing: '1px'
-                }}>
-                  🗄️ {getServerLabel(exportServer).toUpperCase()}
-                </span>
-                <span style={{
-                  fontSize: '11px',
-                  color: exportServerConfig?.color || '#DC2626',
-                  opacity: 0.8,
-                  fontWeight: '600'
-                }}>
-                  {exportServerConfig?.project}
-                </span>
+            {exportOptionsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                <div style={{ width: 40, height: 40, border: '4px solid #E5E7EB', borderTop: '4px solid #111827', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
-                Pilia ang <strong>Month</strong> ug <strong>Location</strong> para i-<strong>REPLACE</strong>
-                ang bills sa <strong>"{getServerLabel(exportServer)} → bills"</strong> gamit ang data gikan sa
-                <strong> "{getServerLabel(exportServer)} → import"</strong>.
-              </p>
-
-              {exportOptionsLoading ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '40px 20px',
-                  gap: '12px'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: `4px solid ${exportServerConfig?.color || '#DC2626'}20`,
-                    borderTop: `4px solid ${exportServerConfig?.color || '#DC2626'}`,
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  <span style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '13px',
-                    color: exportServerConfig?.color || '#DC2626',
-                    fontWeight: '600'
-                  }}>
-                    Loading available months and locations from {getServerLabel(exportServer)}...
-                  </span>
-                </div>
-              ) : (
-                <>
-                  {availableExportMonths.length === 0 && availableExportLocations.length === 0 ? (
-                    <div style={{
-                      padding: '30px 20px',
-                      background: '#FEF3C7',
-                      border: '2px solid #F59E0B',
-                      borderRadius: '12px',
-                      textAlign: 'center'
-                    }}>
-                      <p style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
-                        color: '#92400E',
-                        fontWeight: '600',
-                        margin: 0
-                      }}>
-                        ⚠️ Walang data sa "{getServerLabel(exportServer)} → import" collection
-                      </p>
-                      <p style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        color: '#92400E',
-                        marginTop: '8px'
-                      }}>
-                        Please Import Data first sa {getServerLabel(exportServer)}.
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            ) : (
+              <>
+                {availableExportMonths.length === 0 && availableExportLocations.length === 0 ? (
+                  <div style={{ padding: '30px 20px', background: '#FEF3C7', border: '2px solid #F59E0B', borderRadius: 12, textAlign: 'center' }}>
+                    <p style={{ fontSize: 14, color: '#92400E', fontWeight: 600, margin: 0 }}>⚠️ No import data for {getServerLabel(exportServer)}</p>
+                  </div>
+                ) : (
+                  <div className="form-two-column">
+                    <div className="form-column">
+                      <div className="form-section-label"><span className="form-section-icon">📅</span> PERIOD</div>
                       <div className="form-group">
-                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                          <MonthIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
-                          Month <span className="required" style={{ color: '#DC2626' }}>*</span>
-                        </label>
-                        <select
-                          value={exportMonth}
-                          onChange={(e) => {
-                            setExportMonth(e.target.value);
-                            setExportPreviewData([]);
-                            setShowExportPreview(false);
-                          }}
-                          className="modal-input"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            background: '#F8FAFC',
-                            border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}40`,
-                            borderRadius: '8px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '15px',
-                            color: '#0F172A',
-                            outline: 'none'
-                          }}
-                        >
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>Month *</label>
+                        <select value={exportMonth} onChange={e => setExportMonth(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>
                           <option value="">Select Month...</option>
-                          {availableExportMonths.map(month => (
-                            <option key={month} value={month}>{month}</option>
-                          ))}
+                          {availableExportMonths.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                       </div>
-
+                    </div>
+                    <div className="form-column">
+                      <div className="form-section-label"><span className="form-section-icon">📍</span> LOCATION</div>
                       <div className="form-group">
-                        <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
-                          <LocationIcon width={18} height={18} style={{ display: 'inline', marginRight: '6px' }} />
-                          Location <span className="required" style={{ color: '#DC2626' }}>*</span>
-                        </label>
-                        <select
-                          value={exportLocation}
-                          onChange={(e) => {
-                            setExportLocation(e.target.value);
-                            setExportPreviewData([]);
-                            setShowExportPreview(false);
-                          }}
-                          className="modal-input"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            background: '#F8FAFC',
-                            border: `2px solid ${exportServerConfig?.color || '#E2E8F0'}40`,
-                            borderRadius: '8px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '15px',
-                            color: '#0F172A',
-                            outline: 'none'
-                          }}
-                        >
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, color: '#111827', fontSize: 13 }}>Location *</label>
+                        <select value={exportLocation} onChange={e => setExportLocation(e.target.value)} style={{ width: '100%', padding: '12px 14px', background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>
                           <option value="">Select Location...</option>
-                          {availableExportLocations.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                          ))}
+                          {availableExportLocations.map(l => <option key={l} value={l}>{l}</option>)}
                         </select>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {availableExportMonths.length > 0 && availableExportLocations.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={previewExport}
-                        disabled={!exportMonth || !exportLocation || exportLoading}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          background: exportServerConfig?.color || '#DC2626',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          opacity: (!exportMonth || !exportLocation || exportLoading) ? '0.5' : '1'
-                        }}
-                      >
-                        {exportLoading ? '⏳ Loading...' : `🔍 Preview Imported Bills from ${getServerLabel(exportServer)}`}
-                      </button>
-                    </div>
-                  )}
+                {availableExportMonths.length > 0 && availableExportLocations.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <button onClick={previewExport} disabled={!exportMonth || !exportLocation || exportLoading} className="btn btn-primary" style={{ width: '100%' }}>
+                      {exportLoading ? '⏳ Loading...' : `🔍 Preview`}
+                    </button>
+                  </div>
+                )}
 
-                  {showExportPreview && exportPreviewData.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{ fontWeight: '600', color: '#0F172A' }}>
-                          📋 Found {exportPreviewData.length} imported bills
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#DC2626', fontWeight: '600' }}>
-                          Will REPLACE existing bills
-                        </span>
-                      </div>
+                {showExportPreview && exportPreviewData.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>📋 Found {exportPreviewData.length} imported bills</span>
+                  </div>
+                )}
+              </>
+            )}
 
-                      <div style={{
-                        maxHeight: '200px',
-                        overflow: 'auto',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '8px'
-                      }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                          <thead style={{ background: '#F1F5F9', position: 'sticky', top: 0 }}>
-                            <tr>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>WSIN</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Consumer</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'left' }}>Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {exportPreviewData.slice(0, 50).map((bill) => (
-                              <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
-                                <td style={{ padding: '6px 12px' }}>{bill.consumerName || 'N/A'}</td>
-                                <td style={{ padding: '6px 12px', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-outline" onClick={closeExportModal} style={{ flex: 1 }}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={confirmExport}
-                disabled={exportPreviewData.length === 0 || exportLoading}
-                style={{
-                  flex: 1,
-                  background: exportServerConfig?.color || '#DC2626',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  opacity: (exportPreviewData.length === 0 || exportLoading) ? '0.5' : '1'
-                }}
-              >
-                {exportLoading ? '⏳ Replacing...' : `🔄 REPLACE ${exportPreviewData.length} Bills on ${getServerLabel(exportServer)}`}
+            <div className="modal-actions" style={{ display: 'flex', gap: 12, paddingTop: 16, borderTop: '1px solid #E5E7EB', marginTop: 20 }}>
+              <button className="btn btn-outline" onClick={() => setShowExportModal(false)} style={{ flex: 1 }}>Cancel</button>
+              <button onClick={confirmExport} disabled={exportPreviewData.length === 0 || exportLoading} className="btn btn-primary" style={{ flex: 1 }}>
+                {exportLoading ? '⏳ Replacing...' : `🔄 REPLACE ${exportPreviewData.length} Bills`}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export Progress Modal */}
-      {showExportProgress && (
-        <div className="modal-overlay">
-          <div className="modal-content progress-modal">
-            <h3>🔄 Replacing Bills on {getServerLabel(exportServer)}</h3>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${exportProgress.total > 0 ? (exportProgress.current / exportProgress.total) * 100 : 0}%`,
-                  background: `linear-gradient(135deg, ${exportServerConfig?.color || '#DC2626'}, ${exportServerConfig?.color || '#991B1B'}dd)`
-                }}
-              />
-            </div>
-            <p className="progress-text">
-              {exportProgress.current} / {exportProgress.total} bills processed
-            </p>
-            <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-              ⏳ Step 1: Deleting existing bills | Step 2: Exporting new bills | Step 3: Cleaning up import
-            </p>
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ import '../bills/BillStyles.css';
 import './AdminStyles.css';
 
 const EXCEL_PASSWORD = 'Water_2026';
+const DISCOUNT_RATE = 0.05;
 
 // ============================================================
 // OR NUMBER STORAGE (SERVER 4)
@@ -202,6 +203,49 @@ const ServerIcon = (props) => (
   </svg>
 );
 
+const SeniorIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <circle cx="12" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M14 21V18M10 21V18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M21 10L20 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const PWDIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color="currentColor" fill="none" {...props}>
+    <circle cx="12" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M9 22L10.5 15L8 12L10 9L12 10L14 9L16 12L13.5 15L15 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 8L18 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const FilterIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={18} height={18} color="currentColor" fill="none" {...props}>
+    <path d="M4 4H20L14 12V18L10 20V12L4 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DeleteLocationIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M14.5 9C14.5 10.3807 13.3807 11.5 12 11.5C10.6193 11.5 9.5 10.3807 9.5 9C9.5 7.61929 10.6193 6.5 12 6.5C13.3807 6.5 14.5 7.61929 14.5 9Z" stroke="currentColor" strokeWidth="1.5"></path>
+    <path d="M18.2222 17C19.6167 18.9885 20.2838 20.0475 19.8865 20.8999C19.8466 20.9854 19.7999 21.0679 19.7469 21.1467C19.1724 22 17.6875 22 14.7178 22H9.28223C6.31251 22 4.82765 22 4.25311 21.1467C4.20005 21.0679 4.15339 20.9854 4.11355 20.8999C3.71619 20.0475 4.38326 18.9885 5.77778 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M13.2574 17.4936C12.9201 17.8184 12.4693 18 12.0002 18C11.531 18 11.0802 17.8184 10.7429 17.4936C7.6543 14.5008 3.51519 11.1575 5.53371 6.30373C6.6251 3.67932 9.24494 2 12.0002 2C14.7554 2 17.3752 3.67933 18.4666 6.30373C20.4826 11.1514 16.3536 14.5111 13.2574 17.4936Z" stroke="currentColor" strokeWidth="1.5"></path>
+    <path d="M17 17L22 22M22 17L17 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const DeleteMonthIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20} height={20} color={"currentColor"} fill={"none"} {...props}>
+    <path d="M15.5 2V6M7.5 2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M20.3985 8C20.2706 6.69989 19.9816 5.82475 19.3284 5.17157C18.1569 4 16.2712 4 12.5 4H10.5C6.72876 4 4.84315 4 3.67157 5.17157C2.5 6.34315 2.5 8.22876 2.5 12V14C2.5 17.7712 2.5 19.6569 3.67157 20.8284C4.47975 21.6366 5.6277 21.8873 7.5 21.965" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M2.5 10H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M15.5 15H19.5M17.5 13V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M13 18C13 20.2091 14.7909 22 17 22C19.2091 22 21 20.2091 21 18C21 15.7909 19.2091 14 17 14C14.7909 14 13 15.7909 13 18Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M15.5 18L18.5 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 // ============================================================
 // BILL CALCULATION FUNCTIONS
 // ============================================================
@@ -374,31 +418,16 @@ const fetchNextAvailableOR = async () => {
   try {
     const orDb = getDbByServer(OR_SERVER_KEY);
     const orRef = collection(orDb, OR_COLLECTION);
-
-    console.log('🔍 Admin: Fetching available OR from SERVER 4');
-
-    const q = query(
-      orRef,
-      where('status', '==', 'available')
-    );
-
+    const q = query(orRef, where('status', '==', 'available'));
     const snap = await getDocs(q);
-
-    if (snap.empty) {
-      console.warn('⚠️ No available OR numbers in Server 4');
-      return null;
-    }
-
+    if (snap.empty) return null;
     const sortedDocs = snap.docs.sort((a, b) => {
       const aNum = parseInt(String(a.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
       const bNum = parseInt(String(b.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
       return aNum - bNum;
     });
-
     const orDoc = sortedDocs[0];
     const orData = orDoc.data();
-
-    console.log('✅ Admin: Next available OR:', orData.orNumber);
     return {
       id: orDoc.id,
       orNumber: String(orData.orNumber),
@@ -406,7 +435,7 @@ const fetchNextAvailableOR = async () => {
       ...orData
     };
   } catch (error) {
-    console.error('❌ Admin: Error fetching OR:', error);
+    console.error('❌ Error fetching OR:', error);
     return null;
   }
 };
@@ -416,45 +445,27 @@ const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail)
     const orDb = getDbByServer(OR_SERVER_KEY);
     const orRef = doc(orDb, OR_COLLECTION, orDocId);
     const usedRef = collection(orDb, USED_OR_COLLECTION);
-
     const usedAt = new Date().toISOString();
-
     await updateDoc(orRef, {
-      status: 'used',
-      usedAt,
-      usedBy: userEmail || 'Unknown',
-      billId: billInfo?.id || null,
-      billNumber: billInfo?.billNumber || null,
-      consumerName: billInfo?.consumerName || null,
-      paymentCode,
+      status: 'used', usedAt, usedBy: userEmail || 'Unknown',
+      billId: billInfo?.id || null, billNumber: billInfo?.billNumber || null,
+      consumerName: billInfo?.consumerName || null, paymentCode,
       serverSource: billInfo?.serverSource || null,
       referenceNumber: billInfo?.referenceNumber || null
     });
-
     const usedDocId = `${orNumber}_${Date.now()}`;
     await setDoc(doc(usedRef, usedDocId), {
-      orNumber,
-      originalOrDocId: orDocId,
-      status: 'used',
-      usedAt,
-      usedBy: userEmail || 'Unknown',
-      billId: billInfo?.id || null,
-      billNumber: billInfo?.billNumber || null,
-      consumerName: billInfo?.consumerName || null,
-      consumerAddress: billInfo?.location || null,
-      month: billInfo?.month || null,
-      year: billInfo?.year || null,
-      amount: billInfo?.amount || 0,
-      paymentCode,
+      orNumber, originalOrDocId: orDocId, status: 'used', usedAt,
+      usedBy: userEmail || 'Unknown', billId: billInfo?.id || null,
+      billNumber: billInfo?.billNumber || null, consumerName: billInfo?.consumerName || null,
+      consumerAddress: billInfo?.location || null, month: billInfo?.month || null,
+      year: billInfo?.year || null, amount: billInfo?.amount || 0, paymentCode,
       referenceNumber: billInfo?.referenceNumber || null,
-      serverSource: billInfo?.serverSource || null,
-      archivedAt: usedAt
+      serverSource: billInfo?.serverSource || null, archivedAt: usedAt
     });
-
-    console.log(`✅ Admin: OR ${orNumber} marked as used`);
     return { success: true };
   } catch (error) {
-    console.error('❌ Admin: Error marking OR as used:', error);
+    console.error('❌ Error marking OR as used:', error);
     return { success: false, error: error.message };
   }
 };
@@ -470,6 +481,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   
   const [selectedServer, setSelectedServer] = useState('server1');
+  
+  const [selectedBillIds, setSelectedBillIds] = useState([]);
   
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
@@ -510,6 +523,9 @@ const AdminDashboard = () => {
   const [payAllAvailableOR, setPayAllAvailableOR] = useState(null);
   const [payAllLoadingOR, setPayAllLoadingOR] = useState(false);
   const [payAllOrFetchError, setPayAllOrFetchError] = useState('');
+  
+  const [isSeniorCitizen, setIsSeniorCitizen] = useState(false);
+  const [isPWD, setIsPWD] = useState(false);
   
   const [showCutoffPayModal, setShowCutoffPayModal] = useState(false);
   const [cutoffBillToPay, setCutoffBillToPay] = useState(null);
@@ -557,6 +573,28 @@ const AdminDashboard = () => {
 
   const [orStats, setOrStats] = useState({ available: 0, used: 0 });
 
+  // ✅ DELETE LOCATION STATES
+  const [showDeleteLocationModal, setShowDeleteLocationModal] = useState(false);
+  const [deleteLocationTarget, setDeleteLocationTarget] = useState('');
+  const [deleteLocationBills, setDeleteLocationBills] = useState([]);
+  const [deleteLocationLoading, setDeleteLocationLoading] = useState(false);
+  const [deleteLocationPreview, setDeleteLocationPreview] = useState([]);
+  const [showDeleteLocationPreview, setShowDeleteLocationPreview] = useState(false);
+  const [deleteLocationConfirmText, setDeleteLocationConfirmText] = useState('');
+  const [deleteLocationOptions, setDeleteLocationOptions] = useState([]);
+
+  // ✅ DELETE MONTH STATES
+  const [showDeleteMonthModal, setShowDeleteMonthModal] = useState(false);
+  const [deleteMonthTarget, setDeleteMonthTarget] = useState('');
+  const [deleteMonthYear, setDeleteMonthYear] = useState('');
+  const [deleteMonthBills, setDeleteMonthBills] = useState([]);
+  const [deleteMonthLoading, setDeleteMonthLoading] = useState(false);
+  const [deleteMonthPreview, setDeleteMonthPreview] = useState([]);
+  const [showDeleteMonthPreview, setShowDeleteMonthPreview] = useState(false);
+  const [deleteMonthConfirmText, setDeleteMonthConfirmText] = useState('');
+  const [deleteMonthMonthOptions, setDeleteMonthMonthOptions] = useState([]);
+  const [deleteMonthYearOptions, setDeleteMonthYearOptions] = useState([]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, selectedServer, tableType]);
@@ -569,15 +607,12 @@ const AdminDashboard = () => {
     try {
       const orDb = getDbByServer(OR_SERVER_KEY);
       const orRef = collection(orDb, OR_COLLECTION);
-
       const availableQuery = query(orRef, where('status', '==', 'available'));
       const usedQuery = query(orRef, where('status', '==', 'used'));
-
       const [availableSnap, usedSnap] = await Promise.all([
         getDocs(availableQuery),
         getDocs(usedQuery)
       ]);
-
       setOrStats({
         available: availableSnap.size,
         used: usedSnap.size
@@ -591,7 +626,6 @@ const AdminDashboard = () => {
     if (!user) return;
     
     setLoading(true);
-    console.log('🔍 Admin: Fetching bills from:', serverKey);
     
     try {
       const allBills = [];
@@ -634,7 +668,6 @@ const AdminDashboard = () => {
               _server: serverConfig.key
             });
           });
-          console.log(`✅ Admin: Fetched ${allBills.length} bills from ${serverConfig.label}`);
         } catch (e) {
           console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
           toast.error(`Error loading from ${serverConfig.label}`);
@@ -648,6 +681,7 @@ const AdminDashboard = () => {
       setFilteredBills(sortedBills);
       calculateStats(sortedBills);
       extractFilterOptions(sortedBills);
+      setSelectedBillIds([]);
       
     } catch (error) {
       console.error('Error fetching bills:', error);
@@ -672,6 +706,8 @@ const AdminDashboard = () => {
       setPaymentError('');
       setAvailableOR(null);
       setOrFetchError('');
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
 
       const loadOR = async () => {
         setLoadingOR(true);
@@ -694,6 +730,8 @@ const AdminDashboard = () => {
       setPayAllPaymentError('');
       setPayAllAvailableOR(null);
       setPayAllOrFetchError('');
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
 
       const loadOR = async () => {
         setPayAllLoadingOR(true);
@@ -848,6 +886,7 @@ const AdminDashboard = () => {
     setFilterMonth('all');
     setFilterYear('all');
     setFilterConsumerPeriod('all');
+    setSelectedBillIds([]);
   };
 
   const handleServerChange = (e) => {
@@ -861,10 +900,75 @@ const AdminDashboard = () => {
     setFilterMonth('all');
     setFilterYear('all');
     setFilterConsumerPeriod('all');
+    setSelectedBillIds([]);
     
     if (newServer === 'all') {
       toast.loading('Loading all servers...', { duration: 2000 });
     }
+  };
+
+  const handleToggleBillSelection = (billId) => {
+    setSelectedBillIds(prev => {
+      if (prev.includes(billId)) {
+        return prev.filter(id => id !== billId);
+      } else {
+        return [...prev, billId];
+      }
+    });
+  };
+
+  const handleSelectAllOnPage = () => {
+    const currentPageBills = getCurrentPageData()
+      .filter(bill => bill.status !== 'paid' && !isCutoffBill(bill))
+      .map(b => b.id);
+
+    const allSelected = currentPageBills.every(id => selectedBillIds.includes(id));
+
+    if (allSelected) {
+      setSelectedBillIds(prev => prev.filter(id => !currentPageBills.includes(id)));
+    } else {
+      setSelectedBillIds(prev => {
+        const newIds = new Set([...prev, ...currentPageBills]);
+        return Array.from(newIds);
+      });
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedBillIds([]);
+  };
+
+  const handleSelectedPay = () => {
+    if (selectedBillIds.length === 0) {
+      toast.error('Please select at least one bill to pay');
+      return;
+    }
+
+    const selectedBills = filteredBills.filter(b => selectedBillIds.includes(b.id));
+
+    if (selectedBills.length === 0) {
+      toast.error('No bills found for selected IDs');
+      return;
+    }
+
+    const uniqueConsumers = new Set(selectedBills.map(b => b.consumerName?.toUpperCase()));
+    if (uniqueConsumers.size > 1) {
+      toast.error('Please select bills from the same consumer only');
+      return;
+    }
+
+    const consumerName = selectedBills[0].consumerName;
+
+    const sortedSelected = [...selectedBills].sort((a, b) => {
+      const aIndex = MONTH_ORDER.indexOf(a.month?.toUpperCase());
+      const bIndex = MONTH_ORDER.indexOf(b.month?.toUpperCase());
+      if (a.year !== b.year) return Number(a.year) - Number(b.year);
+      return aIndex - bIndex;
+    });
+
+    setPayAllBills(sortedSelected);
+    setPayAllConsumerName(consumerName);
+    setShowPayAllModal(true);
   };
 
   const getCurrentPageData = () => {
@@ -1087,6 +1191,15 @@ const AdminDashboard = () => {
       return;
     }
 
+    const hasDiscount = isSeniorCitizen || isPWD;
+    const discountType = isSeniorCitizen && isPWD
+      ? 'SENIOR & PWD'
+      : isSeniorCitizen
+        ? 'SENIOR CITIZEN'
+        : isPWD
+          ? 'PWD'
+          : null;
+
     setIsPayingAll(true);
 
     try {
@@ -1094,6 +1207,8 @@ const AdminDashboard = () => {
       let successCount = 0;
       let errorCount = 0;
       let totalAmount = 0;
+      let totalDiscount = 0;
+      let totalOriginalAmount = 0;
       let paymentDetails = [];
 
       for (const bill of payAllBills) {
@@ -1103,15 +1218,18 @@ const AdminDashboard = () => {
           const isDefectiveReading = isPresentDefective || isPreviousDefective;
           
           let consumption = 0;
-          let calculatedAmount = 0;
+          let originalAmount = 0;
           
           if (isDefectiveReading) {
             consumption = 0;
-            calculatedAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+            originalAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
           } else {
             consumption = calculateConsumption(bill.presentReading, bill.previousReading);
-            calculatedAmount = calculateBillAmount(bill.consumerType, consumption);
+            originalAmount = calculateBillAmount(bill.consumerType, consumption);
           }
+
+          const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
+          const finalAmount = originalAmount - discountAmount;
 
           const targetDb = getDbByServer(bill.serverSource || selectedServer);
           const billRef = doc(targetDb, 'bills', bill.id);
@@ -1124,7 +1242,12 @@ const AdminDashboard = () => {
             referenceNumber,
             paidBy: user?.email || 'Unknown',
             consumption,
-            amount: calculatedAmount,
+            amount: finalAmount,
+            originalAmount: originalAmount,
+            discountAmount: discountAmount,
+            discountType: discountType,
+            hasDiscount: hasDiscount,
+            discountRate: hasDiscount ? DISCOUNT_RATE : 0,
             amountCalculated: true,
             isDefective: isDefectiveReading,
             isPresentDefective,
@@ -1135,18 +1258,30 @@ const AdminDashboard = () => {
               previousReading: bill.previousReading || 0,
               presentReading: bill.presentReading || 0,
               consumption,
-              calculatedAmount,
+              originalAmount,
+              discountAmount,
+              finalAmount,
+              hasDiscount,
+              discountType,
               calculatedAt: new Date().toISOString(),
               isDefective: isDefectiveReading
             }
           });
 
-          totalAmount += calculatedAmount;
+          totalOriginalAmount += originalAmount;
+          totalDiscount += discountAmount;
+          totalAmount += finalAmount;
           successCount++;
           
           paymentDetails.push({
             month: bill.month, year: bill.year, billNumber: bill.billNumber,
-            amount: calculatedAmount, consumption, isDefective: isDefectiveReading
+            amount: finalAmount,
+            originalAmount,
+            discountAmount,
+            consumption,
+            isDefective: isDefectiveReading,
+            hasDiscount,
+            discountType
           });
         } catch (error) {
           console.error('Error processing bill:', error);
@@ -1176,6 +1311,16 @@ const AdminDashboard = () => {
 
         toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
+        if (hasDiscount) {
+          toast.success(`🎉 ${discountType} Discount (5%): -₱${totalDiscount.toFixed(2)}`, {
+            duration: 5000,
+            style: {
+              background: '#FEF3C7',
+              color: '#92400E',
+              border: '1px solid #F59E0B'
+            }
+          });
+        }
         toast.success(`📋 OR Number: ${payAllPaymentCode}`);
         
         setReceiptData({
@@ -1184,6 +1329,10 @@ const AdminDashboard = () => {
             consumerName: payAllConsumerName,
             consumption: 'Multiple Bills',
             amount: totalAmount,
+            originalAmount: totalOriginalAmount,
+            discountAmount: totalDiscount,
+            discountType: discountType,
+            hasDiscount: hasDiscount,
             isDefective: false,
             isPayAll: true,
             payAllCount: successCount,
@@ -1194,7 +1343,12 @@ const AdminDashboard = () => {
           paymentCode: payAllPaymentCode,
           referenceNumber,
           isPayAll: true,
-          payAllDetails: paymentDetails
+          payAllDetails: paymentDetails,
+          discount: {
+            type: discountType,
+            rate: DISCOUNT_RATE,
+            amount: totalDiscount
+          }
         });
         setShowReceipt(true);
       }
@@ -1206,6 +1360,9 @@ const AdminDashboard = () => {
       setPayAllPaymentCode('');
       setPayAllPaymentError('');
       setPayAllAvailableOR(null);
+      setSelectedBillIds([]);
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
       fetchBills(selectedServer);
       loadORStats();
     } catch (error) {
@@ -1227,6 +1384,15 @@ const AdminDashboard = () => {
     }
     if (!selectedBill) return;
 
+    const hasDiscount = isSeniorCitizen || isPWD;
+    const discountType = isSeniorCitizen && isPWD
+      ? 'SENIOR & PWD'
+      : isSeniorCitizen
+        ? 'SENIOR CITIZEN'
+        : isPWD
+          ? 'PWD'
+          : null;
+
     setIsPaying(true);
 
     try {
@@ -1236,15 +1402,18 @@ const AdminDashboard = () => {
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
       
       let consumption = 0;
-      let calculatedAmount = 0;
+      let originalAmount = 0;
       
       if (isDefectiveReading) {
         consumption = 0;
-        calculatedAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
+        originalAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
       } else {
         consumption = calculateConsumption(selectedBill.presentReading, selectedBill.previousReading);
-        calculatedAmount = calculateBillAmount(selectedBill.consumerType, consumption);
+        originalAmount = calculateBillAmount(selectedBill.consumerType, consumption);
       }
+
+      const discountAmount = hasDiscount ? originalAmount * DISCOUNT_RATE : 0;
+      const finalAmount = originalAmount - discountAmount;
 
       const originalServer = selectedBill.serverSource || selectedServer;
       const targetDb = getDbByServer(originalServer);
@@ -1258,7 +1427,12 @@ const AdminDashboard = () => {
         referenceNumber,
         paidBy: user?.email || 'Unknown',
         consumption,
-        amount: calculatedAmount,
+        amount: finalAmount,
+        originalAmount: originalAmount,
+        discountAmount: discountAmount,
+        discountType: discountType,
+        hasDiscount: hasDiscount,
+        discountRate: hasDiscount ? DISCOUNT_RATE : 0,
         amountCalculated: true,
         isDefective: isDefectiveReading,
         isPresentDefective,
@@ -1268,7 +1442,11 @@ const AdminDashboard = () => {
           previousReading: selectedBill.previousReading || 0,
           presentReading: selectedBill.presentReading || 0,
           consumption,
-          calculatedAmount,
+          originalAmount,
+          discountAmount,
+          finalAmount,
+          hasDiscount,
+          discountType,
           calculatedAt: new Date().toISOString(),
           isDefective: isDefectiveReading
         }
@@ -1285,7 +1463,7 @@ const AdminDashboard = () => {
             location: selectedBill.location,
             month: selectedBill.month,
             year: selectedBill.year,
-            amount: calculatedAmount,
+            amount: finalAmount,
             serverSource: originalServer,
             referenceNumber
           },
@@ -1296,20 +1474,44 @@ const AdminDashboard = () => {
 
       await createNextMonthBill({
         ...selectedBill,
-        consumption, amount: calculatedAmount, isDefective: isDefectiveReading,
+        consumption, amount: finalAmount, isDefective: isDefectiveReading,
         isPresentDefective, isPreviousDefective
       });
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
-      toast.success(`💰 Amount: ₱${calculatedAmount.toFixed(2)}`);
+      toast.success(`💰 Amount: ₱${finalAmount.toFixed(2)}`);
+      if (hasDiscount) {
+        toast.success(`🎉 ${discountType} Discount (5%): -₱${discountAmount.toFixed(2)}`, {
+          duration: 5000,
+          style: {
+            background: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #F59E0B'
+          }
+        });
+      }
       toast.success(`📋 OR Number: ${paymentCode}`);
 
       setShowPayModal(false);
 
       setReceiptData({
-        bill: { ...selectedBill, consumption, amount: calculatedAmount, isDefective: isDefectiveReading },
+        bill: { 
+          ...selectedBill, 
+          consumption, 
+          amount: finalAmount, 
+          originalAmount,
+          discountAmount,
+          discountType,
+          hasDiscount,
+          isDefective: isDefectiveReading 
+        },
         paymentCode,
-        referenceNumber
+        referenceNumber,
+        discount: hasDiscount ? {
+          type: discountType,
+          rate: DISCOUNT_RATE,
+          amount: discountAmount
+        } : null
       });
       setShowReceipt(true);
 
@@ -1317,6 +1519,8 @@ const AdminDashboard = () => {
       setPaymentCode('');
       setPaymentError('');
       setAvailableOR(null);
+      setIsSeniorCitizen(false);
+      setIsPWD(false);
       fetchBills(selectedServer);
       loadORStats();
     } catch (error) {
@@ -2179,6 +2383,49 @@ const AdminDashboard = () => {
 
   const currentServerConfig = SERVER_CONFIGS.find(s => s.key === selectedServer);
 
+  const shouldShowCheckboxes = (() => {
+    if (!searchTerm.trim()) return false;
+
+    const unpaidRegularBills = filteredBills.filter(
+      b => b.status !== 'paid' && !isCutoffBill(b)
+    );
+
+    if (unpaidRegularBills.length < 2) return false;
+
+    const uniqueConsumers = new Set(
+      unpaidRegularBills.map(b => (b.consumerName || '').toUpperCase().trim())
+    );
+
+    if (uniqueConsumers.size !== 1) return false;
+
+    return true;
+  })();
+
+  const selectedBillsData = filteredBills.filter(b => selectedBillIds.includes(b.id));
+  const selectedTotalAmount = selectedBillsData.reduce((sum, bill) => {
+    const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+    return sum + amount;
+  }, 0);
+
+  const getDiscountPreview = () => {
+    const hasDiscount = isSeniorCitizen || isPWD;
+    if (!hasDiscount) return null;
+
+    const discountType = isSeniorCitizen && isPWD
+      ? 'Senior Citizen & PWD'
+      : isSeniorCitizen
+        ? 'Senior Citizen'
+        : 'PWD';
+
+    return {
+      type: discountType,
+      rate: DISCOUNT_RATE,
+      ratePercent: (DISCOUNT_RATE * 100).toFixed(0)
+    };
+  };
+
+  const discountPreview = getDiscountPreview();
+
   // ============================================================
   // OR NUMBER MODAL FUNCTIONS
   // ============================================================
@@ -2318,435 +2565,512 @@ const AdminDashboard = () => {
   })();
 
   // ============================================================
+  // ✅ DELETE LOCATION FUNCTIONS
+  // ============================================================
+
+  const openDeleteLocationModal = () => {
+    if (locations.length === 0) {
+      toast.error('No locations found in the current server.');
+      return;
+    }
+    setDeleteLocationOptions([...locations].sort());
+    setDeleteLocationTarget('');
+    setDeleteLocationPreview([]);
+    setShowDeleteLocationPreview(false);
+    setDeleteLocationConfirmText('');
+    setShowDeleteLocationModal(true);
+  };
+
+  const closeDeleteLocationModal = () => {
+    setShowDeleteLocationModal(false);
+    setDeleteLocationTarget('');
+    setDeleteLocationBills([]);
+    setDeleteLocationLoading(false);
+    setDeleteLocationPreview([]);
+    setShowDeleteLocationPreview(false);
+    setDeleteLocationConfirmText('');
+    setDeleteLocationOptions([]);
+  };
+
+  const previewDeleteLocation = async () => {
+    if (!deleteLocationTarget) {
+      toast.error('Please select a location to delete.');
+      return;
+    }
+    if (deleteLocationTarget === 'N/A') {
+      toast.error('Cannot delete "N/A" location.');
+      return;
+    }
+
+    setDeleteLocationLoading(true);
+    setDeleteLocationPreview([]);
+    setShowDeleteLocationPreview(false);
+
+    try {
+      const billsToDelete = [];
+      const serverConfigs = selectedServer === 'all'
+        ? SERVER_CONFIGS
+        : SERVER_CONFIGS.filter(s => s.key === selectedServer);
+
+      for (const serverConfig of serverConfigs) {
+        try {
+          const billsRef = collection(serverConfig.db, 'bills');
+          const q = query(billsRef, where('location', '==', deleteLocationTarget));
+          const snap = await getDocs(q);
+          snap.forEach((docSnap) => {
+            billsToDelete.push({
+              id: docSnap.id,
+              ...docSnap.data(),
+              serverSource: serverConfig.key
+            });
+          });
+        } catch (e) {
+          console.error(`Error fetching from ${serverConfig.label}:`, e);
+        }
+      }
+
+      if (billsToDelete.length === 0) {
+        toast.error(`No bills found for location: ${deleteLocationTarget}`);
+        setDeleteLocationLoading(false);
+        return;
+      }
+
+      setDeleteLocationBills(billsToDelete);
+      setDeleteLocationPreview(billsToDelete);
+      setShowDeleteLocationPreview(true);
+      toast.success(`Found ${billsToDelete.length} bills to delete.`);
+
+    } catch (error) {
+      console.error('Error previewing delete:', error);
+      toast.error('Error fetching bills: ' + error.message);
+    }
+
+    setDeleteLocationLoading(false);
+  };
+
+  const executeDeleteLocation = async () => {
+    if (!deleteLocationTarget) return;
+    if (deleteLocationConfirmText.trim().toUpperCase() !== 'DELETE') {
+      toast.error('Please type DELETE to confirm.');
+      return;
+    }
+    if (deleteLocationBills.length === 0) {
+      toast.error('No bills to delete.');
+      return;
+    }
+
+    setDeleteLocationLoading(true);
+
+    try {
+      const groupedByServer = {};
+      for (const bill of deleteLocationBills) {
+        const serverKey = bill.serverSource || selectedServer;
+        if (!groupedByServer[serverKey]) groupedByServer[serverKey] = [];
+        groupedByServer[serverKey].push(bill);
+      }
+
+      let deleteCount = 0;
+      let errorCount = 0;
+
+      for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
+        const targetDb = getDbByServer(serverKey);
+        let batch = writeBatch(targetDb);
+        let batchCount = 0;
+
+        for (let i = 0; i < serverBills.length; i++) {
+          try {
+            batch.delete(doc(targetDb, 'bills', serverBills[i].id));
+            deleteCount++;
+            batchCount++;
+
+            if (batchCount >= 500) {
+              await batch.commit();
+              batch = writeBatch(targetDb);
+              batchCount = 0;
+            }
+          } catch (e) {
+            console.error('Error adding delete to batch:', e);
+            errorCount++;
+          }
+        }
+
+        if (batchCount > 0) await batch.commit();
+      }
+
+      toast.success(`🗑️ Deleted ${deleteCount} bills from location "${deleteLocationTarget}"!`);
+      if (errorCount > 0) toast.error(`⚠️ ${errorCount} bills failed to delete.`);
+
+      try {
+        const logDb = getDbByServer(selectedServer === 'all' ? 'server1' : selectedServer);
+        await addDoc(collection(logDb, 'deletion_logs'), {
+          type: 'DELETE_LOCATION',
+          location: deleteLocationTarget,
+          deletedCount: deleteCount,
+          serverScope: selectedServer,
+          deletedBy: user?.email || 'Unknown',
+          deletedByUid: user?.uid || 'unknown',
+          deletedAt: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.error('Error logging deletion:', logError);
+      }
+
+      closeDeleteLocationModal();
+      fetchBills(selectedServer);
+    } catch (error) {
+      console.error('❌ Delete location error:', error);
+      toast.error('Error deleting location bills: ' + error.message);
+    } finally {
+      setDeleteLocationLoading(false);
+    }
+  };
+
+  // ============================================================
+  // ✅ DELETE MONTH FUNCTIONS
+  // ============================================================
+
+  const openDeleteMonthModal = () => {
+    if (months.length === 0 || years.length === 0) {
+      toast.error('No months/years found in the current server.');
+      return;
+    }
+    setDeleteMonthMonthOptions([...months].sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
+    setDeleteMonthYearOptions([...years].sort((a, b) => Number(b) - Number(a)));
+    setDeleteMonthTarget('');
+    setDeleteMonthYear('');
+    setDeleteMonthPreview([]);
+    setShowDeleteMonthPreview(false);
+    setDeleteMonthConfirmText('');
+    setShowDeleteMonthModal(true);
+  };
+
+  const closeDeleteMonthModal = () => {
+    setShowDeleteMonthModal(false);
+    setDeleteMonthTarget('');
+    setDeleteMonthYear('');
+    setDeleteMonthBills([]);
+    setDeleteMonthLoading(false);
+    setDeleteMonthPreview([]);
+    setShowDeleteMonthPreview(false);
+    setDeleteMonthConfirmText('');
+    setDeleteMonthMonthOptions([]);
+    setDeleteMonthYearOptions([]);
+  };
+
+  const previewDeleteMonth = async () => {
+    if (!deleteMonthTarget || !deleteMonthYear) {
+      toast.error('Please select both Month and Year.');
+      return;
+    }
+
+    setDeleteMonthLoading(true);
+    setDeleteMonthPreview([]);
+    setShowDeleteMonthPreview(false);
+
+    try {
+      const billsToDelete = [];
+      const serverConfigs = selectedServer === 'all'
+        ? SERVER_CONFIGS
+        : SERVER_CONFIGS.filter(s => s.key === selectedServer);
+
+      for (const serverConfig of serverConfigs) {
+        try {
+          const billsRef = collection(serverConfig.db, 'bills');
+          const q = query(
+            billsRef,
+            where('month', '==', deleteMonthTarget),
+            where('year', '==', deleteMonthYear)
+          );
+          const snap = await getDocs(q);
+          snap.forEach((docSnap) => {
+            billsToDelete.push({
+              id: docSnap.id,
+              ...docSnap.data(),
+              serverSource: serverConfig.key
+            });
+          });
+        } catch (e) {
+          console.error(`Error fetching from ${serverConfig.label}:`, e);
+        }
+      }
+
+      if (billsToDelete.length === 0) {
+        toast.error(`No bills found for ${deleteMonthTarget} ${deleteMonthYear}`);
+        setDeleteMonthLoading(false);
+        return;
+      }
+
+      setDeleteMonthBills(billsToDelete);
+      setDeleteMonthPreview(billsToDelete);
+      setShowDeleteMonthPreview(true);
+      toast.success(`Found ${billsToDelete.length} bills to delete.`);
+
+    } catch (error) {
+      console.error('Error previewing delete month:', error);
+      toast.error('Error fetching bills: ' + error.message);
+    }
+
+    setDeleteMonthLoading(false);
+  };
+
+  const executeDeleteMonth = async () => {
+    if (!deleteMonthTarget || !deleteMonthYear) return;
+    if (deleteMonthConfirmText.trim().toUpperCase() !== 'DELETE') {
+      toast.error('Please type DELETE to confirm.');
+      return;
+    }
+    if (deleteMonthBills.length === 0) {
+      toast.error('No bills to delete.');
+      return;
+    }
+
+    setDeleteMonthLoading(true);
+
+    try {
+      const groupedByServer = {};
+      for (const bill of deleteMonthBills) {
+        const serverKey = bill.serverSource || selectedServer;
+        if (!groupedByServer[serverKey]) groupedByServer[serverKey] = [];
+        groupedByServer[serverKey].push(bill);
+      }
+
+      let deleteCount = 0;
+      let errorCount = 0;
+
+      for (const [serverKey, serverBills] of Object.entries(groupedByServer)) {
+        const targetDb = getDbByServer(serverKey);
+        let batch = writeBatch(targetDb);
+        let batchCount = 0;
+
+        for (let i = 0; i < serverBills.length; i++) {
+          try {
+            batch.delete(doc(targetDb, 'bills', serverBills[i].id));
+            deleteCount++;
+            batchCount++;
+
+            if (batchCount >= 500) {
+              await batch.commit();
+              batch = writeBatch(targetDb);
+              batchCount = 0;
+            }
+          } catch (e) {
+            console.error('Error adding delete to batch:', e);
+            errorCount++;
+          }
+        }
+
+        if (batchCount > 0) await batch.commit();
+      }
+
+      toast.success(`🗑️ Deleted ${deleteCount} bills for ${deleteMonthTarget} ${deleteMonthYear}!`);
+      if (errorCount > 0) toast.error(`⚠️ ${errorCount} bills failed to delete.`);
+
+      try {
+        const logDb = getDbByServer(selectedServer === 'all' ? 'server1' : selectedServer);
+        await addDoc(collection(logDb, 'deletion_logs'), {
+          type: 'DELETE_MONTH',
+          month: deleteMonthTarget,
+          year: deleteMonthYear,
+          deletedCount: deleteCount,
+          serverScope: selectedServer,
+          deletedBy: user?.email || 'Unknown',
+          deletedByUid: user?.uid || 'unknown',
+          deletedAt: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.error('Error logging deletion:', logError);
+      }
+
+      closeDeleteMonthModal();
+      fetchBills(selectedServer);
+    } catch (error) {
+      console.error('❌ Delete month error:', error);
+      toast.error('Error deleting month bills: ' + error.message);
+    } finally {
+      setDeleteMonthLoading(false);
+    }
+  };
+
+  // ============================================================
   // RENDER
   // ============================================================
   return (
-    <div className="admin-dashboard">
-      {/* ============================================================ */}
-      {/* 🎨 REDESIGNED HEADER */}
-      {/* ============================================================ */}
-      <div style={{
-        background: '#FFFFFF',
-        borderBottom: '3px solid #194752',
-        borderRadius: '12px',
-        padding: '20px 24px',
-        marginBottom: '24px',
-        marginTop: '-20px',
-        boxShadow: '0 2px 8px rgba(25, 71, 82, 0.06)'
-      }}>
-        {/* ROW 1: Title + Server Selector */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px',
-          paddingBottom: '16px',
-          borderBottom: '1px solid #E2E8F0'
-        }}>
-          <div>
-            <h1 style={{
-              fontFamily: 'JetBrains Mono, Inter, sans-serif',
-              fontSize: '30px',
-              fontWeight: '800',
-              color: '#15404b',
-              margin: 0,
-              letterSpacing: '-0.5px'
-            }}>
-              ADMIN DASHBOARD
-            </h1>
-            <p style={{
-              color: '#15404b',
-              fontSize: '15px',
-              margin: '4px 0 0 0',
-              opacity: 0.8
-            }}>
-              Manage all water bill records
-            </p>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            background: '#F8FAFC',
-            border: `2px solid ${currentServerConfig?.color || '#194752'}`,
-            borderRadius: '12px',
-            padding: '5px 16px',
-            boxShadow: `0 2px 8px ${currentServerConfig?.color || '#194752'}22`
-          }}>
-            <ServerIcon width={22} height={22} color={currentServerConfig?.color || '#194752'} />
-            <span style={{
-              fontSize: '12px',
-              fontWeight: '700',
-              color: currentServerConfig?.color || '#194752',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              Server:
-            </span>
+    <div className="bill-dashboard">
+      {/* ========== HEADER ========== */}
+      <header className="dashboard-header">
+        <div className="dashboard-header-left">
+          <h1>Admin Dashboard</h1>
+          <p>Manage all water bill records</p>
+        </div>
+        <div className="dashboard-header-right">
+          <div className="server-selector">
+            <ServerIcon width={16} height={16} color="#64748B" />
             <select
               value={selectedServer}
               onChange={handleServerChange}
               disabled={loading}
-              style={{
-                padding: '6px 10px',
-                background: '#FFFFFF',
-                border: `1px solid ${currentServerConfig?.color || '#194752'}`,
-                borderRadius: '8px',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: currentServerConfig?.color || '#194752',
-                outline: 'none',
-                cursor: loading ? 'wait' : 'pointer',
-                minWidth: '140px'
+            >
+              <option value="server1">CADUCAN</option>
+              <option value="server2">Luyo</option>
+              <option value="server3">San Isidro</option>
+              <option value="server4">Moryo-Moryo</option>
+              <option value="server5">Calian</option>
+              <option value="server6">San Roque</option>
+              <option value="all">All Servers (Slow)</option>
+            </select>
+          </div>
+
+          <div className="table-type-toggle">
+            <button
+              className={`table-type-btn regular-btn ${tableType === 'regular' ? 'active' : ''}`}
+              onClick={() => {
+                setTableType('regular');
+                setSelectedBillIds([]);
               }}
             >
-              <option value="server1">🗄️ Server 1</option>
-              <option value="server2">🗄️ Server 2</option>
-              <option value="server3">🗄️ Server 3</option>
-              <option value="server4">🗄️ Server 4</option>
-              <option value="server5">🗄️ Server 5</option>
-              <option value="all">🌐 All Servers (Slow)</option>
-            </select>
-          
-          <div className="table-type-toggle" style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`}
-                  onClick={() => setTableType('regular')}
-                  style={{ flex: 1, justifyContent: 'center' }}
-                >
-                  <RegularTableIcon />
-                  REGULAR
-                </button>
-                <button
-                  className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`}
-                  onClick={() => setTableType('cutoff')}
-                  style={{ flex: 1, justifyContent: 'center' }}
-                >
-                  <CutoffTableIcon />
-                  CUT-OFF
-                </button>
-              </div>
-              </div>
-        </div>
+              <RegularTableIcon />
+              REGULAR
+            </button>
+            <button
+              className={`table-type-btn cutoff-btn ${tableType === 'cutoff' ? 'active' : ''}`}
+              onClick={() => {
+                setTableType('cutoff');
+                setSelectedBillIds([]);
+              }}
+            >
+              <CutoffTableIcon />
+              CUT-OFF
+            </button>
+          </div>
 
-        {/* ROW 2: Buttons grouped by function */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '20px',
-          alignItems: 'flex-start'
-        }}>
-          {/* GROUP 1: Bill Actions */}
-          <div style={{
-            padding: '14px 16px',
-            background: '#F8FAFC',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0'
-          }}>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: '800',
-              color: '#194752',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: '10px',
-              display: 'flex',
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+            ADD BILL
+          </button>
+
+          <button
+            className="btn btn-purple"
+            onClick={openNewMonthModal}
+          >
+            <CalendarAddIcon width={16} height={16} color="#FFFFFF" />
+            NEW MONTH
+          </button>
+
+          <button
+            className="btn btn-purple"
+            onClick={openORModal}
+          >
+            <ReceiptIcon width={16} height={16} color="#FFFFFF" />
+            OR NUMBER
+          </button>
+
+          <button
+            className="btn btn-purple"
+            onClick={() => setShowServerSelectModal(true)}
+            disabled={uploading}
+          >
+            <ImportIcon width={16} height={16} color="#FFFFFF" />
+            {uploading ? 'UPLOADING...' : 'IMPORT'}
+          </button>
+
+          <button
+            className="btn btn-purple"
+            onClick={openExportModal}
+            disabled={bills.length === 0 || isExporting}
+          >
+            <ExportIcon width={16} height={16} color="#FFFFFF" />
+            {isExporting ? 'EXPORTING...' : 'EXPORT'}
+          </button>
+
+          <button
+            className="btn btn-purple"
+            onClick={openExportPaidConfirm}
+            disabled={bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid}
+          >
+            <ExportPaidIcon width={16} height={16} color="#FFFFFF" />
+            {isExportingPaid ? 'PROCESSING...' : 'EXPORT PAID'}
+          </button>
+
+          {/* ✅ DELETE LOCATION BUTTON */}
+          <button
+            className="btn btn-danger"
+            onClick={openDeleteLocationModal}
+            disabled={loading || locations.length === 0}
+            style={{
+              background: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '9px 18px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: (loading || locations.length === 0) ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{ fontSize: '14px' }}>📋</span> BILL ACTIONS
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={() => setShowForm(true)}
-                style={{
-                  padding: '10px 16px',
-                  background: '#194752',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#25606e'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#194752'}
-              >
-                <AddBillIcon width={18} height={18} color="#ffffff" />
-                ADD BILL
-              </button>
-              <button
-                onClick={openExportPaidConfirm}
-                disabled={bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid}
-                style={{
-                  padding: '10px 16px',
-                  background: '#194752',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: (bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  opacity: (bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) ? 0.5 : 1,
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => !(bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) && (e.currentTarget.style.background = '#15803D')}
-                onMouseLeave={(e) => !(bills.filter(b => b.status === 'paid').length === 0 || isExportingPaid) && (e.currentTarget.style.background = '#16A34A')}
-              >
-                <ExportPaidIcon width={18} height={18} color="#ffffff" />
-                {isExportingPaid ? 'PROCESSING...' : 'EXPORT PAID'}
-              </button>
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              opacity: (loading || locations.length === 0) ? 0.5 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && locations.length > 0) {
+                e.currentTarget.style.background = '#B91C1C';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#DC2626';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <DeleteLocationIcon width={16} height={16} color="#FFFFFF" />
+            DELETE LOCATION
+          </button>
 
-              
-            </div>
-          </div>
-
-          {/* GROUP 2: Data Actions */}
-          <div style={{
-            padding: '14px 16px',
-            background: '#F8FAFC',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0'
-          }}>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: '800',
-              color: '#194752',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: '10px',
-              display: 'flex',
+          {/* ✅ DELETE MONTH BUTTON */}
+          <button
+            className="btn btn-danger"
+            onClick={openDeleteMonthModal}
+            disabled={loading || (months.length === 0 && years.length === 0)}
+            style={{
+              background: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '9px 18px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: (loading || (months.length === 0 && years.length === 0)) ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{ fontSize: '15px' }}></span> DATA ACTIONS
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={() => setShowServerSelectModal(true)}
-                disabled={uploading}
-                style={{
-                  padding: '10px 16px',
-                  background: '#194752',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: uploading ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  opacity: uploading ? 0.6 : 1,
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => !uploading && (e.currentTarget.style.background = '#194752')}
-                onMouseLeave={(e) => !uploading && (e.currentTarget.style.background = '#194752')}
-              >
-                <ImportIcon width={18} height={18} color="#ffffff" />
-                {uploading ? 'UPLOADING...' : 'IMPORT'}
-              </button>
-
-              <button
-                onClick={openExportModal}
-                disabled={bills.length === 0 || isExporting}
-                style={{
-                  padding: '10px 16px',
-                  background: '#194752',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: (bills.length === 0 || isExporting) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  opacity: (bills.length === 0 || isExporting) ? 0.5 : 1,
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => !(bills.length === 0 || isExporting) && (e.currentTarget.style.background = '#194752')}
-                onMouseLeave={(e) => !(bills.length === 0 || isExporting) && (e.currentTarget.style.background = '#194752')}
-              >
-                <ExportIcon width={18} height={18} color="#ffffff" />
-                {isExporting ? 'EXPORTING...' : 'EXPORT'}
-              </button>
-
-              
-            </div>
-          </div>
-
-          {/* GROUP 3: Admin Tools */}
-          <div style={{
-            padding: '14px 16px',
-            background: '#F8FAFC',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0'
-          }}>
-            <div style={{
-              fontSize: '11px',
-              fontWeight: '800',
-              color: '#194752',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span style={{ fontSize: '14px' }}>⚙️</span> ADMIN TOOLS
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={openNewMonthModal}
-                style={{
-                  padding: '10px 16px',
-                  background: 'linear-gradient(135deg, #194752, #25606e)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <CalendarAddIcon width={18} height={18} color="#ffffff" />
-                ADD NEW MONTH
-              </button>
-
-              <button
-                onClick={openORModal}
-                style={{
-                  padding: '10px 16px',
-                  background: '#194752',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(124, 58, 237, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.3)';
-                }}
-              >
-                <ReceiptIcon width={18} height={18} color="#ffffff" />
-                ADD OR NUMBER
-              </button>
-            </div>
-          </div>
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              opacity: (loading || (months.length === 0 && years.length === 0)) ? 0.5 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && (months.length > 0 || years.length > 0)) {
+                e.currentTarget.style.background = '#B91C1C';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#DC2626';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <DeleteMonthIcon width={16} height={16} color="#FFFFFF" />
+            DELETE MONTH
+          </button>
         </div>
-      </div>
-
-      {/* OR STATS BANNER */}
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        marginBottom: '20px',
-        flexWrap: 'wrap'
-      }}>
-        <div style={{
-          flex: 1,
-          minWidth: '180px',
-          padding: '14px 18px',
-          background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
-          border: '2px solid #86EFAC',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <span style={{ fontSize: '24px' }}>✅</span>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Available ORs (Server 4)
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#16A34A', fontFamily: 'JetBrains Mono, monospace' }}>
-              {orStats.available}
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          flex: 1,
-          minWidth: '180px',
-          padding: '14px 18px',
-          background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
-          border: '2px solid #FECACA',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <span style={{ fontSize: '24px' }}>🔴</span>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Used ORs (Server 4)
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#DC2626', fontFamily: 'JetBrains Mono, monospace' }}>
-              {orStats.used}
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={loadORStats}
-          style={{
-            padding: '14px 20px',
-            background: '#F1F5F9',
-            border: '2px solid #E2E8F0',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '700',
-            color: '#475569',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          🔄 Refresh Stats
-        </button>
-      </div>
+      </header>
 
       <input
         type="file"
@@ -2756,74 +3080,1027 @@ const AdminDashboard = () => {
         onChange={(e) => handleFileUpload(e, selectedImportServer)}
       />
 
+      {/* ========== 2-COLUMN LAYOUT ========== */}
+      <div className="dashboard-layout">
+        {/* LEFT SIDEBAR - STATS */}
+        <aside className="left-sidebar">
+          <div className="sidebar-title">Statistics</div>
+
+          {tableType === 'regular' ? (
+            <>
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-blue">
+                  <SummationCircleIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Total Bills</span>
+                  <span className="sidebar-stat-value">{stats.total}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-green">
+                  <PhilippinePesoIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Paid</span>
+                  <span className="sidebar-stat-value">{stats.paid}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-amber">
+                  <CalendarClockIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Unpaid</span>
+                  <span className="sidebar-stat-value">{stats.unpaid}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-red">
+                  <SecurityWarningIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Overdue</span>
+                  <span className="sidebar-stat-value">{stats.overdue}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-slate">
+                  <User02Icon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Consumers</span>
+                  <span className="sidebar-stat-value">{stats.totalConsumers}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-teal">
+                  <ApartmentIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Residential</span>
+                  <span className="sidebar-stat-value">{stats.residential}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-indigo">
+                  <DuplexIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Commercial</span>
+                  <span className="sidebar-stat-value">{stats.commercial}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-rose">
+                  <Location03Icon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Location</span>
+                  <span className="sidebar-stat-value sidebar-stat-location">{stats.location || 'N/A'}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-red">
+                  <SummationCircleIcon width={18} height={18} color="#DC2626" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Cut-off Accounts</span>
+                  <span className="sidebar-stat-value">{filteredBills.length}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-slate">
+                  <User02Icon width={18} height={18} color="#64748B" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Consumers</span>
+                  <span className="sidebar-stat-value">{new Set(filteredBills.map(b => b.consumerName)).size}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-amber">
+                  <PhilippinePesoIcon width={18} height={18} color="#D97706" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Total Collectable</span>
+                  <span className="sidebar-stat-value sidebar-stat-location">
+                    {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* OR STATS */}
+          <div className="sidebar-stat-card">
+            <div className="sidebar-stat-icon sidebar-icon-green">
+              <ReceiptIcon width={18} height={18} color="#16A34A" />
+            </div>
+            <div className="sidebar-stat-content">
+              <span className="sidebar-stat-label">Available OR</span>
+              <span className="sidebar-stat-value" style={{ color: '#16A34A' }}>
+                {orStats.available}
+              </span>
+            </div>
+          </div>
+
+          <div className="sidebar-stat-card">
+            <div className="sidebar-stat-icon sidebar-icon-red">
+              <ReceiptIcon width={18} height={18} color="#DC2626" />
+            </div>
+            <div className="sidebar-stat-content">
+              <span className="sidebar-stat-label">Used OR</span>
+              <span className="sidebar-stat-value" style={{ color: '#DC2626' }}>
+                {orStats.used}
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        {/* CENTER CONTENT - FILTERS + TABLE */}
+        <main className="center-content">
+          {/* FILTER SECTION */}
+          <div className="filter-section">
+            <div className="filter-section-header">
+              <div className="filter-section-title">
+                <FilterIcon width={16} height={16} color="#64748B" />
+                <span>Filters</span>
+              </div>
+              {(searchTerm || activeFilterCount > 0) && (
+                <button className="btn-clear-filters" onClick={resetFilters}>
+                  ✕ Clear Filters
+                </button>
+              )}
+            </div>
+
+            <div className="filter-grid">
+              <div className="filter-group filter-group-search">
+                <label className="filter-label">Search</label>
+                <div className="search-wrapper">
+                  <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} fill="none">
+                    <circle cx="11" cy="11" r="7" stroke="#94A3B8" strokeWidth="2"/>
+                    <path d="M16.5 16.5L21 21" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search by name or WSIN..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setSelectedBillIds([]);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Type</label>
+                  <select
+                    className="filter-select"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="RESIDENTIAL">Residential</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="filter-group">
+                <label className="filter-label">Location</label>
+                <select
+                  className="filter-select"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                >
+                  <option value="all">All Locations</option>
+                  {locations.map(location => <option key={location} value={location}>{location}</option>)}
+                </select>
+              </div>
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Month</label>
+                  <select
+                    className="filter-select"
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                  >
+                    <option value="all">All Months</option>
+                    {months.map(month => <option key={month} value={month}>{month}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Year</label>
+                  <select
+                    className="filter-select"
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                  >
+                    <option value="all">All Years</option>
+                    {years.map(year => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="filter-info-row">
+              <div className="filter-info-item">
+                <span className="filter-info-label">Showing:</span>
+                <span className="filter-info-value">{filteredBills.length}</span>
+              </div>
+              <div className="filter-info-item">
+                <span className="filter-info-label">Server:</span>
+                <span className="filter-info-value">{getServerLabel(selectedServer)}</span>
+              </div>
+              {activeFilterCount > 0 && (
+                <div className="filter-info-item">
+                  <span className="filter-info-label">Active Filters:</span>
+                  <span className="filter-info-value">{activeFilterCount}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SELECTION BAR */}
+          {shouldShowCheckboxes && consumersWithUnpaid.size === 1 && (
+            <div className={`selection-bar ${selectedBillIds.length > 0 ? 'has-selection' : ''}`}>
+              <div className="selection-info">
+                {selectedBillIds.length > 0 ? (
+                  <>
+                    <span className="selection-count">{selectedBillIds.length}</span>
+                    <span>bill{selectedBillIds.length > 1 ? 's' : ''} selected</span>
+                    <span className="selection-amount">({formatCurrency(selectedTotalAmount)})</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="selection-name">{Array.from(consumersWithUnpaid.keys())[0]}</span>
+                    <span>has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills</span>
+                  </>
+                )}
+              </div>
+              <div className="selection-actions">
+                {selectedBillIds.length > 0 && (
+                  <button className="btn-clear-selection" onClick={handleClearSelection}>
+                    Clear
+                  </button>
+                )}
+                <button
+                  className="btn-pay-all"
+                  onClick={selectedBillIds.length > 0
+                    ? handleSelectedPay
+                    : () => handlePayAll(Array.from(consumersWithUnpaid.keys())[0])
+                  }
+                >
+                  <PayAllIcon width={16} height={16} color="#FFFFFF" />
+                  {selectedBillIds.length > 0 ? `Pay Selected (${selectedBillIds.length})` : 'Pay All'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TABLE */}
+          <div className="table-container">
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading {selectedServer === 'all' ? 'all servers' : getServerLabel(selectedServer)}...</p>
+              </div>
+            ) : filteredBills.length === 0 ? (
+              <div className="empty-state">
+                <p>No bills found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p>
+                <p className="empty-subtext">{searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill!'}</p>
+              </div>
+            ) : (
+              <>
+                <table className="bills-table">
+                  <thead>
+                    <tr>
+                      {shouldShowCheckboxes && (
+                        <th className="checkbox-col">
+                          <input
+                            type="checkbox"
+                            checked={(() => {
+                              const currentPageUnpaid = getCurrentPageData().filter(
+                                bill => bill.status !== 'paid' && !isCutoffBill(bill)
+                              );
+                              return currentPageUnpaid.length > 0 &&
+                                currentPageUnpaid.every(b => selectedBillIds.includes(b.id));
+                            })()}
+                            onChange={handleSelectAllOnPage}
+                          />
+                        </th>
+                      )}
+                      <th>WSIN</th>
+                      <th>Server</th>
+                      <th>Consumer</th>
+                      <th>Location</th>
+                      <th>Period</th>
+                      <th>Type</th>
+                      <th>Previous</th>
+                      <th>Present</th>
+                      <th>Consumption</th>
+                      <th className="text-right">Amount</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getCurrentPageData().map((bill) => {
+                      let displayStatus = bill.status === 'paid' ? 'paid' : determineBillStatus(bill);
+                      const status = getStatusBadge(displayStatus);
+                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      
+                      const isPresentDefective = isDefective(bill.presentReading);
+                      const isPreviousDefective = isDefective(bill.previousReading);
+                      const isDefectiveReading = isPresentDefective || isPreviousDefective;
+                      
+                      const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
+                      const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
+                      
+                      const { consumption, amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      
+                      const displayAmount = bill.status === 'paid' && bill.amount !== undefined && bill.amount !== null
+                        ? bill.amount
+                        : amount;
+                      
+                      const isSelectable = displayStatus !== 'paid' && !isCutoffBill(bill);
+                      const isChecked = selectedBillIds.includes(bill.id);
+                      
+                      return (
+                        <tr
+                          key={`${bill.serverSource || 's1'}-${bill.id}`}
+                          className={isChecked ? 'row-selected' : ''}
+                        >
+                          {shouldShowCheckboxes && (
+                            <td className="checkbox-col">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={!isSelectable}
+                                onChange={() => handleToggleBillSelection(bill.id)}
+                              />
+                            </td>
+                          )}
+                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                          <td>
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              background: `${getServerColor(bill.serverSource)}22`,
+                              color: getServerColor(bill.serverSource),
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {getServerLabel(bill.serverSource).toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                          <td className="name-cell">{bill.location || 'N/A'}</td>
+                          <td className="name-cell">{period.trim() || 'N/A'}</td>
+                          <td>
+                            <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
+                              {bill.consumerType || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="name-cell">{displayPrevious}</td>
+                          <td className="name-cell">{displayPresent}</td>
+                          <td className="name-cell" style={{ fontWeight: '600' }}>
+                            {consumption} m³
+                            {isDefectiveReading && <span className="defective-badge"> DEF</span>}
+                          </td>
+                          <td className="name-cell text-right" style={{ fontWeight: '600' }}>
+                            {formatCurrency(displayAmount)}
+                            {bill.hasDiscount && (
+                              <div className="discount-note">🎉 {bill.discountType}</div>
+                            )}
+                          </td>
+                          <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
+                          <td>
+                            <div className="action-buttons">
+                              {displayStatus !== 'paid' ? (
+                                <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
+                              ) : (
+                                <span className="or-badge">{bill.paymentCode || '—'}</span>
+                              )}
+                              <button className="action-btn" style={{ background: '#F1F5F9', color: '#0F172A' }} onClick={() => handleEdit(bill)}>EDIT</button>
+                              <button className="action-btn" style={{ background: '#FEF2F2', color: '#DC2626' }} onClick={() => handleDelete(bill.id)}>DEL</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {filteredBills.length > rowsPerPage && (
+                  <div className="pagination-container">
+                    <div className="pagination-info">
+                      {getPaginationInfo()}
+                    </div>
+
+                    <div className="pagination-controls">
+                      <button
+                        className="pagination-btn"
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeftIcon width={16} height={16} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
+                        Previous
+                      </button>
+
+                      <div className="pagination-pages">
+                        {(() => {
+                          const pages = [];
+                          const total = totalPages;
+                          const current = currentPage;
+
+                          if (total <= 7) {
+                            for (let i = 1; i <= total; i++) pages.push(i);
+                          } else {
+                            pages.push(1);
+                            if (current > 3) pages.push('...');
+                            const start = Math.max(2, current - 1);
+                            const end = Math.min(total - 1, current + 1);
+                            for (let i = start; i <= end; i++) pages.push(i);
+                            if (current < total - 2) pages.push('...');
+                            pages.push(total);
+                          }
+
+                          return pages.map((page, index) => {
+                            if (page === '...') {
+                              return <span key={`ellipsis-${index}`} className="pagination-ellipsis">…</span>;
+                            }
+
+                            const isActive = page === current;
+                            return (
+                              <button
+                                key={page}
+                                className={`pagination-page ${isActive ? 'active' : ''}`}
+                                onClick={() => goToPage(page)}
+                              >
+                                {page}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <button
+                        className="pagination-btn"
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRightIcon width={16} height={16} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
+                      </button>
+                    </div>
+
+                    <div className="pagination-rows">
+                      <span>Rows per page: <strong>10</strong></span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* ========== FOOTER ========== */}
+      <footer className="dashboard-footer">
+        <div className="footer-left">
+          © {new Date().getFullYear()} Waterbill Management System — Municipality of Liloan
+        </div>
+        <div className="footer-right">
+          <span>v1.0.0</span>
+          <span className="footer-separator">•</span>
+          <span>All rights reserved</span>
+        </div>
+      </footer>
+
+      {/* ==================== ALL MODALS ==================== */}
+
+      {/* ✅ DELETE LOCATION MODAL */}
+      {showDeleteLocationModal && (
+        <div className="modal-overlay" onClick={closeDeleteLocationModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626' }}>
+                <DeleteLocationIcon width={24} height={24} color="#DC2626" />
+                DELETE LOCATION
+              </h2>
+              <button className="close-btn" onClick={closeDeleteLocationModal}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <span style={{
+                  padding: '6px 18px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  background: selectedServer === 'all' ? '#FEF2F2' : `${getServerColor(selectedServer)}22`,
+                  color: selectedServer === 'all' ? '#DC2626' : getServerColor(selectedServer),
+                  border: `2px solid ${selectedServer === 'all' ? '#FECACA' : `${getServerColor(selectedServer)}44`}`
+                }}>
+                  🗄️ {selectedServer === 'all' ? 'ALL SERVERS' : getServerLabel(selectedServer).toUpperCase()}
+                </span>
+              </div>
+
+              <div style={{
+                padding: '14px 18px',
+                background: '#FEF2F2',
+                border: '2px solid #FECACA',
+                borderRadius: '12px',
+                marginBottom: '20px'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '600', lineHeight: '1.6' }}>
+                  ⚠️ <strong>WARNING:</strong> This will permanently delete <strong>ALL BILLS</strong> in the selected location
+                  {selectedServer === 'all' ? ' across ALL SERVERS' : ` from ${getServerLabel(selectedServer)}`}.
+                  This action <strong>CANNOT be undone</strong>.
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label style={{
+                  display: 'block',
+                  fontWeight: '700',
+                  marginBottom: '8px',
+                  color: '#0F172A',
+                  fontSize: '13px',
+                  textTransform: 'uppercase'
+                }}>
+                  Select Location to Delete <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <select
+                  value={deleteLocationTarget}
+                  onChange={(e) => {
+                    setDeleteLocationTarget(e.target.value);
+                    setDeleteLocationPreview([]);
+                    setShowDeleteLocationPreview(false);
+                    setDeleteLocationConfirmText('');
+                  }}
+                  className="filter-select"
+                  style={{ width: '100%', padding: '12px 16px', fontSize: '14px' }}
+                  disabled={deleteLocationLoading}
+                >
+                  <option value="">-- Select Location --</option>
+                  {deleteLocationOptions.map(loc => (
+                    <option key={loc} value={loc}>📍 {loc}</option>
+                  ))}
+                </select>
+              </div>
+
+              {deleteLocationTarget && (
+                <div style={{ marginTop: '16px' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={previewDeleteLocation}
+                    disabled={deleteLocationLoading}
+                    style={{
+                      width: '100%',
+                      background: '#DC2626',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      cursor: deleteLocationLoading ? 'not-allowed' : 'pointer',
+                      opacity: deleteLocationLoading ? 0.6 : 1
+                    }}
+                  >
+                    {deleteLocationLoading ? '⏳ Loading...' : '🔍 Preview Bills to Delete'}
+                  </button>
+                </div>
+              )}
+
+              {showDeleteLocationPreview && deleteLocationPreview.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{
+                    padding: '12px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '10px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#991B1B' }}>
+                      🗑️ {deleteLocationPreview.length} bills will be deleted
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#DC2626' }}>
+                      Total: {formatCurrency(deleteLocationPreview.reduce((sum, b) => sum + (b.amount || 0), 0))}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    maxHeight: '240px',
+                    overflowY: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '10px'
+                  }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
+                        <tr>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>WSIN</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Consumer</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Period</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #E2E8F0' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deleteLocationPreview.slice(0, 100).map((bill) => (
+                          <tr key={`${bill.serverSource}-${bill.id}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '8px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '8px 12px' }}>{bill.month || 'N/A'} {bill.year || ''}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <span className={`status-badge ${getStatusBadge(bill.status || 'unpaid').class}`}>
+                                {getStatusBadge(bill.status || 'unpaid').label}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '700',
+                      marginBottom: '8px',
+                      color: '#0F172A',
+                      fontSize: '13px'
+                    }}>
+                      Type <span style={{ color: '#DC2626', fontFamily: 'monospace' }}>DELETE</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteLocationConfirmText}
+                      onChange={(e) => setDeleteLocationConfirmText(e.target.value)}
+                      placeholder="Type DELETE here..."
+                      className="payment-input"
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #E2E8F0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontFamily: 'monospace',
+                        textAlign: 'center',
+                        letterSpacing: '2px'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-outline"
+                onClick={closeDeleteLocationModal}
+                style={{ flex: 1 }}
+                disabled={deleteLocationLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={executeDeleteLocation}
+                disabled={
+                  deleteLocationLoading ||
+                  deleteLocationBills.length === 0 ||
+                  deleteLocationConfirmText.trim().toUpperCase() !== 'DELETE'
+                }
+                style={{
+                  flex: 1,
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: (
+                    deleteLocationLoading ||
+                    deleteLocationBills.length === 0 ||
+                    deleteLocationConfirmText.trim().toUpperCase() !== 'DELETE'
+                  ) ? 0.5 : 1
+                }}
+              >
+                {deleteLocationLoading ? '⏳ Deleting...' : `🗑️ Delete ${deleteLocationBills.length} Bills`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ DELETE MONTH MODAL */}
+      {showDeleteMonthModal && (
+        <div className="modal-overlay" onClick={closeDeleteMonthModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626' }}>
+                <DeleteMonthIcon width={24} height={24} color="#DC2626" />
+                DELETE MONTH
+              </h2>
+              <button className="close-btn" onClick={closeDeleteMonthModal}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <span style={{
+                  padding: '6px 18px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  background: selectedServer === 'all' ? '#FEF2F2' : `${getServerColor(selectedServer)}22`,
+                  color: selectedServer === 'all' ? '#DC2626' : getServerColor(selectedServer),
+                  border: `2px solid ${selectedServer === 'all' ? '#FECACA' : `${getServerColor(selectedServer)}44`}`
+                }}>
+                  🗄️ {selectedServer === 'all' ? 'ALL SERVERS' : getServerLabel(selectedServer).toUpperCase()}
+                </span>
+              </div>
+
+              <div style={{
+                padding: '14px 18px',
+                background: '#FEF2F2',
+                border: '2px solid #FECACA',
+                borderRadius: '12px',
+                marginBottom: '20px'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#991B1B', fontWeight: '600', lineHeight: '1.6' }}>
+                  ⚠️ <strong>WARNING:</strong> This will permanently delete <strong>ALL BILLS</strong> for the selected Month + Year
+                  {selectedServer === 'all' ? ' across ALL SERVERS' : ` from ${getServerLabel(selectedServer)}`}.
+                  This action <strong>CANNOT be undone</strong>.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label style={{
+                    display: 'block',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    color: '#0F172A',
+                    fontSize: '13px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Month <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={deleteMonthTarget}
+                    onChange={(e) => {
+                      setDeleteMonthTarget(e.target.value);
+                      setDeleteMonthPreview([]);
+                      setShowDeleteMonthPreview(false);
+                      setDeleteMonthConfirmText('');
+                    }}
+                    className="filter-select"
+                    style={{ width: '100%', padding: '12px 16px', fontSize: '14px' }}
+                    disabled={deleteMonthLoading}
+                  >
+                    <option value="">-- Select Month --</option>
+                    {deleteMonthMonthOptions.map(m => (
+                      <option key={m} value={m}>📅 {m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{
+                    display: 'block',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    color: '#0F172A',
+                    fontSize: '13px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Year <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    value={deleteMonthYear}
+                    onChange={(e) => {
+                      setDeleteMonthYear(e.target.value);
+                      setDeleteMonthPreview([]);
+                      setShowDeleteMonthPreview(false);
+                      setDeleteMonthConfirmText('');
+                    }}
+                    className="filter-select"
+                    style={{ width: '100%', padding: '12px 16px', fontSize: '14px' }}
+                    disabled={deleteMonthLoading}
+                  >
+                    <option value="">-- Select Year --</option>
+                    {deleteMonthYearOptions.map(y => (
+                      <option key={y} value={y}>📆 {y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {deleteMonthTarget && deleteMonthYear && (
+                <div style={{ marginTop: '16px' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={previewDeleteMonth}
+                    disabled={deleteMonthLoading}
+                    style={{
+                      width: '100%',
+                      background: '#DC2626',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      cursor: deleteMonthLoading ? 'not-allowed' : 'pointer',
+                      opacity: deleteMonthLoading ? 0.6 : 1
+                    }}
+                  >
+                    {deleteMonthLoading ? '⏳ Loading...' : '🔍 Preview Bills to Delete'}
+                  </button>
+                </div>
+              )}
+
+              {showDeleteMonthPreview && deleteMonthPreview.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{
+                    padding: '12px 16px',
+                    background: '#FEF2F2',
+                    border: '2px solid #FECACA',
+                    borderRadius: '10px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#991B1B' }}>
+                      🗑️ {deleteMonthPreview.length} bills for {deleteMonthTarget} {deleteMonthYear}
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#DC2626' }}>
+                      Total: {formatCurrency(deleteMonthPreview.reduce((sum, b) => sum + (b.amount || 0), 0))}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    maxHeight: '240px',
+                    overflowY: 'auto',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '10px'
+                  }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
+                        <tr>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>WSIN</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Consumer</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Location</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #E2E8F0' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deleteMonthPreview.slice(0, 100).map((bill) => (
+                          <tr key={`${bill.serverSource}-${bill.id}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: '600' }}>{bill.billNumber || 'N/A'}</td>
+                            <td style={{ padding: '8px 12px' }}>{bill.consumerName || 'N/A'}</td>
+                            <td style={{ padding: '8px 12px' }}>{bill.location || 'N/A'}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>₱{(bill.amount || 0).toFixed(2)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <span className={`status-badge ${getStatusBadge(bill.status || 'unpaid').class}`}>
+                                {getStatusBadge(bill.status || 'unpaid').label}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '700',
+                      marginBottom: '8px',
+                      color: '#0F172A',
+                      fontSize: '13px'
+                    }}>
+                      Type <span style={{ color: '#DC2626', fontFamily: 'monospace' }}>DELETE</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteMonthConfirmText}
+                      onChange={(e) => setDeleteMonthConfirmText(e.target.value)}
+                      placeholder="Type DELETE here..."
+                      className="payment-input"
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #E2E8F0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontFamily: 'monospace',
+                        textAlign: 'center',
+                        letterSpacing: '2px'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-outline"
+                onClick={closeDeleteMonthModal}
+                style={{ flex: 1 }}
+                disabled={deleteMonthLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={executeDeleteMonth}
+                disabled={
+                  deleteMonthLoading ||
+                  deleteMonthBills.length === 0 ||
+                  deleteMonthConfirmText.trim().toUpperCase() !== 'DELETE'
+                }
+                style={{
+                  flex: 1,
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  opacity: (
+                    deleteMonthLoading ||
+                    deleteMonthBills.length === 0 ||
+                    deleteMonthConfirmText.trim().toUpperCase() !== 'DELETE'
+                  ) ? 0.5 : 1
+                }}
+              >
+                {deleteMonthLoading ? '⏳ Deleting...' : `🗑️ Delete ${deleteMonthBills.length} Bills`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* OR NUMBER MODAL */}
       {showORModal && (
         <div className="modal-overlay" onClick={closeORModal}>
-          <div 
-            className="modal-content" 
-            onClick={(e) => e.stopPropagation()} 
-            style={{ 
-              maxWidth: '600px',
-              background: '#FFFFFF',
-              border: '3px solid #7C3AED',
-              borderRadius: '16px'
-            }}
-          >
-            <div className="modal-header" style={{ borderBottom: '3px solid #7C3AED', paddingBottom: '16px' }}>
-              <h2 style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                color: '#5B21B6',
-                fontSize: '24px',
-                fontWeight: '800',
-                letterSpacing: '1px',
-                margin: 0
-              }}>
-                <span style={{
-                  background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-                  padding: '8px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <ReceiptIcon width={24} height={24} color="#ffffff" />
-                </span>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <ReceiptIcon width={24} height={24} color="#111827" />
                 OFFICIAL NUMBER
               </h2>
               <button className="close-btn" onClick={closeORModal}>✕</button>
             </div>
 
             <div style={{ marginTop: '24px' }}>
-              <p style={{ 
-                color: '#64748B', 
-                fontSize: '14px', 
-                marginBottom: '24px',
-                textAlign: 'center',
-                lineHeight: '1.6'
-              }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px', textAlign: 'center', lineHeight: '1.6' }}>
                 Enter the <strong>FROM</strong> number below. The <strong>TO</strong> number
-                will be auto-generated with exactly <strong style={{ color: '#7C3AED' }}>{OR_BATCH_SIZE} pieces</strong>.
+                will be auto-generated with exactly <strong>{OR_BATCH_SIZE} pieces</strong>.
               </p>
 
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: '20px',
-                marginBottom: '24px'
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                 <div className="form-group">
-                  <label style={{ 
-                    display: 'block', 
-                    fontWeight: '700', 
-                    marginBottom: '8px', 
-                    color: '#5B21B6',
-                    fontSize: '14px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    From <span className="required" style={{ color: '#DC2626' }}>*</span>
+                  <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', color: '#0F172A', fontSize: '12px', textTransform: 'uppercase' }}>
+                    From <span className="required">*</span>
                   </label>
                   <input
                     type="text"
@@ -2832,35 +4109,14 @@ const AdminDashboard = () => {
                     placeholder="e.g., 1299900"
                     maxLength="10"
                     autoFocus
-                    style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      background: '#F8FAFC',
-                      border: '3px solid #7C3AED',
-                      borderRadius: '12px',
-                      fontFamily: 'JetBrains Mono, Inter, sans-serif',
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#5B21B6',
-                      outline: 'none',
-                      letterSpacing: '2px',
-                      textAlign: 'center',
-                      boxSizing: 'border-box'
-                    }}
+                    className="payment-input"
+                    style={{ textAlign: 'center' }}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label style={{ 
-                    display: 'block', 
-                    fontWeight: '700', 
-                    marginBottom: '8px', 
-                    color: '#5B21B6',
-                    fontSize: '14px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    To <span style={{ color: '#94A3B8', fontSize: '12px', textTransform: 'none' }}>(auto)</span>
+                  <label style={{ display: 'block', fontWeight: '700', marginBottom: '8px', color: '#0F172A', fontSize: '12px', textTransform: 'uppercase' }}>
+                    To <span style={{ color: '#94A3B8', fontSize: '11px', textTransform: 'none' }}>(auto)</span>
                   </label>
                   <input
                     type="text"
@@ -2868,21 +4124,8 @@ const AdminDashboard = () => {
                     onChange={handleORToChange}
                     placeholder="Auto-generated"
                     maxLength="10"
-                    style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      background: '#F0FDF4',
-                      border: '3px solid #16A34A',
-                      borderRadius: '12px',
-                      fontFamily: 'JetBrains Mono, Inter, sans-serif',
-                      fontSize: '20px',
-                      fontWeight: '700',
-                      color: '#166534',
-                      outline: 'none',
-                      letterSpacing: '2px',
-                      textAlign: 'center',
-                      boxSizing: 'border-box'
-                    }}
+                    className="payment-input"
+                    style={{ textAlign: 'center', background: '#F0FDF4', borderColor: '#16A34A', color: '#166534' }}
                   />
                 </div>
               </div>
@@ -2890,31 +4133,16 @@ const AdminDashboard = () => {
               {orFrom && orTo && (
                 <div style={{
                   padding: '16px 20px',
-                  background: orPreviewCount === OR_BATCH_SIZE 
-                    ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
-                    : 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
-                  border: orPreviewCount === OR_BATCH_SIZE 
-                    ? '2px solid #86EFAC' 
-                    : '2px solid #FECACA',
+                  background: orPreviewCount === OR_BATCH_SIZE ? '#F0FDF4' : '#FEF2F2',
+                  border: orPreviewCount === OR_BATCH_SIZE ? '2px solid #86EFAC' : '2px solid #FECACA',
                   borderRadius: '12px',
                   marginBottom: '24px',
                   textAlign: 'center'
                 }}>
-                  <p style={{ 
-                    margin: 0, 
-                    fontSize: '14px', 
-                    color: '#64748B',
-                    fontWeight: '600'
-                  }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
                     Total OR Numbers to be generated:
                   </p>
-                  <p style={{ 
-                    margin: '4px 0 0 0', 
-                    fontSize: '32px', 
-                    fontWeight: '800',
-                    color: orPreviewCount === OR_BATCH_SIZE ? '#16A34A' : '#DC2626',
-                    fontFamily: 'JetBrains Mono, Inter, sans-serif'
-                  }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '28px', fontWeight: '800', color: orPreviewCount === OR_BATCH_SIZE ? '#16A34A' : '#DC2626' }}>
                     {orPreviewCount} {orPreviewCount === 1 ? 'piece' : 'pieces'}
                   </p>
                 </div>
@@ -2931,43 +4159,19 @@ const AdminDashboard = () => {
                 gap: '10px'
               }}>
                 <span style={{ fontSize: '18px' }}>🗄️</span>
-                <span style={{
-                  fontSize: '13px',
-                  color: '#1E40AF',
-                  fontWeight: '600',
-                  fontFamily: 'Inter, sans-serif'
-                }}>
+                <span style={{ fontSize: '13px', color: '#1E40AF', fontWeight: '600' }}>
                   These OR Numbers will be stored in <strong>Server 4</strong> → collection <strong>`or_numbers`</strong>
                 </span>
               </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={closeORModal} 
-                style={{ flex: 1, padding: '14px' }}
-                disabled={orSaving}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn btn-primary" 
+              <button className="btn btn-outline" onClick={closeORModal} style={{ flex: 1 }} disabled={orSaving}>Cancel</button>
+              <button
+                className="btn btn-primary"
                 onClick={handleSaveORNumbers}
                 disabled={orPreviewCount !== OR_BATCH_SIZE || orSaving}
-                style={{
-                  flex: 1,
-                  background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '14px',
-                  fontSize: '15px',
-                  fontWeight: '700',
-                  cursor: (orPreviewCount !== OR_BATCH_SIZE || orSaving) ? 'not-allowed' : 'pointer',
-                  opacity: (orPreviewCount !== OR_BATCH_SIZE || orSaving) ? '0.5' : '1',
-                  letterSpacing: '0.5px'
-                }}
+                style={{ flex: 1 }}
               >
                 {orSaving ? '⏳ Saving...' : `💾 Save ${OR_BATCH_SIZE} OR Numbers`}
               </button>
@@ -2990,11 +4194,7 @@ const AdminDashboard = () => {
                 Pilia asa nga <strong>Firebase Firestore</strong> nimo e-store ang gi-import nga Excel data.
               </p>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '14px'
-              }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
                 {SERVER_CONFIGS.map((server) => (
                   <button
                     key={server.key}
@@ -3017,32 +4217,25 @@ const AdminDashboard = () => {
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '8px',
-                      transition: 'all 0.25s ease',
-                      boxShadow: `0 6px 20px ${server.color}40`
+                      transition: 'all 0.25s ease'
                     }}
                   >
                     <span style={{ fontSize: '30px' }}>🗄️</span>
-                    <span style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '0.5px' }}>
-                      {server.label.toUpperCase()}
-                    </span>
-                    <span style={{ fontSize: '10px', opacity: 0.9, textAlign: 'center', wordBreak: 'break-all' }}>
-                      {server.project}
-                    </span>
+                    <span style={{ fontSize: '16px', fontWeight: '700' }}>{server.label.toUpperCase()}</span>
+                    <span style={{ fontSize: '10px', opacity: 0.9 }}>{server.project}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-outline" onClick={() => setShowServerSelectModal(false)} style={{ flex: 1 }}>
-                Cancel
-              </button>
+              <button className="btn btn-outline" onClick={() => setShowServerSelectModal(false)} style={{ flex: 1 }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CUTOFF PAY MODAL - WITH AUTO OR */}
+      {/* CUTOFF PAY MODAL */}
       {showCutoffPayModal && cutoffBillToPay && (
         <div className="modal-overlay" onClick={() => setShowCutoffPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
@@ -3083,7 +4276,7 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody>
                     <tr style={{ background: '#FFF5F5' }}>
-                      <td style={{ padding: '14px 16px', fontWeight: '600', color: '#194752' }}>{cutoffBillToPay.billNumber || 'N/A'}</td>
+                      <td style={{ padding: '14px 16px', fontWeight: '600', color: '#111827' }}>{cutoffBillToPay.billNumber || 'N/A'}</td>
                       <td style={{ padding: '14px 16px', fontWeight: '500', color: '#0F172A' }}>{cutoffBillToPay.consumerName || 'N/A'}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '700', fontSize: '18px', color: '#DC2626' }}>
                         {formatCurrency(cutoffBillToPay.amount || cutoffBillToPay.collectableAmount || 0)}
@@ -3134,12 +4327,7 @@ const AdminDashboard = () => {
                       gap: '8px'
                     }}>
                       <span style={{ fontSize: '14px' }}>✅</span>
-                      <span style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#166534'
-                      }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>
                         Auto-assigned from Server 4 → Batch: {cutoffAvailableOR.batchId || 'N/A'}
                       </span>
                     </div>
@@ -3162,8 +4350,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setShowCutoffPayModal(false)} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmCutoffPay}
                 disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR}
                 style={{
@@ -3194,7 +4382,7 @@ const AdminDashboard = () => {
               <h2>📤 Export Bills by Location</h2>
               <button className="close-btn" onClick={closeExportModal}>✕</button>
             </div>
-            
+
             <div style={{ marginBottom: '16px' }}>
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
@@ -3203,18 +4391,8 @@ const AdminDashboard = () => {
                 <select
                   value={selectedExportLocation}
                   onChange={(e) => setSelectedExportLocation(e.target.value)}
-                  className="modal-input"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: '#F8FAFC',
-                    border: '2px solid #E2E8F0',
-                    borderRadius: '8px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '15px',
-                    color: '#0F172A',
-                    outline: 'none'
-                  }}
+                  className="filter-select"
+                  style={{ width: '100%', padding: '12px 16px' }}
                 >
                   <option value="all">🌍 All Locations ({bills.length} bills)</option>
                   {exportLocations.map(location => {
@@ -3227,8 +4405,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={closeExportModal} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={handleExportWithLocationFilter}
                 disabled={isExporting}
                 style={{ flex: 1 }}
@@ -3240,60 +4418,256 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* PAY ALL MODAL - WITH AUTO OR */}
+      {/* PAY ALL MODAL — WITH DISCOUNT */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <PayAllIcon width={28} height={28} color="#16A34A" />
-                Pay All - {payAllConsumerName}
+                {selectedBillIds.length > 0 ? 'Pay Selected' : 'Pay All'} - {payAllConsumerName}
               </h2>
               <button className="close-btn" onClick={() => setShowPayAllModal(false)}>✕</button>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
               <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '12px' }}>
-                You are about to pay <strong>{payAllBills.length}</strong> unpaid bills for <strong>{payAllConsumerName}</strong>.
+                You are about to pay <strong>{payAllBills.length}</strong> {selectedBillIds.length > 0 ? 'selected' : 'unpaid'} bill{payAllBills.length > 1 ? 's' : ''} for <strong>{payAllConsumerName}</strong>.
               </p>
 
-              <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px', maxHeight: '300px', overflowY: 'auto' }}>
+              <div style={{
+                border: '1px solid #E2E8F0',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                marginBottom: '16px',
+                maxHeight: '280px',
+                overflowY: 'auto'
+              }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0 }}>
+                  <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
                     <tr>
                       <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Period</th>
                       <th style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>WSIN</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Consumption</th>
                       <th style={{ padding: '10px 14px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payAllBills.map((bill, index) => {
-                      const { amount, isDefective: isDef } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      const { consumption, amount, isDefective: isDef } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
                       const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+                      const finalAmount = (isSeniorCitizen || isPWD) ? amount * (1 - DISCOUNT_RATE) : amount;
                       return (
                         <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{ borderBottom: index < payAllBills.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                           <td style={{ padding: '8px 14px' }}>{period.trim()}</td>
                           <td style={{ padding: '8px 14px', fontWeight: '500' }}>{bill.billNumber || 'N/A'}</td>
+                          <td style={{ padding: '8px 14px', textAlign: 'right' }}>
+                            {consumption} m³
+                            {isDef && <span style={{ color: '#DC2626', fontSize: '10px', marginLeft: '4px' }}>⚠️</span>}
+                          </td>
                           <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '600' }}>
                             {formatCurrency(amount)}
-                            {isDef && <span style={{ color: '#DC2626', fontSize: '10px', marginLeft: '4px' }}>⚠️</span>}
+                            {(isSeniorCitizen || isPWD) && (
+                              <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '700' }}>
+                                → {formatCurrency(finalAmount)}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
-                  <tfoot style={{ background: '#F8FAFC', borderTop: '2px solid #194752' }}>
-                    <tr>
-                      <td colSpan="2" style={{ padding: '12px 14px', fontWeight: '700', fontSize: '15px', textAlign: 'right' }}>OVERALL TOTAL:</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '700', fontSize: '18px', textAlign: 'right', color: '#194752' }}>
-                        {formatCurrency(payAllBills.reduce((sum, bill) => {
-                          const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
-                          return sum + amount;
-                        }, 0))}
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+              </div>
+
+              <div style={{
+                padding: '14px 18px',
+                background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
+                border: '2px solid #BFDBFE',
+                borderRadius: '12px',
+                marginBottom: '16px'
+              }}>
+                <p style={{
+                  margin: '0 0 12px 0',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  color: '#1E40AF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🎉 Discount (5%)
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: isSeniorCitizen ? '#DBEAFE' : '#FFFFFF',
+                    border: isSeniorCitizen ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSeniorCitizen ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isSeniorCitizen}
+                      onChange={(e) => setIsSeniorCitizen(e.target.checked)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: '#2563EB',
+                        flexShrink: 0
+                      }}
+                    />
+                    <SeniorIcon width={22} height={22} color={isSeniorCitizen ? '#2563EB' : '#64748B'} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: isSeniorCitizen ? '#1E40AF' : '#0F172A'
+                      }}>
+                        SENIOR CITIZEN
+                      </span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: isSeniorCitizen ? '#2563EB' : '#64748B'
+                      }}>
+                        5% discount
+                      </span>
+                    </div>
+                  </label>
+
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: isPWD ? '#DBEAFE' : '#FFFFFF',
+                    border: isPWD ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isPWD ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={isPWD}
+                      onChange={(e) => setIsPWD(e.target.checked)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: '#2563EB',
+                        flexShrink: 0
+                      }}
+                    />
+                    <PWDIcon width={22} height={22} color={isPWD ? '#2563EB' : '#64748B'} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: isPWD ? '#1E40AF' : '#0F172A'
+                      }}>
+                        PWD
+                      </span>
+                      <span style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '11px',
+                        color: isPWD ? '#2563EB' : '#64748B'
+                      }}>
+                        5% discount
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {discountPreview && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 14px',
+                    background: '#F0FDF4',
+                    border: '1px solid #86EFAC',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '16px' }}>✅</span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#166534'
+                    }}>
+                      {discountPreview.type} discount applied ({discountPreview.ratePercent}% off)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                padding: '16px 20px',
+                background: (isSeniorCitizen || isPWD)
+                  ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)'
+                  : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+                border: (isSeniorCitizen || isPWD)
+                  ? '2px solid #86EFAC'
+                  : '2px solid #E2E8F0',
+                borderRadius: '12px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '14px', color: '#64748B', fontWeight: '600' }}>Subtotal:</span>
+                  <span style={{ fontSize: '16px', color: '#0F172A', fontWeight: '700' }}>
+                    {formatCurrency(payAllBills.reduce((sum, bill) => {
+                      const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      return sum + amount;
+                    }, 0))}
+                  </span>
+                </div>
+
+                {(isSeniorCitizen || isPWD) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '14px', color: '#16A34A', fontWeight: '600' }}>
+                      Discount ({discountPreview?.type}):
+                    </span>
+                    <span style={{ fontSize: '16px', color: '#16A34A', fontWeight: '700' }}>
+                      -{formatCurrency(payAllBills.reduce((sum, bill) => {
+                        const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                        return sum + (amount * DISCOUNT_RATE);
+                      }, 0))}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  paddingTop: '8px',
+                  borderTop: '2px solid #E2E8F0',
+                  marginTop: '8px'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#0F172A', fontWeight: '800' }}>TOTAL:</span>
+                  <span style={{
+                    fontSize: '22px',
+                    color: (isSeniorCitizen || isPWD) ? '#16A34A' : '#194752',
+                    fontWeight: '800'
+                  }}>
+                    {formatCurrency(payAllBills.reduce((sum, bill) => {
+                      const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+                      const finalAmount = (isSeniorCitizen || isPWD) ? amount * (1 - DISCOUNT_RATE) : amount;
+                      return sum + finalAmount;
+                    }, 0))}
+                  </span>
+                </div>
               </div>
 
               <div className="form-group">
@@ -3337,12 +4711,7 @@ const AdminDashboard = () => {
                       gap: '8px'
                     }}>
                       <span style={{ fontSize: '14px' }}>✅</span>
-                      <span style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#166534'
-                      }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>
                         Auto-assigned from Server 4 → Batch: {payAllAvailableOR.batchId || 'N/A'}
                       </span>
                     </div>
@@ -3365,8 +4734,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setShowPayAllModal(false)} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmPayAll}
                 disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR}
                 style={{
@@ -3382,7 +4751,7 @@ const AdminDashboard = () => {
                   opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR) ? '0.5' : '1'
                 }}
               >
-                {isPayingAll ? '⏳ Processing...' : `✅ Pay All (${payAllBills.length} Bills)`}
+                {isPayingAll ? '⏳ Processing...' : `✅ Pay (${payAllBills.length} Bill${payAllBills.length > 1 ? 's' : ''})`}
               </button>
             </div>
           </div>
@@ -3414,8 +4783,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={closeExportPaidConfirm} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={executeExportPaidAndDelete}
                 style={{
                   flex: 1,
@@ -3462,8 +4831,8 @@ const AdminDashboard = () => {
                   <select
                     value={newMonthLocation}
                     onChange={(e) => setNewMonthLocation(e.target.value)}
-                    className="modal-input"
-                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
+                    className="filter-select"
+                    style={{ width: '100%' }}
                   >
                     <option value="">Select Location...</option>
                     {availableLocationsForNewMonth.map(location => <option key={location} value={location}>{location}</option>)}
@@ -3477,8 +4846,8 @@ const AdminDashboard = () => {
                   <select
                     value={newMonthMonth}
                     onChange={(e) => setNewMonthMonth(e.target.value)}
-                    className="modal-input"
-                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
+                    className="filter-select"
+                    style={{ width: '100%' }}
                   >
                     <option value="">Select Month...</option>
                     {months.map(month => <option key={month} value={month}>{month}</option>)}
@@ -3492,8 +4861,8 @@ const AdminDashboard = () => {
                   <select
                     value={newMonthYear}
                     onChange={(e) => setNewMonthYear(e.target.value)}
-                    className="modal-input"
-                    style={{ width: '100%', padding: '10px 12px', background: '#F8FAFC', border: '2px solid #E2E8F0', borderRadius: '8px', fontFamily: 'Inter, sans-serif', fontSize: '14px', color: '#0F172A', outline: 'none' }}
+                    className="filter-select"
+                    style={{ width: '100%' }}
                   >
                     <option value="">Select Year...</option>
                     {years.map(year => <option key={year} value={year}>{year}</option>)}
@@ -3503,21 +4872,10 @@ const AdminDashboard = () => {
 
               <div style={{ marginTop: '16px' }}>
                 <button
-                  className="btn btn-secondary"
+                  className="btn btn-primary"
                   onClick={previewNewMonth}
                   disabled={!newMonthLocation || !newMonthMonth || !newMonthYear || newMonthLoading}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#16A34A',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    opacity: (!newMonthLocation || !newMonthMonth || !newMonthYear || newMonthLoading) ? '0.5' : '1'
-                  }}
+                  style={{ width: '100%', background: '#16A34A' }}
                 >
                   {newMonthLoading ? '⏳ Loading...' : '🔍 Preview Bills'}
                 </button>
@@ -3567,8 +4925,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={closeNewMonthModal} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmNewMonth}
                 disabled={newMonthPreview.length === 0 || newMonthLoading}
                 style={{
@@ -3591,548 +4949,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* REGULAR TABLE VIEW */}
-      {tableType === 'regular' && (
-        <>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Total Bills</p><p className="stat-number">{stats.total}</p></div>
-            </div>
-            <div className="stat-card stat-paid">
-              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Paid</p><p className="stat-number">{stats.paid}</p></div>
-            </div>
-            <div className="stat-card stat-unpaid">
-              <span className="stat-icon"><CalendarClockIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Unpaid</p><p className="stat-number">{stats.unpaid}</p></div>
-            </div>
-            <div className="stat-card stat-overdue">
-              <span className="stat-icon"><SecurityWarningIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Overdue</p><p className="stat-number">{stats.overdue}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Consumers</p><p className="stat-number">{stats.totalConsumers}</p></div>
-            </div>
-            <div className="stat-card stat-residential">
-              <span className="stat-icon"><ApartmentIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Residential</p><p className="stat-number">{stats.residential}</p></div>
-            </div>
-            <div className="stat-card stat-commercial">
-              <span className="stat-icon"><DuplexIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Commercial</p><p className="stat-number">{stats.commercial}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><Location03Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Location</p><p className="stat-number stat-location">{stats.location || 'N/A'}</p></div>
-            </div>
-          </div>
-
-          <div className="search-filter-container">
-            <div className="search-wrapper">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search by name or WSIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                <option value="all">All Types</option>
-                <option value="RESIDENTIAL">Residential</option>
-                <option value="COMMERCIAL">Commercial</option>
-              </select>
-              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
-                <option value="all">All Locations</option>
-                {locations.map(location => <option key={location} value={location}>{location}</option>)}
-              </select>
-              <select className="filter-select" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
-                <option value="all">All Months</option>
-                {months.map(month => <option key={month} value={month}>{month}</option>)}
-              </select>
-              <select className="filter-select" value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
-                <option value="all">All Years</option>
-                {years.map(year => <option key={year} value={year}>{year}</option>)}
-              </select>
-              <select className="filter-select" value={filterConsumerPeriod} onChange={(e) => setFilterConsumerPeriod(e.target.value)} style={{ minWidth: '200px' }}>
-                <option value="all">All Consumer Periods</option>
-                {consumerPeriods.map(period => (
-                  <option key={period.key} value={period.key}>{period.consumerName} {period.month} {period.year}</option>
-                ))}
-              </select>
-            </div>
-            <div className="filter-actions">
-              {activeFilterCount > 0 && <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>}
-            </div>
-          </div>
-
-          {searchTerm.trim() && consumersWithUnpaid.size === 1 && (
-            <div style={{
-              marginBottom: '16px',
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
-              borderRadius: '12px',
-              border: '2px solid #86EFAC',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <span style={{ fontWeight: '600', color: '#166534' }}>
-                  {Array.from(consumersWithUnpaid.keys())[0]} has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills
-                </span>
-              </div>
-              <button
-                className="btn btn-success"
-                onClick={() => handlePayAll(Array.from(consumersWithUnpaid.keys())[0])}
-                style={{
-                  background: '#16A34A',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 24px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                <PayAllIcon width={20} height={20} color="#ffffff" />
-                PAY ALL
-              </button>
-            </div>
-          )}
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '80px 20px',
-                minHeight: '400px',
-                gap: '20px'
-              }}>
-                <div style={{
-                  width: '70px',
-                  height: '70px',
-                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
-                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite'
-                }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <p style={{
-                    color: currentServerConfig?.color || '#194752',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0,
-                    letterSpacing: '0.5px'
-                  }}>
-                    LOADING SERVER
-                  </p>
-                  <p style={{
-                    color: '#64748B',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0
-                  }}>
-                    Fetching data from{' '}
-                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
-                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
-                    </span>
-                    ...
-                  </p>
-                </div>
-              </div>
-            ) : filteredBills.length === 0 ? (
-              <div className="empty-state">
-                <p>No bills found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill or import from Excel!'}</p>
-              </div>
-            ) : (
-              <>
-                <table className="bills-table">
-                  <thead>
-                    <tr>
-                      <th>WSIN</th>
-                      <th>Server</th>
-                      <th>Consumer</th>
-                      <th>Location</th>
-                      <th>Period</th>
-                      <th>Type</th>
-                      <th>Previous</th>
-                      <th>Present</th>
-                      <th>Consumption</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getCurrentPageData().map((bill) => {
-                      let displayStatus = bill.status === 'paid' ? 'paid' : determineBillStatus(bill);
-                      const status = getStatusBadge(displayStatus);
-                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                      
-                      const isPresentDefective = isDefective(bill.presentReading);
-                      const isPreviousDefective = isDefective(bill.previousReading);
-                      const isDefectiveReading = isPresentDefective || isPreviousDefective;
-                      
-                      const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
-                      const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
-                      
-                      const { consumption, amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
-                      
-                      return (
-                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
-                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                          <td>
-                            <span style={{
-                              padding: '3px 10px',
-                              borderRadius: '12px',
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              background: `${getServerColor(bill.serverSource)}22`,
-                              color: getServerColor(bill.serverSource),
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {getServerLabel(bill.serverSource).toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                          <td className="name-cell">{bill.location || 'N/A'}</td>
-                          <td className="name-cell">{period.trim() || 'N/A'}</td>
-                          <td>
-                            <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
-                              {bill.consumerType || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="name-cell">{displayPrevious}</td>
-                          <td className="name-cell">{displayPresent}</td>
-                          <td className="name-cell" style={{ fontWeight: '600' }}>
-                            {consumption} m³
-                            {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
-                          </td>
-                          <td className="name-cell" style={{ fontWeight: '600' }}>{formatCurrency(amount)}</td>
-                          <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
-                          <td>
-                            <div className="admin-action-buttons">
-                              {displayStatus !== 'paid' ? (
-                                <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
-                              ) : (
-                                <span style={{
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: '700',
-                                  color: '#194752',
-                                  background: '#F1F5F9',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  letterSpacing: '0.5px',
-                                  whiteSpace: 'nowrap',
-                                  border: '1px solid #E2E8F0'
-                                }}>
-                                  {bill.paymentCode || '—'}
-                                </span>
-                              )}
-                              <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
-                              <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {filteredBills.length > rowsPerPage && (
-                  <div className="pagination-container" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 20px',
-                    borderTop: '1px solid #E2E8F0',
-                    background: '#F8FAFC',
-                    borderRadius: '0 0 12px 12px',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
-                      {getPaginationInfo()}
-                    </div>
-
-                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
-                        Previous
-                      </button>
-
-                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {(() => {
-                          const pages = [];
-                          const total = totalPages;
-                          const current = currentPage;
-                          
-                          if (total <= 7) {
-                            for (let i = 1; i <= total; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (current > 3) pages.push('...');
-                            const start = Math.max(2, current - 1);
-                            const end = Math.min(total - 1, current + 1);
-                            for (let i = start; i <= end; i++) pages.push(i);
-                            if (current < total - 2) pages.push('...');
-                            pages.push(total);
-                          }
-                          
-                          return pages.map((page, index) => {
-                            if (page === '...') {
-                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
-                            }
-                            
-                            const isActive = page === current;
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                style={{
-                                  padding: '8px 14px',
-                                  borderRadius: '8px',
-                                  border: isActive ? '2px solid #194752' : '1px solid #E2E8F0',
-                                  background: isActive ? '#194752' : '#FFFFFF',
-                                  color: isActive ? '#FFFFFF' : '#0F172A',
-                                  cursor: 'pointer',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: isActive ? '600' : '500',
-                                  minWidth: '40px'
-                                }}
-                              >
-                                {page}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Next
-                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
-                      </button>
-                    </div>
-
-                    <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
-                      <span>Rows:</span>
-                      <select
-                        value={rowsPerPage}
-                        onChange={(e) => toast.info('Rows per page is fixed at 10')}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          border: '1px solid #E2E8F0',
-                          background: '#FFFFFF',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="10">10</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* CUT-OFF TABLE VIEW */}
-      {tableType === 'cutoff' && (
-        <>
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div className="stat-card" style={{ borderColor: '#DC2626' }}>
-              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#DC2626" /></span>
-              <div><p className="stat-label">Cut-off Accounts</p><p className="stat-number" style={{ color: '#DC2626' }}>{filteredBills.length}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Consumers</p><p className="stat-number">{new Set(filteredBills.map(b => b.consumerName)).size}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Total Collectable</p><p className="stat-number" style={{ color: '#DC2626' }}>
-                {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
-              </p></div>
-            </div>
-          </div>
-
-          <div className="search-filter-container">
-            <div className="search-wrapper">
-              <input type="text" className="search-input" placeholder="Search by name or WSIN..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
-                <option value="all">All Locations</option>
-                {locations.map(location => <option key={location} value={location}>{location}</option>)}
-              </select>
-            </div>
-            <div className="filter-actions">
-              {activeFilterCount > 0 && <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>}
-            </div>
-          </div>
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '80px 20px',
-                minHeight: '400px',
-                gap: '20px'
-              }}>
-                <div style={{
-                  width: '70px',
-                  height: '70px',
-                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
-                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite'
-                }} />
-              </div>
-            ) : filteredBills.length === 0 ? (
-              <div className="empty-state"><p>No cut-off accounts found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p></div>
-            ) : (
-              <>
-                <table className="bills-table">
-                  <thead>
-                    <tr>
-                      <th>WSIN</th>
-                      <th>Server</th>
-                      <th>Consumer</th>
-                      <th>Location</th>
-                      <th>Period</th>
-                      <th>Type</th>
-                      <th>Collectable Amount</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getCurrentPageData().map((bill) => {
-                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                      const amount = bill.amount || bill.collectableAmount || 0;
-                      const isPaid = bill.status === 'paid';
-                      
-                      return (
-                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
-                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                          <td>
-                            <span style={{
-                              padding: '3px 10px',
-                              borderRadius: '12px',
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              background: `${getServerColor(bill.serverSource)}22`,
-                              color: getServerColor(bill.serverSource),
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {getServerLabel(bill.serverSource).toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                          <td className="name-cell">{bill.location || 'N/A'}</td>
-                          <td className="name-cell">{period.trim() || 'N/A'}</td>
-                          <td>
-                            <span className={`type-badge ${bill.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
-                              {bill.type || bill.consumerType || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="name-cell" style={{ fontWeight: '600', color: '#DC2626' }}>{formatCurrency(amount)}</td>
-                          <td>
-                            <span className={`status-badge ${isPaid ? 'status-paid' : 'status-cutoff'}`}>
-                              {isPaid ? 'PAID' : 'CUT-OFF'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="admin-action-buttons">
-                              {!isPaid && (
-                                <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>PAY</button>
-                              )}
-                              {isPaid && bill.paymentCode && (
-                                <span style={{
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: '700',
-                                  color: '#194752',
-                                  background: '#F1F5F9',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  letterSpacing: '0.5px',
-                                  whiteSpace: 'nowrap',
-                                  border: '1px solid #E2E8F0'
-                                }}>
-                                  {bill.paymentCode}
-                                </span>
-                              )}
-                              <button className="action-btn edit" onClick={() => handleEdit(bill)}>EDIT</button>
-                              <button className="action-btn delete" onClick={() => handleDelete(bill.id)}>DELETE</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-        </>
-      )}
-
       {/* Progress Modal */}
       {showProgress && (
         <div className="modal-overlay">
@@ -4146,7 +4962,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* PAY MODAL - SINGLE BILL WITH AUTO OR */}
+      {/* PAY MODAL - SINGLE BILL — WITH DISCOUNT */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -4172,15 +4988,195 @@ const AdminDashboard = () => {
               <div className="pay-row"><span className="pay-label">Bill Number</span><span className="pay-value">{selectedBill.billNumber || 'N/A'}</span></div>
               <div className="pay-row"><span className="pay-label">Consumer</span><span className="pay-value">{selectedBill.consumerName || 'N/A'}</span></div>
               <div className="pay-row"><span className="pay-label">Type</span><span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span></div>
-              <div className="pay-row" style={{ borderTop: '2px solid #194752', paddingTop: '8px', marginTop: '4px' }}>
-                <span className="pay-label" style={{ fontWeight: 'bold', fontSize: '16px' }}>Amount Due</span>
-                <span className="pay-value amount" style={{ fontSize: '22px' }}>
-                  {(() => {
-                    const { amount } = calculateWithDefective(selectedBill.presentReading, selectedBill.previousReading, selectedBill.consumerType);
-                    return formatCurrency(amount);
-                  })()}
-                </span>
+            </div>
+
+            <div style={{
+              padding: '5px 18px',
+              background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
+              border: '2px solid #BFDBFE',
+              borderRadius: '12px',
+              marginBottom: '16px'
+            }}>
+              <p style={{
+                margin: '0 0 5px 0',
+                fontWeight: '700',
+                fontSize: '14px',
+                color: '#1E40AF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                Discount (5%)
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  background: isSeniorCitizen ? '#DBEAFE' : '#FFFFFF',
+                  border: isSeniorCitizen ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={isSeniorCitizen}
+                    onChange={(e) => setIsSeniorCitizen(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: '#2563EB',
+                      flexShrink: 0
+                    }}
+                  />
+                  <SeniorIcon width={20} height={20} color={isSeniorCitizen ? '#2563EB' : '#64748B'} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: isSeniorCitizen ? '#1E40AF' : '#0F172A'
+                    }}>
+                      SENIOR CITIZEN
+                    </span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '10px',
+                      color: isSeniorCitizen ? '#2563EB' : '#64748B'
+                    }}>
+                      5% discount
+                    </span>
+                  </div>
+                </label>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  background: isPWD ? '#DBEAFE' : '#FFFFFF',
+                  border: isPWD ? '2px solid #2563EB' : '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={isPWD}
+                    onChange={(e) => setIsPWD(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                      accentColor: '#2563EB',
+                      flexShrink: 0
+                    }}
+                  />
+                  <PWDIcon width={20} height={20} color={isPWD ? '#2563EB' : '#64748B'} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: isPWD ? '#1E40AF' : '#0F172A'
+                    }}>
+                      PWD
+                    </span>
+                    <span style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '10px',
+                      color: isPWD ? '#2563EB' : '#64748B'
+                    }}>
+                      5% discount
+                    </span>
+                  </div>
+                </label>
               </div>
+
+              {discountPreview && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  background: '#F0FDF4',
+                  border: '1px solid #86EFAC',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{ fontSize: '14px' }}>✅</span>
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#166534'
+                  }}>
+                    {discountPreview.type} discount applied ({discountPreview.ratePercent}% off)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              padding: '14px 18px',
+              background: (isSeniorCitizen || isPWD)
+                ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)'
+                : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+              border: (isSeniorCitizen || isPWD)
+                ? '2px solid #86EFAC'
+                : '2px solid #E2E8F0',
+              borderRadius: '12px',
+              marginBottom: '16px'
+            }}>
+              {(() => {
+                const { amount } = calculateWithDefective(selectedBill.presentReading, selectedBill.previousReading, selectedBill.consumerType);
+                const hasDiscount = isSeniorCitizen || isPWD;
+                const discountAmt = hasDiscount ? amount * DISCOUNT_RATE : 0;
+                const finalAmt = amount - discountAmt;
+
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>Subtotal:</span>
+                      <span style={{ fontSize: '15px', color: '#0F172A', fontWeight: '700' }}>
+                        {formatCurrency(amount)}
+                      </span>
+                    </div>
+
+                    {hasDiscount && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: '#16A34A', fontWeight: '600' }}>
+                          Discount ({discountPreview?.type}):
+                        </span>
+                        <span style={{ fontSize: '15px', color: '#16A34A', fontWeight: '700' }}>
+                          -{formatCurrency(discountAmt)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      paddingTop: '8px',
+                      borderTop: '2px solid #E2E8F0',
+                      marginTop: '6px'
+                    }}>
+                      <span style={{ fontSize: '15px', color: '#0F172A', fontWeight: '800' }}>AMOUNT TO PAY:</span>
+                      <span style={{
+                        fontSize: '22px',
+                        color: hasDiscount ? '#16A34A' : '#194752',
+                        fontWeight: '800'
+                      }}>
+                        {formatCurrency(finalAmt)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="form-group">
@@ -4224,12 +5220,7 @@ const AdminDashboard = () => {
                     gap: '8px'
                   }}>
                     <span style={{ fontSize: '14px' }}>✅</span>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#166534'
-                    }}>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>
                       Auto-assigned from Server 4 → Batch: {availableOR.batchId || 'N/A'}
                     </span>
                   </div>
@@ -4263,8 +5254,8 @@ const AdminDashboard = () => {
 
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
-              <button 
-                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7 || !availableOR) ? 'disabled' : ''}`}
+              <button
+                className="btn btn-primary"
                 onClick={confirmPayBill}
                 disabled={!paymentCode || paymentCode.length !== 7 || isPaying || !availableOR}
               >

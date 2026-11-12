@@ -16,6 +16,34 @@ const OR_SERVER_KEY = 'server4';
 const OR_COLLECTION = 'or_numbers';
 
 // ============================================================
+// AMOUNT CALCULATION — same sa Pay logic
+// ============================================================
+const calculateBillAmount = (consumerType, consumption) => {
+  const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
+  const consumptionNum = Number(consumption) || 0;
+
+  if (type === 'RESIDENTIAL') {
+    const FIRST_5_RATE = 62.50;
+    const EXCESS_RATE = 12.50;
+    if (consumptionNum <= 5) return FIRST_5_RATE;
+    const excess = consumptionNum - 5;
+    return FIRST_5_RATE + (excess * EXCESS_RATE);
+  } else if (type === 'COMMERCIAL') {
+    const TIER1_RATE = 15;
+    const TIER2_RATE = 20;
+    const TIER3_RATE = 30;
+    const TIER1_LIMIT = 10;
+    const TIER2_LIMIT = 20;
+    if (consumptionNum <= TIER1_LIMIT) return 150;
+    if (consumptionNum <= TIER2_LIMIT) {
+      return (TIER1_LIMIT * TIER1_RATE) + ((consumptionNum - TIER1_LIMIT) * TIER2_RATE);
+    }
+    return (TIER1_LIMIT * TIER1_RATE) + ((TIER2_LIMIT - TIER1_LIMIT) * TIER2_RATE) + ((consumptionNum - TIER2_LIMIT) * TIER3_RATE);
+  }
+  return 0;
+};
+
+// ============================================================
 // HARDCODED SVG ICONS
 // ============================================================
 
@@ -161,7 +189,7 @@ const generateNextWSIN = async (serverKey) => {
 };
 
 // ============================================================
-// FETCH UNIQUE LOCATIONS from current server
+// FETCH UNIQUE LOCATIONS
 // ============================================================
 const fetchAvailableLocations = async (serverKey) => {
   try {
@@ -179,10 +207,7 @@ const fetchAvailableLocations = async (serverKey) => {
       }
     });
 
-    const sortedLocations = Array.from(locationSet).sort();
-
-    console.log(`📍 Found ${sortedLocations.length} unique locations in ${serverKey}:`, sortedLocations);
-    return sortedLocations;
+    return Array.from(locationSet).sort();
   } catch (error) {
     console.error('❌ Error fetching locations:', error);
     return [];
@@ -197,6 +222,8 @@ const schema = yup.object().shape({
   consumerName: yup.string().required('Consumer name is required'),
   location: yup.string().required('Location is required'),
   consumerType: yup.string().required('Consumer type is required'),
+  previousReading: yup.number().min(0, 'Must be 0 or higher'),
+  presentReading: yup.number().min(0, 'Must be 0 or higher'),
   month: yup.string(),
   year: yup.string(),
   notes: yup.string()
@@ -213,9 +240,14 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
   const [loadingOR, setLoadingOR] = useState(false);
   const [orError, setOrError] = useState('');
 
-  // Location state
   const [availableLocations, setAvailableLocations] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+
+  // ✅ Auto-calculated values for EDIT mode
+  const [autoAmount, setAutoAmount] = useState(0);
+  const [autoConsumption, setAutoConsumption] = useState(0);
+
+  const isEditMode = !!bill;
 
   const targetServer = serverKey || bill?.serverSource || 'server1';
 
@@ -224,59 +256,71 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
                       'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const currentMonth = monthsList[new Date().getMonth()];
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: bill ? {
       billNumber: bill.billNumber || '',
       consumerName: bill.consumerName || '',
       location: bill.location || '',
       consumerType: bill.consumerType || 'RESIDENTIAL',
-      amount: bill.amount || 1000,
-      dueDate: bill.dueDate || '',
-      status: bill.status || 'unpaid',
       month: bill.month || currentMonth,
       year: bill.year || currentYear,
-      previousReading: bill.previousReading || 0,
-      presentReading: bill.presentReading || 0,
-      consumption: bill.consumption || 0,
+      previousReading: Number(bill.previousReading) || 0,
+      presentReading: Number(bill.presentReading) || 0,
       notes: bill.notes || ''
     } : {
       billNumber: '',
       consumerName: '',
       location: '',
       consumerType: 'RESIDENTIAL',
-      amount: 1000,
-      dueDate: '',
-      status: 'unpaid',
       month: currentMonth,
       year: currentYear,
       previousReading: 0,
       presentReading: 0,
-      consumption: 0,
       notes: ''
     }
   });
 
+  // ✅ Watch fields para sa auto-calc (EDIT MODE ONLY)
+  const watchedPreviousReading = watch('previousReading');
+  const watchedPresentReading = watch('presentReading');
+  const watchedConsumerType = watch('consumerType');
+
   // ============================================================
-  // AUTO-FILL on new bill
+  // AUTO-CALCULATE amount & consumption (EDIT MODE)
+  // ============================================================
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const prev = Number(watchedPreviousReading) || 0;
+    const present = Number(watchedPresentReading) || 0;
+    const consumption = Math.max(0, present - prev);
+
+    const amount = calculateBillAmount(watchedConsumerType, consumption);
+
+    setAutoConsumption(consumption);
+    setAutoAmount(amount);
+  }, [watchedPreviousReading, watchedPresentReading, watchedConsumerType, isEditMode]);
+
+  // ============================================================
+  // INITIAL LOAD
   // ============================================================
   useEffect(() => {
     if (bill) {
-      setLoadingMeta(false);
-      // Load locations for edit mode
+      // EDIT MODE — just load locations
       loadLocations();
+      setLoadingMeta(false);
       return;
     }
 
+    // ADD MODE — auto-generate WSIN + fetch OR
     const loadMeta = async () => {
       setLoadingMeta(true);
 
       try {
-        // 1. Auto-generate WSIN
         const nextWSIN = await generateNextWSIN(targetServer);
         setValue('billNumber', nextWSIN);
 
-        // 2. Auto-fetch OR Number
         setLoadingOR(true);
         const or = await fetchNextAvailableOR();
         if (or) {
@@ -286,13 +330,9 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
         }
         setLoadingOR(false);
 
-        // 3. Lock auto-filled fields
         setValue('previousReading', 0);
         setValue('presentReading', 0);
-        setValue('consumption', 0);
-        setValue('amount', 1000);
 
-        // 4. Load locations
         await loadLocations();
       } catch (error) {
         console.error('Error loading form metadata:', error);
@@ -320,7 +360,7 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
       return;
     }
 
-    if (!bill && !availableOR) {
+    if (!isEditMode && !availableOR) {
       toast.error('No available OR Number. Please add OR Numbers in Admin Dashboard.');
       return;
     }
@@ -329,6 +369,21 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
     try {
       const targetDb = getDbByServer(targetServer);
 
+      let finalAmount;
+      let finalConsumption;
+
+      if (isEditMode) {
+        // ✅ EDIT MODE — calculate amount from readings
+        const prev = Number(data.previousReading) || 0;
+        const present = Number(data.presentReading) || 0;
+        finalConsumption = Math.max(0, present - prev);
+        finalAmount = calculateBillAmount(data.consumerType, finalConsumption);
+      } else {
+        // ✅ ADD MODE — fixed values
+        finalConsumption = 0;
+        finalAmount = 1000;
+      }
+
       const billData = {
         billNumber: data.billNumber,
         consumerName: data.consumerName,
@@ -336,32 +391,34 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
         consumerType: data.consumerType,
         month: data.month,
         year: data.year,
-        amount: 1000,
-        previousReading: 0,
-        presentReading: 0,
-        consumption: 0,
+        amount: finalAmount,
+        previousReading: isEditMode ? (Number(data.previousReading) || 0) : 0,
+        presentReading: isEditMode ? (Number(data.presentReading) || 0) : 0,
+        consumption: finalConsumption,
         dueDate: `${data.year}-${String(monthsList.indexOf(data.month) + 1).padStart(2, '0')}-15`,
-        status: 'unpaid',
+        status: bill?.status || 'unpaid',
         notes: data.notes || '',
         userId: user.uid,
         serverSource: targetServer,
         updatedAt: new Date().toISOString()
       };
 
-      if (!bill && availableOR) {
+      if (!isEditMode && availableOR) {
         billData.paymentCode = availableOR.orNumber;
         billData.orNumber = availableOR.orNumber;
         billData.orBatchId = availableOR.batchId;
       }
 
-      if (bill) {
+      if (isEditMode) {
+        // ✅ EDIT
         await updateDoc(doc(targetDb, 'bills', bill.id), billData);
         toast.success('✅ Bill updated successfully!');
+        toast.success(`💰 Amount: ₱${finalAmount.toFixed(2)}`);
       } else {
+        // ✅ ADD
         billData.createdAt = new Date().toISOString();
         await addDoc(collection(targetDb, 'bills'), billData);
 
-        // Mark OR as assigned
         if (availableOR) {
           try {
             const orDb = getDbByServer(OR_SERVER_KEY);
@@ -404,9 +461,9 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
               <FileDollarIcon width={28} height={28} />
             </span>
             <div>
-              <h3>{bill ? 'Edit Bill' : 'Add New Bill'}</h3>
+              <h3>{isEditMode ? 'Edit Bill' : 'Add New Bill'}</h3>
               <p className="modal-subtitle">
-                {bill
+                {isEditMode
                   ? `Update bill in ${getServerLabel(targetServer)}`
                   : `Adding to ${getServerLabel(targetServer)}`}
               </p>
@@ -443,20 +500,21 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
               <div className="form-group">
                 <label>
                   <span className="label-icon"><FileDollarIcon width={18} height={18} /></span>
-                  WSIN (Auto) <span className="required">*</span>
+                  WSIN {isEditMode ? '' : '(Auto) 🔒'} <span className="required">*</span>
                 </label>
                 <input
                   {...register('billNumber')}
                   type="text"
-                  readOnly
-                  className="modal-input"
-                  style={{
+                  readOnly={!isEditMode}
+                  placeholder="e.g., 0001"
+                  className={`modal-input ${errors.billNumber ? 'error' : ''}`}
+                  style={!isEditMode ? {
                     background: '#F0FDF4',
                     border: '2px solid #16A34A',
                     color: '#166534',
                     fontWeight: '800',
                     cursor: 'not-allowed'
-                  }}
+                  } : {}}
                 />
                 {errors.billNumber && <span className="error-message">{errors.billNumber.message}</span>}
               </div>
@@ -475,7 +533,6 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
                 {errors.consumerName && <span className="error-message">{errors.consumerName.message}</span>}
               </div>
 
-              {/* ✅ LOCATION DROPDOWN — NO ADD BUTTON */}
               <div className="form-group">
                 <label>
                   <span className="label-icon"><Location03Icon width={18} height={18} /></span>
@@ -504,9 +561,7 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
                       <option key={loc} value={loc}>{loc}</option>
                     ))}
                     {availableLocations.length === 0 && (
-                      <option value="" disabled>
-                        (No locations yet)
-                      </option>
+                      <option value="" disabled>(No locations yet)</option>
                     )}
                   </select>
                 )}
@@ -555,82 +610,59 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
               </div>
             </div>
 
-            {/* ROW 3: Previous | Present | Consumption (all locked = 0) */}
+            {/* ROW 3: Previous | Present | Consumption */}
             <div className="form-row-3">
               <div className="form-group">
                 <label>
                   <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                  Previous Reading 🔒
+                  Previous Reading {isEditMode ? '' : '🔒'}
                 </label>
                 <input
+                  {...register('previousReading')}
                   type="number"
-                  readOnly
-                  value={0}
+                  step="0.01"
+                  readOnly={!isEditMode}
+                  placeholder="0"
                   className="modal-input"
-                  style={{
+                  style={!isEditMode ? {
                     background: '#F1F5F9',
                     border: '2px solid #E2E8F0',
                     color: '#64748B',
                     cursor: 'not-allowed'
-                  }}
+                  } : {}}
                 />
               </div>
 
               <div className="form-group">
                 <label>
                   <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                  Present Reading 🔒
+                  Present Reading {isEditMode ? '' : '🔒'}
                 </label>
                 <input
+                  {...register('presentReading')}
                   type="number"
-                  readOnly
-                  value={0}
+                  step="0.01"
+                  readOnly={!isEditMode}
+                  placeholder="0"
                   className="modal-input"
-                  style={{
+                  style={!isEditMode ? {
                     background: '#F1F5F9',
                     border: '2px solid #E2E8F0',
                     color: '#64748B',
                     cursor: 'not-allowed'
-                  }}
+                  } : {}}
                 />
               </div>
 
               <div className="form-group">
                 <label>
                   <span className="label-icon"><UserStatusIcon width={18} height={18} /></span>
-                  Consumption 🔒
+                  Consumption {isEditMode ? '(Auto)' : '🔒'}
                 </label>
                 <input
                   type="number"
                   readOnly
-                  value={0}
-                  className="modal-input"
-                  style={{
-                    background: '#F1F5F9',
-                    border: '2px solid #E2E8F0',
-                    color: '#64748B',
-                    cursor: 'not-allowed'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* ROW 4: Amount (locked) | OR Number (auto) */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '14px'
-            }}>
-              <div className="form-group">
-                <label>
-                  <span className="label-icon"><PhilippinePesoIcon width={18} height={18} /></span>
-                  Amount 🔒
-                </label>
-                <input
-                  type="number"
-                  readOnly
-                  value={1000}
+                  value={isEditMode ? autoConsumption : 0}
                   className="modal-input"
                   style={{
                     background: '#F1F5F9',
@@ -641,13 +673,65 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
                   }}
                 />
               </div>
+            </div>
+
+            {/* ROW 4: Amount | OR Number */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '14px'
+            }}>
+              <div className="form-group">
+                <label>
+                  <span className="label-icon"><PhilippinePesoIcon width={18} height={18} /></span>
+                  Amount {isEditMode ? '(Auto)' : '🔒'}
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  value={isEditMode ? autoAmount.toFixed(2) : 1000}
+                  className="modal-input"
+                  style={{
+                    background: isEditMode ? '#F0FDF4' : '#F1F5F9',
+                    border: isEditMode ? '2px solid #16A34A' : '2px solid #E2E8F0',
+                    color: isEditMode ? '#166534' : '#64748B',
+                    cursor: 'not-allowed',
+                    fontWeight: '800'
+                  }}
+                />
+                {isEditMode && (
+                  <div style={{
+                    marginTop: '4px',
+                    fontSize: '11px',
+                    color: '#16A34A',
+                    fontWeight: '600'
+                  }}>
+                    💡 Auto-calculated from readings
+                  </div>
+                )}
+              </div>
 
               <div className="form-group">
                 <label>
                   <span className="label-icon"><ReceiptIcon width={18} height={18} /></span>
-                  OR Number (Auto) 🔒
+                  OR Number {isEditMode ? '' : '(Auto) 🔒'}
                 </label>
-                {loadingOR ? (
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    value={bill?.paymentCode || bill?.orNumber || 'N/A'}
+                    readOnly
+                    className="modal-input"
+                    style={{
+                      background: '#F1F5F9',
+                      border: '2px solid #E2E8F0',
+                      color: '#64748B',
+                      cursor: 'not-allowed',
+                      fontWeight: '700'
+                    }}
+                  />
+                ) : loadingOR ? (
                   <div style={{
                     padding: '12px 14px',
                     background: '#F1F5F9',
@@ -689,43 +773,9 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
               </div>
             </div>
 
-            {/* ROW 5: Notes */}
-            <div className="form-group full-width">
-              <label>
-                <span className="label-icon"><Note01Icon width={18} height={18} /></span>
-                Notes (Optional)
-              </label>
-              <input
-                {...register('notes')}
-                type="text"
-                placeholder="Additional notes..."
-                className="modal-input"
-              />
-            </div>
+           
 
-            {/* Info Note */}
-            <div style={{
-              padding: '12px 16px',
-              background: '#EFF6FF',
-              border: '1px solid #BFDBFE',
-              borderRadius: '10px',
-              marginTop: '8px',
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <span style={{ fontSize: '16px' }}>ℹ️</span>
-              <span style={{
-                fontSize: '12px',
-                color: '#1E40AF',
-                fontWeight: '600',
-                fontFamily: 'Inter, sans-serif',
-                lineHeight: '1.5'
-              }}>
-                WSIN is auto-generated. Location shows existing locations in <strong>{getServerLabel(targetServer)}</strong>.
-              </span>
-            </div>
+            
 
             {/* Modal Actions */}
             <div className="modal-actions">
@@ -735,7 +785,7 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={loading || (!bill && !availableOR)}
+                disabled={loading || (!isEditMode && !availableOR)}
               >
                 {loading ? (
                   <>
@@ -743,7 +793,7 @@ const BillForm = ({ bill, onClose, onSave, serverKey }) => {
                     Saving...
                   </>
                 ) : (
-                  <>{bill ? '💾 Update Bill' : '➕ Add Bill'}</>
+                  <>{isEditMode ? '💾 Update Bill' : '➕ Add Bill'}</>
                 )}
               </button>
             </div>

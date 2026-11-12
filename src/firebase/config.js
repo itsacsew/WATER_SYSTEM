@@ -58,13 +58,26 @@ const firebaseConfig4 = {
 // FIREBASE 5 (Water-4c611)
 // ============================================================
 const firebaseConfig5 = {
-  apiKey: "AIzaSyB1cTEbNP-cgJnWOujz-Pissmrl631eG-c",
-  authDomain: "water-4c611.firebaseapp.com",
-  projectId: "water-4c611",
-  storageBucket: "water-4c611.firebasestorage.app",
-  messagingSenderId: "762284063156",
-  appId: "1:762284063156:web:54c4f6dc2e188dba145ae1",
+  apiKey: "AIzaSyBWXiw1X_aDj9JAIPIbduzpEAT43sDep5A",
+  authDomain: "payroll-1fcab.firebaseapp.com",
+  projectId: "payroll-1fcab",
+  storageBucket: "payroll-1fcab.firebasestorage.app",
+  messagingSenderId: "456428073034",
+  appId: "1:456428073034:web:50945d1f9ebb55998736b3",
   measurementId: "G-D3EZH4T3JN"
+};
+
+// ============================================================
+// FIREBASE 6 (Water-1c122) ← NEW
+// ============================================================
+const firebaseConfig6 = {
+  apiKey: "AIzaSyAjIaCkqgKWUGNxhMClbeD5pYLMoxaqA9o",
+  authDomain: "water-1c122.firebaseapp.com",
+  projectId: "water-1c122",
+  storageBucket: "water-1c122.firebasestorage.app",
+  messagingSenderId: "588142511673",
+  appId: "1:588142511673:web:88c4b4e81dfaf7d75eafe8",
+  measurementId: "G-8W2XLD551H"
 };
 
 // ============================================================
@@ -75,6 +88,7 @@ const app2 = initializeApp(firebaseConfig2, 'app2');
 const app3 = initializeApp(firebaseConfig3, 'app3');
 const app4 = initializeApp(firebaseConfig4, 'app4');
 const app5 = initializeApp(firebaseConfig5, 'app5');
+const app6 = initializeApp(firebaseConfig6, 'app6');   // ← NEW
 
 // Auth only sa app1 (main auth)
 export const auth = getAuth(app1);
@@ -85,6 +99,7 @@ export const db2 = getFirestore(app2);  // Server 2
 export const db3 = getFirestore(app3);  // Server 3
 export const db4 = getFirestore(app4);  // Server 4
 export const db5 = getFirestore(app5);  // Server 5
+export const db6 = getFirestore(app6);  // Server 6 ← NEW
 
 // ============================================================
 // HELPER: Get DB instance by server key
@@ -95,6 +110,7 @@ export const getDbByServer = (server) => {
     case 'server3': return db3;
     case 'server4': return db4;
     case 'server5': return db5;
+    case 'server6': return db6;   // ← NEW
     case 'server1':
     default:
       return db;
@@ -110,6 +126,7 @@ export const getServerLabel = (server) => {
     case 'server3': return 'Server 3';
     case 'server4': return 'Server 4';
     case 'server5': return 'Server 5';
+    case 'server6': return 'Server 6';   // ← NEW
     case 'server1':
     default:
       return 'Server 1';
@@ -125,6 +142,7 @@ export const getServerColor = (server) => {
     case 'server3': return '#7C3AED';
     case 'server4': return '#059669';
     case 'server5': return '#D97706';
+    case 'server6': return '#0891B2';   // ← NEW (Cyan/Teal)
     case 'server1':
     default:
       return '#194752';
@@ -134,7 +152,7 @@ export const getServerColor = (server) => {
 // ============================================================
 // HELPER: List of all servers
 // ============================================================
-export const ALL_SERVERS = ['server1', 'server2', 'server3', 'server4', 'server5'];
+export const ALL_SERVERS = ['server1', 'server2', 'server3', 'server4', 'server5', 'server6'];
 
 // Default server (Server 1 ra ang i-load inig mount)
 export const DEFAULT_SERVER = 'server1';
@@ -148,6 +166,7 @@ export const SERVER_CONFIGS = [
   { key: 'server3', label: 'Server 3', db: db3, project: 'water-4af97',         color: '#194752' },
   { key: 'server4', label: 'Server 4', db: db4, project: 'water-42455',         color: '#194752' },
   { key: 'server5', label: 'Server 5', db: db5, project: 'water-4c611',         color: '#194752' },
+  { key: 'server6', label: 'Server 6', db: db6, project: 'water-1c122',         color: '#194752' },   // ← NEW
 ];
 
-export { app1, app2, app3, app4, app5 };
+export { app1, app2, app3, app4, app5, app6 };

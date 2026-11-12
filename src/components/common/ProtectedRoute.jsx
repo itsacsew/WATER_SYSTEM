@@ -14,17 +14,27 @@ const ProtectedRoute = ({ children }) => {
         alignItems: 'center', 
         justifyContent: 'center', 
         minHeight: '100vh',
-        background: 'linear-gradient(145deg, #010030 20%, #194752 40%, #1e5664 60%, #010030 80%)'
+        background: `
+  radial-gradient(ellipse 80% 60% at 20% 0%, 
+    rgba(229, 231, 235, 0.6) 0%, 
+    transparent 70%),
+  linear-gradient(
+    160deg,
+    #b7b8b9 0%,
+    #E5E7EB 50%,
+    #D1D5DB 100%
+  )
+`
       }}>
         <div className="spinner" style={{
           width: '48px',
           height: '48px',
           border: '4px solid rgba(55, 53, 62, 0.08)',
-          borderTopColor: '#ffffff',
+          borderTopColor: '#040404',
           borderRadius: '50%',
           animation: 'spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite'
         }}></div>
-        <p style={{ marginTop: '16px', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+        <p style={{ marginTop: '16px', color: '#040404', fontFamily: 'Inter, sans-serif' }}>
           Loading...
         </p>
         <style>{`

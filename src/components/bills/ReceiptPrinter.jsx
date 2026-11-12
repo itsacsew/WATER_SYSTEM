@@ -6,7 +6,8 @@ import './ReceiptStyles.css';
 const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   const receiptRef = useRef(null);
   const currentDate = new Date();
-  
+  const hasPrinted = useRef(false);
+
   const formatDate = (date) => {
     return date.toLocaleDateString('en-PH', {
       year: 'numeric',
@@ -132,6 +133,7 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   const handlePrint = async () => {
     try {
       const element = receiptRef.current;
+      if (!element) return;
       
       const canvas = await html2canvas(element, {
         scale: 3,
@@ -262,16 +264,27 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
       
       printWindow.document.close();
       
+      // ✅ Human sa pag-print, i-close dayon ang React component (mawala ang pop-up overlay kung naa man)
+      if (onClose) {
+        onClose();
+      }
+      
     } catch (error) {
       console.error('Print error:', error);
       alert('Error printing receipt. Please try again.');
+      if (onClose) onClose(); // Ensure modal closes even on error
     }
   };
 
+  // ✅ Auto print ra diretso inig mount, wala nay modal preview sa page
   useEffect(() => {
-    setTimeout(() => {
-      handlePrint();
-    }, 600);
+    if (!hasPrinted.current) {
+      hasPrinted.current = true;
+      setTimeout(() => {
+        handlePrint();
+      }, 600);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const consumerName = bill?.consumerName || 'N/A';
@@ -283,242 +296,167 @@ const ReceiptPrinter = ({ bill, paymentCode, referenceNumber, onClose }) => {
   const treasurerName = "DANNIE LYN I. VILLAFLOR";
   const treasurerTitle = "MUNICIPAL TREASURER";
 
+  // ✅ I-render ang receipt OFFS-SCREEN (nga dili makita sa user)
+  // Kini gikinahanglan para makakuha og screenshot (html2canvas) para i-print sa popup window.
   return (
-    <div className="receipt-modal-overlay" onClick={onClose}>
+    <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', zIndex: -1 }}>
       <div 
-        className="receipt-modal-content" 
-        onClick={(e) => e.stopPropagation()}
-        style={{
+        ref={receiptRef} 
+        style={{ 
           width: '205mm',
           height: '100mm',
-          maxWidth: '205mm',
-          maxHeight: '100mm',
           padding: '0',
           margin: '0',
           background: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
+          fontFamily: '"Courier New", monospace',
+          fontSize: '8pt',
           position: 'relative',
-          alignSelf: 'flex-start',
-          marginTop: '20px'
+          overflow: 'hidden',
+          flexShrink: 0,
+          border: '1px solid #e2e8f0',
         }}
       >
-        {/* Action Buttons */}
+        {/* MUNICIPAL NAME */}
         <div style={{
-          padding: '6px 14px',
-          background: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '10px',
-          flexShrink: 0,
-          zIndex: 10
+          position: 'absolute',
+          top: '1.8cm',
+          left: '4.5cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '18pt',
+          fontWeight: 'bold',
+          color: '#1a365d',
+          letterSpacing: '3px',
+          whiteSpace: 'nowrap'
         }}>
-          <button 
-            onClick={handlePrint}
-            style={{
-              padding: '6px 24px',
-              background: '#1e3a5f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#2a4a7a'}
-            onMouseLeave={(e) => e.target.style.background = '#1e3a5f'}
-          >
-            🖨️ Print
-          </button>
-          <button 
-            onClick={onClose}
-            style={{
-              padding: '6px 24px',
-              background: '#f1f5f9',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
-            onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
-          >
-            Close
-          </button>
+          LILOAN
         </div>
 
-        {/* ============================================================
-            RECEIPT - 10cm HEIGHT × 20.5cm WIDTH (Landscape)
-            ============================================================ */}
-        <div 
-          ref={receiptRef} 
-          style={{ 
-            width: '205mm',
-            height: '100mm',
-            padding: '0',
-            margin: '0',
-            background: 'white',
-            fontFamily: '"Courier New", monospace',
-            fontSize: '8pt',
-            position: 'relative',
-            overflow: 'hidden',
-            flexShrink: 0,
-            border: '1px solid #e2e8f0',
-            borderRadius: '0 0 8px 8px'
-          }}
-        >
-          {/* MUNICIPAL NAME */}
-          <div style={{
-            position: 'absolute',
-            top: '1.8cm',
-            left: '4.5cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '18pt',
-            fontWeight: 'bold',
-            color: '#1a365d',
-            letterSpacing: '3px',
-            whiteSpace: 'nowrap'
-          }}>
-            LILOAN
-          </div>
+        {/* CONSUMER NAME */}
+        <div style={{
+          position: 'absolute',
+          top: '2.8cm',
+          left: '4.5cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '14pt',
+          fontWeight: 'bold',
+          color: '#1a365d',
+          whiteSpace: 'nowrap',
+          maxWidth: '8cm',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {consumerName}
+        </div>
 
-          {/* CONSUMER NAME */}
-          <div style={{
-            position: 'absolute',
-            top: '2.8cm',
-            left: '4.5cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '14pt',
-            fontWeight: 'bold',
-            color: '#1a365d',
-            whiteSpace: 'nowrap',
-            maxWidth: '8cm',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {consumerName}
-          </div>
+        {/* DATE */}
+        <div style={{
+          position: 'absolute',
+          top: '3cm',
+          left: '16.5cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '10pt',
+          color: '#1a365d',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatDate(currentDate)}
+        </div>
 
-          {/* DATE */}
-          <div style={{
-            position: 'absolute',
-            top: '3cm',
-            left: '16.5cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '10pt',
-            color: '#1a365d',
-            fontWeight: '600',
-            whiteSpace: 'nowrap'
-          }}>
-            {formatDate(currentDate)}
-          </div>
+        {/* WATER FEE */}
+        <div style={{
+          position: 'absolute',
+          top: '5.1cm',
+          left: '6.2cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '15pt',
+          fontWeight: '600',
+          color: '#1a365d',
+          whiteSpace: 'nowrap'
+        }}>
+          WATER FEE: {waterFeePeriod}
+        </div>
 
-          {/* ============================================================
-              WATER FEE - ADJUSTED POSITION (GIPA-RIGHT)
-              ============================================================ */}
-          <div style={{
-            position: 'absolute',
-            top: '5.1cm',
-            left: '6.2cm',        // 👈 GIKAN 4cm → 6.2cm (gipa-right)
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '15pt',
-            fontWeight: '600',
-            color: '#1a365d',
-            whiteSpace: 'nowrap'
-          }}>
-            WATER FEE: {waterFeePeriod}
-          </div>
+        {/* AMOUNT */}
+        <div style={{
+          position: 'absolute',
+          top: '4.1cm',
+          left: '16.5cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '12pt',
+          fontWeight: '700',
+          color: '#1a365d',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatCurrency(amount)}
+        </div>
 
-          {/* AMOUNT */}
-          <div style={{
-            position: 'absolute',
-            top: '4.1cm',
-            left: '16.5cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '12pt',
-            fontWeight: '700',
-            color: '#1a365d',
-            whiteSpace: 'nowrap'
-          }}>
-            {formatCurrency(amount)}
-          </div>
+        {/* AMOUNT IN WORD */}
+        <div style={{
+          position: 'absolute',
+          top: '7.5cm',
+          left: '8cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '10pt',
+          fontWeight: '700',
+          color: '#1a365d',
+          whiteSpace: 'nowrap',
+          maxWidth: '9cm',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {amountInWords}
+        </div>
 
-          {/* AMOUNT IN WORD */}
-          <div style={{
-            position: 'absolute',
-            top: '7.5cm',
-            left: '8cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '10pt',
-            fontWeight: '700',
-            color: '#1a365d',
-            whiteSpace: 'nowrap',
-            maxWidth: '9cm',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {amountInWords}
-          </div>
+        {/* TOTAL AMOUNT */}
+        <div style={{
+          position: 'absolute',
+          top: '7cm',
+          left: '16.5cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '14pt',
+          fontWeight: '700',
+          color: '#1a365d',
+          whiteSpace: 'nowrap'
+        }}>
+          {formatCurrency(amount)}
+        </div>
 
-          {/* TOTAL AMOUNT */}
-          <div style={{
-            position: 'absolute',
-            top: '7cm',
-            left: '16.5cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '14pt',
-            fontWeight: '700',
-            color: '#1a365d',
-            whiteSpace: 'nowrap'
-          }}>
-            {formatCurrency(amount)}
-          </div>
+        {/* TREASURER NAME */}
+        <div style={{
+          position: 'absolute',
+          top: '8.4cm',
+          left: '16.2cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '8pt',
+          fontWeight: '600',
+          color: '#1a365d',
+          whiteSpace: 'nowrap'
+        }}>
+          {treasurerName}
+        </div>
 
-          {/* TREASURER NAME */}
-          <div style={{
-            position: 'absolute',
-            top: '8.4cm',
-            left: '16.2cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '8pt',
-            fontWeight: '600',
-            color: '#1a365d',
-            whiteSpace: 'nowrap'
-          }}>
-            {treasurerName}
-          </div>
-
-          {/* TREASURER TITLE */}
-          <div style={{
-            position: 'absolute',
-            top: '9.1cm',
-            left: '16.2cm',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            fontSize: '7pt',
-            fontWeight: '600',
-            color: '#1a365d',
-            whiteSpace: 'nowrap',
-            letterSpacing: '1px'
-          }}>
-            {treasurerTitle}
-          </div>
+        {/* TREASURER TITLE */}
+        <div style={{
+          position: 'absolute',
+          top: '9.1cm',
+          left: '16.2cm',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          fontSize: '7pt',
+          fontWeight: '600',
+          color: '#1a365d',
+          whiteSpace: 'nowrap',
+          letterSpacing: '1px'
+        }}>
+          {treasurerTitle}
         </div>
       </div>
     </div>

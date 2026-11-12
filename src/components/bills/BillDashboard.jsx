@@ -12,8 +12,7 @@ import './BillStyles.css';
 import ApplicationForm from './ApplicationForm';
 
 const EXCEL_PASSWORD = 'Water_2026';
-const DISCOUNT_RATE = 0.05; // 5% discount
-
+const DISCOUNT_RATE = 0.05;
 
 // ============================================================
 // SERVER 4 = OR NUMBER STORAGE + PAID BILLS ARCHIVE
@@ -21,7 +20,63 @@ const DISCOUNT_RATE = 0.05; // 5% discount
 const OR_SERVER_KEY = 'server4';
 const OR_COLLECTION = 'or_numbers';
 const USED_OR_COLLECTION = 'used_or_numbers';
-const ARCHIVE_COLLECTION = 'bills'; // ✅ Same collection name — Server 4 bills
+const ARCHIVE_COLLECTION = 'bills';
+
+// ============================================================
+// PHILIPPINE TIME HELPERS
+// ============================================================
+const getPhilippineTime = () => {
+  const now = new Date();
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utcMs + (8 * 3600000));
+};
+
+const formatPhilippineTime = (date = getPhilippineTime()) => {
+  const hours24 = date.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const ampm = hours24 >= 12 ? 'PM' : 'AM';
+  return `${String(hours12).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+};
+
+const formatPhilippineDate = (date = getPhilippineTime()) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  return `${month} ${day}, ${year}`;
+};
+
+const formatPaidDateTimePhilippine = (dateString) => {
+  if (!dateString) return { date: 'N/A', time: 'N/A' };
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return { date: 'N/A', time: 'N/A' };
+
+    const utcMs = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const phDate = new Date(utcMs + (8 * 3600000));
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[phDate.getMonth()];
+    const day = phDate.getDate();
+    const year = phDate.getFullYear();
+    const dateStr = `${month} ${day}, ${year}`;
+
+    const hours24 = phDate.getHours();
+    const hours12 = hours24 % 12 || 12;
+    const minutes = String(phDate.getMinutes()).padStart(2, '0');
+    const seconds = String(phDate.getSeconds()).padStart(2, '0');
+    const ampm = hours24 >= 12 ? 'PM' : 'AM';
+    const timeStr = `${String(hours12).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+
+    return { date: dateStr, time: timeStr };
+  } catch (e) {
+    return { date: 'N/A', time: 'N/A' };
+  }
+};
 
 // ============================================================
 // HARD-CODED SVG ICONS
@@ -162,6 +217,38 @@ const PWDIcon = (props) => (
   </svg>
 );
 
+const FilterIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={18} height={18} color="currentColor" fill="none" {...props}>
+    <path d="M4 4H20L14 12V18L10 20V12L4 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ✅ Print Icon for Reprint Button
+const PrintIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={14} height={14} color="currentColor" fill="none" {...props}>
+    <path d="M6 9V3H18V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6 18H4C3.44772 18 3 17.5523 3 17V12C3 11.4477 3.44772 11 4 11H20C20.5523 11 21 11.4477 21 12V17C21 17.5523 20.5523 18 20 18H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6 14H18V21H6V14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ============================================================
+// REALTIME PHILIPPINE TIME HOOK
+// ============================================================
+const usePhilippineTime = () => {
+  const [now, setNow] = useState(getPhilippineTime());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(getPhilippineTime());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return now;
+};
+
 // ============================================================
 // BILL CALCULATION FUNCTIONS
 // ============================================================
@@ -169,7 +256,7 @@ const PWDIcon = (props) => (
 const calculateBillAmount = (consumerType, consumption) => {
   const type = consumerType?.toUpperCase() || 'RESIDENTIAL';
   const consumptionNum = Number(consumption) || 0;
-  
+
   if (type === 'RESIDENTIAL') {
     const FIRST_5_RATE = 62.50;
     const EXCESS_RATE = 12.50;
@@ -241,8 +328,8 @@ const calculateWithDefective = (presentReading, previousReading, consumerType) =
 };
 
 const getCurrentPeriod = () => {
-  const now = new Date();
-  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+  const now = getPhilippineTime();
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
                   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   return {
     currentMonth: months[now.getMonth()],
@@ -328,86 +415,38 @@ const getConsumerPeriodOptions = (billsData) => {
 };
 
 // ============================================================
-// ✅ FETCH NEXT AVAILABLE OR NUMBER (NO COMPOSITE INDEX NEEDED)
-// ALWAYS USES SERVER 4, REGARDLESS OF THE CURRENT VIEW SERVER
-// ============================================================
-const fetchNextAvailableOR = async () => {
-  try {
-    const orDb = getDbByServer(OR_SERVER_KEY); // Always 'server4'
-    const orRef = collection(orDb, OR_COLLECTION);
-
-    console.log('🔍 Fetching available OR from SERVER 4 → collection: or_numbers');
-
-    // ✅ SIMPLE QUERY — only ONE where clause, NO orderBy, NO limit
-    // This does NOT require a composite index
-    const q = query(
-      orRef,
-      where('status', '==', 'available')
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      console.warn('⚠️ No available OR numbers found in Server 4');
-      return null;
-    }
-
-    console.log(`📊 Found ${snap.size} available ORs in Server 4`);
-
-    // ✅ Sort manually by orNumber (ascending) to get the lowest one
-    const sortedDocs = snap.docs.sort((a, b) => {
-      const aNum = parseInt(String(a.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
-      const bNum = parseInt(String(b.data().orNumber || '0').replace(/\D/g, ''), 10) || 0;
-      return aNum - bNum;
-    });
-
-    const orDoc = sortedDocs[0];
-    const orData = orDoc.data();
-
-    console.log('✅ Next available OR:', orData.orNumber);
-    return {
-      id: orDoc.id,
-      orNumber: String(orData.orNumber),
-      batchId: orData.batchId || null,
-      ...orData
-    };
-  } catch (error) {
-    console.error('❌ Error fetching available OR from Server 4:', error);
-    console.error('   Error code:', error.code);
-    console.error('   Error message:', error.message);
-    return null;
-  }
-};
-
-// ============================================================
-// ✅ MARK OR AS USED + STORE IN USED_OR_COLLECTION (SERVER 4)
+// MARK OR AS USED + STORE IN USED_OR_COLLECTION
 // ============================================================
 const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail) => {
   try {
-    const orDb = getDbByServer(OR_SERVER_KEY); // Always 'server4'
-    const orRef = doc(orDb, OR_COLLECTION, orDocId);
+    const orDb = getDbByServer(OR_SERVER_KEY);
     const usedRef = collection(orDb, USED_OR_COLLECTION);
 
     const usedAt = new Date().toISOString();
 
-    // ✅ Update the OR doc → status: 'used'
-    await updateDoc(orRef, {
-      status: 'used',
-      usedAt,
-      usedBy: userEmail || 'Unknown',
-      billId: billInfo?.id || null,
-      billNumber: billInfo?.billNumber || null,
-      consumerName: billInfo?.consumerName || null,
-      paymentCode,
-      serverSource: billInfo?.serverSource || null,
-      referenceNumber: billInfo?.referenceNumber || null
-    });
+    if (orDocId) {
+      try {
+        const orRef = doc(orDb, OR_COLLECTION, orDocId);
+        await updateDoc(orRef, {
+          status: 'used',
+          usedAt,
+          usedBy: userEmail || 'Unknown',
+          billId: billInfo?.id || null,
+          billNumber: billInfo?.billNumber || null,
+          consumerName: billInfo?.consumerName || null,
+          paymentCode,
+          serverSource: billInfo?.serverSource || null,
+          referenceNumber: billInfo?.referenceNumber || null
+        });
+      } catch (e) {
+        console.warn('⚠️ OR doc not found, skipping update:', e.message);
+      }
+    }
 
-    // ✅ Also store in used_or_numbers collection for tracking
     const usedDocId = `${orNumber}_${Date.now()}`;
     await setDoc(doc(usedRef, usedDocId), {
       orNumber,
-      originalOrDocId: orDocId,
+      originalOrDocId: orDocId || null,
       status: 'used',
       usedAt,
       usedBy: userEmail || 'Unknown',
@@ -424,7 +463,6 @@ const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail)
       archivedAt: usedAt
     });
 
-    console.log(`✅ OR ${orNumber} marked as used in Server 4`);
     return { success: true };
   } catch (error) {
     console.error('❌ Error marking OR as used:', error);
@@ -433,18 +471,16 @@ const markORAsUsed = async (orNumber, orDocId, billInfo, paymentCode, userEmail)
 };
 
 // ============================================================
-// ✅ AUTO-ARCHIVE PAID BILL TO SERVER 4 (bills collection)
+// AUTO-ARCHIVE PAID BILL TO SERVER 4
 // ============================================================
 const archivePaidBill = async (bill, paymentCode, referenceNumber, originalServer) => {
   try {
-    const archiveDb = getDbByServer(OR_SERVER_KEY); // Server 4
-    const archiveRef = collection(archiveDb, ARCHIVE_COLLECTION); // bills collection
+    const archiveDb = getDbByServer(OR_SERVER_KEY);
+    const archiveRef = collection(archiveDb, ARCHIVE_COLLECTION);
 
-    // Use original bill ID + suffix to avoid collision
     const archiveDocId = `${bill.id}_${Date.now()}`;
 
     const archiveData = {
-      // ===== ORIGINAL BILL FIELDS (same table layout) =====
       billNumber: bill.billNumber || 'N/A',
       consumerName: bill.consumerName || 'N/A',
       location: bill.location || 'N/A',
@@ -464,36 +500,102 @@ const archivePaidBill = async (bill, paymentCode, referenceNumber, originalServe
       dueDate: bill.dueDate || null,
       notes: bill.notes || '',
 
-      // ===== ARCHIVE METADATA =====
       archived: true,
       archivedAt: new Date().toISOString(),
       archivedFrom: originalServer,
       archivedFromLabel: getServerLabel(originalServer),
       originalBillId: bill.id,
 
-      // ===== PAYMENT INFO =====
       paymentCode: paymentCode || 'N/A',
       referenceNumber: referenceNumber || 'N/A',
       paidAt: bill.paidAt || new Date().toISOString(),
       paidBy: bill.paidBy || 'Unknown',
       paidVia: bill.paidVia || 'PAY',
 
-      // ===== KEEP CREATED/UPDATED =====
       createdAt: bill.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
 
-      // ===== IDENTITY =====
       userId: bill.userId || 'unknown',
       serverSource: originalServer
     };
 
     await setDoc(doc(archiveRef, archiveDocId), archiveData);
-    console.log(`📦 Archived paid bill ${bill.billNumber} → Server 4 (OR: ${paymentCode})`);
     return { success: true, archiveId: archiveDocId };
   } catch (error) {
     console.error('❌ Archive error:', error);
     return { success: false, error: error.message };
   }
+};
+
+// ============================================================
+// PAID DATE TIME DISPLAY COMPONENT (Realtime)
+// ============================================================
+const PaidDateTimeDisplay = ({ paidAt }) => {
+  const phTime = usePhilippineTime();
+
+  if (!paidAt) {
+    return (
+      <div style={{
+        fontSize: '9px',
+        color: '#64748B',
+        fontWeight: '600',
+        marginTop: '4px',
+        lineHeight: '1.4',
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        <div style={{ color: '#94A3B8' }}>📅 N/A</div>
+        <div style={{ color: '#94A3B8' }}>🕐 N/A</div>
+      </div>
+    );
+  }
+
+  const { date, time } = formatPaidDateTimePhilippine(paidAt);
+
+  const paidDateObj = new Date(paidAt);
+  const utcMs = paidDateObj.getTime() + (paidDateObj.getTimezoneOffset() * 60000);
+  const paidPhDate = new Date(utcMs + (8 * 3600000));
+
+  const isToday =
+    paidPhDate.getDate() === phTime.getDate() &&
+    paidPhDate.getMonth() === phTime.getMonth() &&
+    paidPhDate.getFullYear() === phTime.getFullYear();
+
+  let elapsedText = null;
+  if (isToday) {
+    const diffMs = phTime.getTime() - paidPhDate.getTime();
+    if (diffMs >= 0) {
+      const totalSecs = Math.floor(diffMs / 1000);
+      const hrs = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      elapsedText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+  }
+
+  return (
+    <div style={{
+      fontSize: '9px',
+      color: '#16A34A',
+      fontWeight: '700',
+      marginTop: '4px',
+      lineHeight: '1.4',
+      fontFamily: 'Inter, sans-serif',
+      whiteSpace: 'nowrap'
+    }}>
+      <div style={{ color: '#15803D' }}>📅 {date}</div>
+      <div style={{ color: '#15803D' }}>🕐 {time}</div>
+      {elapsedText && (
+        <div style={{
+          color: '#0D9488',
+          fontSize: '8px',
+          marginTop: '1px',
+          fontWeight: '600'
+        }}>
+          ⏱️ {elapsedText} ago
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ============================================================
@@ -505,10 +607,10 @@ const BillDashboard = () => {
   const [bills, setBills] = useState([]);
   const [filteredBills, setFilteredBills] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const [selectedServer, setSelectedServer] = useState('server1');
   const [selectedBillIds, setSelectedBillIds] = useState([]);
-  
+
   const [showForm, setShowForm] = useState(false);
   const [editingBill, setEditingBill] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -525,63 +627,62 @@ const BillDashboard = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
-  
-  // ✅ OR Number auto-fetch state
-  const [availableOR, setAvailableOR] = useState(null);
-  const [loadingOR, setLoadingOR] = useState(false);
-  const [orFetchError, setOrFetchError] = useState('');
-  
-  // ============================================================
-  // DISCOUNT STATE (Senior Citizen & PWD)
-  // ============================================================
+
   const [isSeniorCitizen, setIsSeniorCitizen] = useState(false);
   const [isPWD, setIsPWD] = useState(false);
-  
+
   const [tableType, setTableType] = useState('regular');
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
-  
+
   const [showPayAllModal, setShowPayAllModal] = useState(false);
   const [payAllBills, setPayAllBills] = useState([]);
   const [payAllConsumerName, setPayAllConsumerName] = useState('');
   const [payAllPaymentCode, setPayAllPaymentCode] = useState('');
   const [payAllPaymentError, setPayAllPaymentError] = useState('');
   const [isPayingAll, setIsPayingAll] = useState(false);
-  const [payAllAvailableOR, setPayAllAvailableOR] = useState(null);
-  const [payAllLoadingOR, setPayAllLoadingOR] = useState(false);
-  
+
   const [showCutoffPayModal, setShowCutoffPayModal] = useState(false);
   const [cutoffBillToPay, setCutoffBillToPay] = useState(null);
   const [cutoffPaymentCode, setCutoffPaymentCode] = useState('');
   const [cutoffPaymentError, setCutoffPaymentError] = useState('');
   const [isPayingCutoff, setIsPayingCutoff] = useState(false);
-  const [cutoffAvailableOR, setCutoffAvailableOR] = useState(null);
-  const [cutoffLoadingOR, setCutoffLoadingOR] = useState(false);
-  
+
   const [showCutoffPayAllModal, setShowCutoffPayAllModal] = useState(false);
   const [cutoffPayAllBills, setCutoffPayAllBills] = useState([]);
   const [cutoffPayAllConsumerName, setCutoffPayAllConsumerName] = useState('');
   const [cutoffPayAllPaymentCode, setCutoffPayAllPaymentCode] = useState('');
   const [cutoffPayAllPaymentError, setCutoffPayAllPaymentError] = useState('');
   const [isPayingCutoffAll, setIsPayingCutoffAll] = useState(false);
-  const [cutoffPayAllAvailableOR, setCutoffPayAllAvailableOR] = useState(null);
-  const [cutoffPayAllLoadingOR, setCutoffPayAllLoadingOR] = useState(false);
-  
+
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportLocation, setSelectedExportLocation] = useState('all');
   const [exportLocations, setExportLocations] = useState([]);
-  
+
   const [locations, setLocations] = useState([]);
   const [months, setMonths] = useState([]);
   const [years, setYears] = useState([]);
   const [consumerPeriods, setConsumerPeriods] = useState([]);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
-  
+
   const [stats, setStats] = useState({
     total: 0, paid: 0, unpaid: 0, overdue: 0,
     totalConsumers: 0, residential: 0, commercial: 0, location: ''
   });
+
+  const phNow = usePhilippineTime();
+
+  // ✅ FIX: Force remove any lingering print preview or modal overlays when receipt closes
+  useEffect(() => {
+    if (!showReceipt) {
+      const overlays = document.querySelectorAll('.modal-overlay');
+      // Only remove if it's not a currently active modal (e.g., in case multiple modals open)
+      if (overlays.length === 0) {
+        document.body.style.overflow = '';
+      }
+    }
+  }, [showReceipt]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -589,10 +690,9 @@ const BillDashboard = () => {
 
   const fetchBills = useCallback(async (serverKey) => {
     if (!user) return;
-    
+
     setLoading(true);
-    console.log('🔍 Fetching bills from:', serverKey);
-    
+
     try {
       const allBills = [];
 
@@ -603,8 +703,8 @@ const BillDashboard = () => {
             const q = query(billsRef, orderBy('createdAt', 'desc'));
             const snap = await getDocs(q);
             snap.forEach((docSnap) => {
-              allBills.push({ 
-                id: docSnap.id, 
+              allBills.push({
+                id: docSnap.id,
                 ...docSnap.data(),
                 serverSource: serverConfig.key,
                 _server: serverConfig.key
@@ -627,30 +727,29 @@ const BillDashboard = () => {
           const q = query(billsRef, orderBy('createdAt', 'desc'));
           const snap = await getDocs(q);
           snap.forEach((docSnap) => {
-            allBills.push({ 
-              id: docSnap.id, 
+            allBills.push({
+              id: docSnap.id,
               ...docSnap.data(),
               serverSource: serverConfig.key,
               _server: serverConfig.key
             });
           });
-          console.log(`✅ Fetched ${allBills.length} bills from ${serverConfig.label}`);
         } catch (e) {
           console.error(`❌ Error fetching from ${serverConfig.label}:`, e);
           toast.error(`Error loading from ${serverConfig.label}`);
         }
       }
-      
+
       const processedBills = processBillsWithStatus(allBills);
       const sortedBills = sortByConsumerPeriod(processedBills);
-      
+
       setBills(sortedBills);
       setFilteredBills(sortedBills);
       calculateStats(sortedBills);
       extractFilterOptions(sortedBills);
-      
+
       setSelectedBillIds([]);
-      
+
     } catch (error) {
       console.error('Error fetching bills:', error);
       toast.error('Error loading bills from database');
@@ -668,28 +767,12 @@ const BillDashboard = () => {
     filterBills();
   }, [bills, searchTerm, filterType, filterLocation, filterMonth, filterYear, filterConsumerPeriod, tableType]);
 
-  // ✅ Auto-fetch OR when Pay Modal opens
   useEffect(() => {
     if (showPayModal) {
       setPaymentCode('');
       setPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
-      setAvailableOR(null);
-      setOrFetchError('');
-
-      const loadOR = async () => {
-        setLoadingOR(true);
-        const or = await fetchNextAvailableOR();
-        if (or) {
-          setAvailableOR(or);
-          setPaymentCode(or.orNumber);
-        } else {
-          setOrFetchError('No available OR number in Server 4. Please add OR numbers first.');
-        }
-        setLoadingOR(false);
-      };
-      loadOR();
     }
   }, [showPayModal]);
 
@@ -699,18 +782,6 @@ const BillDashboard = () => {
       setPayAllPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
-      setPayAllAvailableOR(null);
-
-      const loadOR = async () => {
-        setPayAllLoadingOR(true);
-        const or = await fetchNextAvailableOR();
-        if (or) {
-          setPayAllAvailableOR(or);
-          setPayAllPaymentCode(or.orNumber);
-        }
-        setPayAllLoadingOR(false);
-      };
-      loadOR();
     }
   }, [showPayAllModal]);
 
@@ -718,18 +789,6 @@ const BillDashboard = () => {
     if (showCutoffPayModal) {
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
-      setCutoffAvailableOR(null);
-
-      const loadOR = async () => {
-        setCutoffLoadingOR(true);
-        const or = await fetchNextAvailableOR();
-        if (or) {
-          setCutoffAvailableOR(or);
-          setCutoffPaymentCode(or.orNumber);
-        }
-        setCutoffLoadingOR(false);
-      };
-      loadOR();
     }
   }, [showCutoffPayModal]);
 
@@ -737,18 +796,6 @@ const BillDashboard = () => {
     if (showCutoffPayAllModal) {
       setCutoffPayAllPaymentCode('');
       setCutoffPayAllPaymentError('');
-      setCutoffPayAllAvailableOR(null);
-
-      const loadOR = async () => {
-        setCutoffPayAllLoadingOR(true);
-        const or = await fetchNextAvailableOR();
-        if (or) {
-          setCutoffPayAllAvailableOR(or);
-          setCutoffPayAllPaymentCode(or.orNumber);
-        }
-        setCutoffPayAllLoadingOR(false);
-      };
-      loadOR();
     }
   }, [showCutoffPayAllModal]);
 
@@ -766,13 +813,13 @@ const BillDashboard = () => {
     const locationSet = new Set();
     const monthSet = new Set();
     const yearSet = new Set();
-    
+
     billsData.forEach(bill => {
       if (bill.location && bill.location !== 'N/A') locationSet.add(bill.location);
       if (bill.month && bill.month !== 'N/A') monthSet.add(bill.month);
       if (bill.year && bill.year !== 'N/A') yearSet.add(bill.year);
     });
-    
+
     setLocations(Array.from(locationSet).sort());
     setMonths(Array.from(monthSet).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b)));
     setYears(Array.from(yearSet).sort((a, b) => Number(b) - Number(a)));
@@ -781,46 +828,46 @@ const BillDashboard = () => {
 
   const filterBills = () => {
     let filtered = [...bills];
-    
+
     if (tableType === 'regular') {
       filtered = filtered.filter(bill => !isCutoffBill(bill));
     } else {
       filtered = filtered.filter(bill => isCutoffBill(bill));
     }
-    
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(bill => 
+      filtered = filtered.filter(bill =>
         bill.consumerName?.toLowerCase().includes(term) ||
         bill.billNumber?.toString().includes(term)
       );
     }
-    
+
     if (filterType !== 'all') {
       filtered = filtered.filter(bill => bill.consumerType?.toUpperCase() === filterType.toUpperCase());
     }
-    
+
     if (filterLocation !== 'all') {
       filtered = filtered.filter(bill => bill.location === filterLocation);
     }
-    
+
     if (filterMonth !== 'all') {
       filtered = filtered.filter(bill => bill.month?.toUpperCase() === filterMonth.toUpperCase());
     }
-    
+
     if (filterYear !== 'all') {
       filtered = filtered.filter(bill => bill.year === filterYear);
     }
-    
+
     if (filterConsumerPeriod !== 'all') {
       const [consumerName, month, year] = filterConsumerPeriod.split('|');
-      filtered = filtered.filter(bill => 
+      filtered = filtered.filter(bill =>
         bill.consumerName?.toUpperCase() === consumerName?.toUpperCase() &&
         bill.month?.toUpperCase() === month?.toUpperCase() &&
         bill.year === year
       );
     }
-    
+
     if (tableType === 'regular') {
       filtered = processBillsWithStatus(filtered);
     }
@@ -831,27 +878,27 @@ const BillDashboard = () => {
   const calculateStats = (billsData) => {
     const regularBills = billsData.filter(b => !isCutoffBill(b));
     const processed = processBillsWithStatus(regularBills);
-    
+
     const total = processed.length;
     const paid = processed.filter(b => b.status === 'paid').length;
     const unpaid = processed.filter(b => b.status === 'unpaid').length;
     const overdue = processed.filter(b => b.status === 'overdue').length;
-    
+
     const uniqueConsumers = new Set();
     const residentialCount = processed.filter(b => b.consumerType?.toUpperCase() === 'RESIDENTIAL').length;
     const commercialCount = processed.filter(b => b.consumerType?.toUpperCase() === 'COMMERCIAL').length;
-    
+
     processed.forEach(b => {
       if (b.consumerName) uniqueConsumers.add(b.consumerName);
     });
-    
+
     const locationSet = new Set();
     processed.forEach(b => {
       if (b.location) locationSet.add(b.location);
     });
     const locationString = Array.from(locationSet).join(', ') || 'N/A';
-    
-    setStats({ 
+
+    setStats({
       total, paid, unpaid, overdue,
       totalConsumers: uniqueConsumers.size || total,
       residential: residentialCount,
@@ -874,7 +921,7 @@ const BillDashboard = () => {
     const newServer = e.target.value;
     setSelectedServer(newServer);
     setCurrentPage(1);
-    
+
     setSearchTerm('');
     setFilterType('all');
     setFilterLocation('all');
@@ -882,7 +929,7 @@ const BillDashboard = () => {
     setFilterYear('all');
     setFilterConsumerPeriod('all');
     setSelectedBillIds([]);
-    
+
     if (newServer === 'all') {
       toast.loading('Loading all servers...', { duration: 2000 });
     }
@@ -902,9 +949,9 @@ const BillDashboard = () => {
     const currentPageBills = getCurrentPageData()
       .filter(bill => bill.status !== 'paid' && !isCutoffBill(bill))
       .map(b => b.id);
-    
+
     const allSelected = currentPageBills.every(id => selectedBillIds.includes(id));
-    
+
     if (allSelected) {
       setSelectedBillIds(prev => prev.filter(id => !currentPageBills.includes(id)));
     } else {
@@ -926,7 +973,7 @@ const BillDashboard = () => {
     }
 
     const selectedBills = filteredBills.filter(b => selectedBillIds.includes(b.id));
-    
+
     if (selectedBills.length === 0) {
       toast.error('No bills found for selected IDs');
       return;
@@ -939,7 +986,7 @@ const BillDashboard = () => {
     }
 
     const consumerName = selectedBills[0].consumerName;
-    
+
     const sortedSelected = [...selectedBills].sort((a, b) => {
       const aIndex = MONTH_ORDER.indexOf(a.month?.toUpperCase());
       const bIndex = MONTH_ORDER.indexOf(b.month?.toUpperCase());
@@ -954,10 +1001,10 @@ const BillDashboard = () => {
 
   const handleDelete = async (billId) => {
     if (!confirm('Are you sure you want to delete this bill?')) return;
-    
+
     const bill = bills.find(b => b.id === billId);
     const targetDb = getDbByServer(bill?.serverSource || selectedServer);
-    
+
     try {
       await deleteDoc(doc(targetDb, 'bills', billId));
       toast.success(`Bill deleted from ${getServerLabel(bill?.serverSource)}`);
@@ -984,30 +1031,63 @@ const BillDashboard = () => {
     setShowPayModal(true);
   };
 
+  // ✅ Handle Reprint Receipt for Paid Bills
+  const handleReprintReceipt = (bill) => {
+    const { consumption, isDefective: isDefectiveReading } = calculateWithDefective(
+      bill.presentReading,
+      bill.previousReading,
+      bill.consumerType
+    );
+
+    const receiptBillData = {
+      ...bill,
+      consumption: bill.isCutoff ? 'CUT-OFF' : consumption,
+      isDefective: isDefectiveReading,
+      isCutoff: bill.isCutoff || isCutoffBill(bill),
+      amount: bill.amount || 0,
+      originalAmount: bill.originalAmount || bill.amount || 0,
+      discountAmount: bill.discountAmount || 0,
+      discountType: bill.discountType || null,
+      hasDiscount: bill.hasDiscount || false,
+    };
+
+    setReceiptData({
+      bill: receiptBillData,
+      paymentCode: bill.paymentCode || 'N/A',
+      referenceNumber: bill.referenceNumber || `REPRINT-${Date.now()}`,
+      discount: bill.hasDiscount ? {
+        type: bill.discountType,
+        rate: DISCOUNT_RATE,
+        amount: bill.discountAmount
+      } : null
+    });
+    setShowReceipt(true);
+  };
+
   const handleCutoffPay = (bill) => {
     setCutoffBillToPay(bill);
     setShowCutoffPayModal(true);
   };
 
   const handleCutoffPayAll = (consumerName) => {
-    const unpaidCutoffBills = bills.filter(bill => 
+    const unpaidCutoffBills = bills.filter(bill =>
       bill.consumerName?.toLowerCase() === consumerName.toLowerCase() &&
       isCutoffBill(bill) &&
       bill.status !== 'paid'
     );
-    
+
     if (unpaidCutoffBills.length === 0) {
       toast.error(`No unpaid cut-off bills found for ${consumerName}`);
       return;
     }
-    
+
     const sortedUnpaid = [...unpaidCutoffBills].sort((a, b) => {
       const aIndex = MONTH_ORDER.indexOf(a.month?.toUpperCase());
       const bIndex = MONTH_ORDER.indexOf(b.month?.toUpperCase());
       if (a.year !== b.year) return Number(a.year) - Number(b.year);
       return aIndex - bIndex;
     });
-    
+
     setCutoffPayAllBills(sortedUnpaid);
     setCutoffPayAllConsumerName(consumerName);
     setShowCutoffPayAllModal(true);
@@ -1015,34 +1095,35 @@ const BillDashboard = () => {
 
   const handlePaymentCodeChange = (e) => {
     const value = e.target.value;
-    if (value === '' || /^\d+$/.test(value)) {
-      setPaymentCode(value);
-      setPaymentError('');
-    }
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 7);
+    setPaymentCode(digitsOnly);
+    setPaymentError('');
   };
 
   const handleCutoffPaymentCodeChange = (e) => {
     const value = e.target.value;
-    if (value === '' || /^\d+$/.test(value)) {
-      setCutoffPaymentCode(value);
-      setCutoffPaymentError('');
-    }
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 7);
+    setCutoffPaymentCode(digitsOnly);
+    setCutoffPaymentError('');
   };
 
   const handleCutoffPayAllPaymentCodeChange = (e) => {
     const value = e.target.value;
-    if (value === '' || /^\d+$/.test(value)) {
-      setCutoffPayAllPaymentCode(value);
-      setCutoffPayAllPaymentError('');
-    }
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 7);
+    setCutoffPayAllPaymentCode(digitsOnly);
+    setCutoffPayAllPaymentError('');
   };
 
-  // ============================================================
-  // CONFIRM CUTOFF PAY - SINGLE (WITH AUTO OR + ARCHIVE)
-  // ============================================================
+  const handlePayAllPaymentCodeChange = (e) => {
+    const value = e.target.value;
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 7);
+    setPayAllPaymentCode(digitsOnly);
+    setPayAllPaymentError('');
+  };
+
   const confirmCutoffPay = async () => {
     if (!cutoffPaymentCode || cutoffPaymentCode.length !== 7) {
-      setCutoffPaymentError('Please enter a valid 7-digit payment code.');
+      setCutoffPaymentError('Please enter a valid 7-digit OR number.');
       return;
     }
     if (!cutoffBillToPay) return;
@@ -1055,7 +1136,7 @@ const BillDashboard = () => {
       const originalServer = cutoffBillToPay.serverSource || selectedServer;
       const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', cutoffBillToPay.id);
-      
+
       const paidBillData = {
         status: 'paid',
         paidAt: new Date().toISOString(),
@@ -1076,10 +1157,8 @@ const BillDashboard = () => {
         }
       };
 
-      // ✅ Update original bill to paid
       await updateDoc(billRef, paidBillData);
 
-      // ✅ ARCHIVE TO SERVER 4
       await archivePaidBill(
         { ...cutoffBillToPay, ...paidBillData },
         cutoffPaymentCode,
@@ -1087,26 +1166,23 @@ const BillDashboard = () => {
         originalServer
       );
 
-      // ✅ Mark OR as used
-      if (cutoffAvailableOR) {
-        await markORAsUsed(
-          cutoffAvailableOR.orNumber,
-          cutoffAvailableOR.id,
-          {
-            id: cutoffBillToPay.id,
-            billNumber: cutoffBillToPay.billNumber,
-            consumerName: cutoffBillToPay.consumerName,
-            location: cutoffBillToPay.location,
-            month: cutoffBillToPay.month,
-            year: cutoffBillToPay.year,
-            amount: amountToPay,
-            serverSource: originalServer,
-            referenceNumber
-          },
-          cutoffPaymentCode,
-          user?.email || 'Unknown'
-        );
-      }
+      await markORAsUsed(
+        cutoffPaymentCode,
+        null,
+        {
+          id: cutoffBillToPay.id,
+          billNumber: cutoffBillToPay.billNumber,
+          consumerName: cutoffBillToPay.consumerName,
+          location: cutoffBillToPay.location,
+          month: cutoffBillToPay.month,
+          year: cutoffBillToPay.year,
+          amount: amountToPay,
+          serverSource: originalServer,
+          referenceNumber
+        },
+        cutoffPaymentCode,
+        user?.email || 'Unknown'
+      );
 
       toast.success(`✅ Cut-off bill ${cutoffBillToPay.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${amountToPay.toFixed(2)}`);
@@ -1125,7 +1201,6 @@ const BillDashboard = () => {
       setCutoffBillToPay(null);
       setCutoffPaymentCode('');
       setCutoffPaymentError('');
-      setCutoffAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Cutoff payment error:', error);
@@ -1139,12 +1214,9 @@ const BillDashboard = () => {
     }
   };
 
-  // ============================================================
-  // CONFIRM CUTOFF PAY ALL (WITH AUTO OR + ARCHIVE)
-  // ============================================================
   const confirmCutoffPayAll = async () => {
     if (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7) {
-      setCutoffPayAllPaymentError('Please enter a valid 7-digit payment code.');
+      setCutoffPayAllPaymentError('Please enter a valid 7-digit OR number.');
       return;
     }
     if (cutoffPayAllBills.length === 0) {
@@ -1167,7 +1239,7 @@ const BillDashboard = () => {
           const originalServer = bill.serverSource || selectedServer;
           const targetDb = getDbByServer(originalServer);
           const billRef = doc(targetDb, 'bills', bill.id);
-          
+
           const paidBillData = {
             status: 'paid',
             paidAt: new Date().toISOString(),
@@ -1188,10 +1260,8 @@ const BillDashboard = () => {
             }
           };
 
-          // ✅ Update original bill
           await updateDoc(billRef, paidBillData);
 
-          // ✅ ARCHIVE TO SERVER 4
           await archivePaidBill(
             { ...bill, ...paidBillData },
             cutoffPayAllPaymentCode,
@@ -1201,7 +1271,7 @@ const BillDashboard = () => {
 
           totalAmount += amountToPay;
           successCount++;
-          
+
           paymentDetails.push({
             month: bill.month, year: bill.year, billNumber: bill.billNumber,
             amount: amountToPay, consumption: 0, isCutoff: true
@@ -1213,31 +1283,28 @@ const BillDashboard = () => {
       }
 
       if (successCount > 0) {
-        // ✅ Mark OR as used
-        if (cutoffPayAllAvailableOR) {
-          await markORAsUsed(
-            cutoffPayAllAvailableOR.orNumber,
-            cutoffPayAllAvailableOR.id,
-            {
-              id: 'CUTOFF_PAY_ALL',
-              billNumber: cutoffPayAllBills[0]?.billNumber || 'MULTIPLE',
-              consumerName: cutoffPayAllConsumerName,
-              month: 'MULTIPLE',
-              year: 'MULTIPLE',
-              amount: totalAmount,
-              serverSource: cutoffPayAllBills[0]?.serverSource || selectedServer,
-              referenceNumber
-            },
-            cutoffPayAllPaymentCode,
-            user?.email || 'Unknown'
-          );
-        }
+        await markORAsUsed(
+          cutoffPayAllPaymentCode,
+          null,
+          {
+            id: 'CUTOFF_PAY_ALL',
+            billNumber: cutoffPayAllBills[0]?.billNumber || 'MULTIPLE',
+            consumerName: cutoffPayAllConsumerName,
+            month: 'MULTIPLE',
+            year: 'MULTIPLE',
+            amount: totalAmount,
+            serverSource: cutoffPayAllBills[0]?.serverSource || selectedServer,
+            referenceNumber
+          },
+          cutoffPayAllPaymentCode,
+          user?.email || 'Unknown'
+        );
 
         toast.success(`✅ Successfully paid ${successCount} cut-off bills for ${cutoffPayAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
         toast.success(`📋 OR Number: ${cutoffPayAllPaymentCode}`);
         toast.success(`📦 Archived ${successCount} bills to Server 4`, { duration: 4000, icon: '🗄️' });
-        
+
         setReceiptData({
           bill: {
             ...cutoffPayAllBills[0],
@@ -1267,7 +1334,6 @@ const BillDashboard = () => {
       setCutoffPayAllBills([]);
       setCutoffPayAllPaymentCode('');
       setCutoffPayAllPaymentError('');
-      setCutoffPayAllAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Cutoff Pay All error:', error);
@@ -1310,43 +1376,32 @@ const BillDashboard = () => {
   };
 
   const handlePayAll = (consumerName) => {
-    const unpaidBills = bills.filter(bill => 
+    const unpaidBills = bills.filter(bill =>
       bill.consumerName?.toLowerCase() === consumerName.toLowerCase() &&
       bill.status !== 'paid' &&
       !isCutoffBill(bill)
     );
-    
+
     if (unpaidBills.length === 0) {
       toast.error(`No unpaid bills found for ${consumerName}`);
       return;
     }
-    
+
     const sortedUnpaid = [...unpaidBills].sort((a, b) => {
       const aIndex = MONTH_ORDER.indexOf(a.month?.toUpperCase());
       const bIndex = MONTH_ORDER.indexOf(b.month?.toUpperCase());
       if (a.year !== b.year) return Number(a.year) - Number(b.year);
       return aIndex - bIndex;
     });
-    
+
     setPayAllBills(sortedUnpaid);
     setPayAllConsumerName(consumerName);
     setShowPayAllModal(true);
   };
 
-  const handlePayAllPaymentCodeChange = (e) => {
-    const value = e.target.value;
-    if (value === '' || /^\d+$/.test(value)) {
-      setPayAllPaymentCode(value);
-      setPayAllPaymentError('');
-    }
-  };
-
-  // ============================================================
-  // PAY ALL - WITH DISCOUNT + AUTO OR + ARCHIVE
-  // ============================================================
   const confirmPayAll = async () => {
     if (!payAllPaymentCode || payAllPaymentCode.length !== 7) {
-      setPayAllPaymentError('Please enter a valid 7-digit payment code.');
+      setPayAllPaymentError('Please enter a valid 7-digit OR number.');
       return;
     }
     if (payAllBills.length === 0) {
@@ -1355,12 +1410,12 @@ const BillDashboard = () => {
     }
 
     const hasDiscount = isSeniorCitizen || isPWD;
-    const discountType = isSeniorCitizen && isPWD 
-      ? 'SENIOR & PWD' 
-      : isSeniorCitizen 
-        ? 'SENIOR CITIZEN' 
-        : isPWD 
-          ? 'PWD' 
+    const discountType = isSeniorCitizen && isPWD
+      ? 'SENIOR & PWD'
+      : isSeniorCitizen
+        ? 'SENIOR CITIZEN'
+        : isPWD
+          ? 'PWD'
           : null;
 
     setIsPayingAll(true);
@@ -1379,10 +1434,10 @@ const BillDashboard = () => {
           const isPresentDefective = isDefective(bill.presentReading);
           const isPreviousDefective = isDefective(bill.previousReading);
           const isDefectiveReading = isPresentDefective || isPreviousDefective;
-          
+
           let consumption = 0;
           let originalAmount = 0;
-          
+
           if (isDefectiveReading) {
             consumption = 0;
             originalAmount = bill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
@@ -1397,7 +1452,7 @@ const BillDashboard = () => {
           const originalServer = bill.serverSource || selectedServer;
           const targetDb = getDbByServer(originalServer);
           const billRef = doc(targetDb, 'bills', bill.id);
-          
+
           const paidBillData = {
             status: 'paid',
             paidAt: new Date().toISOString(),
@@ -1432,10 +1487,8 @@ const BillDashboard = () => {
             }
           };
 
-          // ✅ Update original bill
           await updateDoc(billRef, paidBillData);
 
-          // ✅ ARCHIVE TO SERVER 4
           await archivePaidBill(
             { ...bill, ...paidBillData },
             payAllPaymentCode,
@@ -1447,13 +1500,13 @@ const BillDashboard = () => {
           totalDiscount += discountAmount;
           totalAmount += finalAmount;
           successCount++;
-          
+
           paymentDetails.push({
             month: bill.month, year: bill.year, billNumber: bill.billNumber,
-            amount: finalAmount, 
+            amount: finalAmount,
             originalAmount,
             discountAmount,
-            consumption, 
+            consumption,
             isDefective: isDefectiveReading,
             hasDiscount,
             discountType
@@ -1465,25 +1518,22 @@ const BillDashboard = () => {
       }
 
       if (successCount > 0) {
-        // ✅ Mark OR as used
-        if (payAllAvailableOR) {
-          await markORAsUsed(
-            payAllAvailableOR.orNumber,
-            payAllAvailableOR.id,
-            {
-              id: 'PAY_ALL',
-              billNumber: payAllBills[0]?.billNumber || 'MULTIPLE',
-              consumerName: payAllConsumerName,
-              month: 'MULTIPLE',
-              year: 'MULTIPLE',
-              amount: totalAmount,
-              serverSource: payAllBills[0]?.serverSource || selectedServer,
-              referenceNumber
-            },
-            payAllPaymentCode,
-            user?.email || 'Unknown'
-          );
-        }
+        await markORAsUsed(
+          payAllPaymentCode,
+          null,
+          {
+            id: 'PAY_ALL',
+            billNumber: payAllBills[0]?.billNumber || 'MULTIPLE',
+            consumerName: payAllConsumerName,
+            month: 'MULTIPLE',
+            year: 'MULTIPLE',
+            amount: totalAmount,
+            serverSource: payAllBills[0]?.serverSource || selectedServer,
+            referenceNumber
+          },
+          payAllPaymentCode,
+          user?.email || 'Unknown'
+        );
 
         toast.success(`✅ Successfully paid ${successCount} bills for ${payAllConsumerName}!`);
         toast.success(`💰 Total Amount: ₱${totalAmount.toFixed(2)}`);
@@ -1499,7 +1549,7 @@ const BillDashboard = () => {
         }
         toast.success(`📋 OR Number: ${payAllPaymentCode}`);
         toast.success(`📦 Archived ${successCount} bills to Server 4`, { duration: 4000, icon: '🗄️' });
-        
+
         setReceiptData({
           bill: {
             ...payAllBills[0],
@@ -1539,7 +1589,6 @@ const BillDashboard = () => {
       setSelectedBillIds([]);
       setIsSeniorCitizen(false);
       setIsPWD(false);
-      setPayAllAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Pay All error:', error);
@@ -1549,27 +1598,20 @@ const BillDashboard = () => {
     }
   };
 
-  // ============================================================
-  // SINGLE PAY - WITH DISCOUNT + AUTO OR + ARCHIVE
-  // ============================================================
   const confirmPayBill = async () => {
-    if (!paymentCode || paymentCode.length < 7) {
-      setPaymentError('Please enter a valid 7-digit payment code.');
-      return;
-    }
-    if (paymentCode.length !== 7) {
-      setPaymentError('Payment code must be exactly 7 digits.');
+    if (!paymentCode || paymentCode.length !== 7) {
+      setPaymentError('Please enter a valid 7-digit OR number.');
       return;
     }
     if (!selectedBill) return;
 
     const hasDiscount = isSeniorCitizen || isPWD;
-    const discountType = isSeniorCitizen && isPWD 
-      ? 'SENIOR & PWD' 
-      : isSeniorCitizen 
-        ? 'SENIOR CITIZEN' 
-        : isPWD 
-          ? 'PWD' 
+    const discountType = isSeniorCitizen && isPWD
+      ? 'SENIOR & PWD'
+      : isSeniorCitizen
+        ? 'SENIOR CITIZEN'
+        : isPWD
+          ? 'PWD'
           : null;
 
     setIsPaying(true);
@@ -1579,10 +1621,10 @@ const BillDashboard = () => {
       const isPresentDefective = isDefective(selectedBill.presentReading);
       const isPreviousDefective = isDefective(selectedBill.previousReading);
       const isDefectiveReading = isPresentDefective || isPreviousDefective;
-      
+
       let consumption = 0;
       let originalAmount = 0;
-      
+
       if (isDefectiveReading) {
         consumption = 0;
         originalAmount = selectedBill.consumerType?.toUpperCase() === 'COMMERCIAL' ? 150 : 75;
@@ -1597,7 +1639,7 @@ const BillDashboard = () => {
       const originalServer = selectedBill.serverSource || selectedServer;
       const targetDb = getDbByServer(originalServer);
       const billRef = doc(targetDb, 'bills', selectedBill.id);
-      
+
       const paidBillData = {
         status: 'paid',
         paidAt: new Date().toISOString(),
@@ -1631,10 +1673,8 @@ const BillDashboard = () => {
         }
       };
 
-      // ✅ Update original bill
       await updateDoc(billRef, paidBillData);
 
-      // ✅ ARCHIVE TO SERVER 4
       await archivePaidBill(
         { ...selectedBill, ...paidBillData },
         paymentCode,
@@ -1642,26 +1682,23 @@ const BillDashboard = () => {
         originalServer
       );
 
-      // ✅ Mark OR as used
-      if (availableOR) {
-        await markORAsUsed(
-          availableOR.orNumber,
-          availableOR.id,
-          {
-            id: selectedBill.id,
-            billNumber: selectedBill.billNumber,
-            consumerName: selectedBill.consumerName,
-            location: selectedBill.location,
-            month: selectedBill.month,
-            year: selectedBill.year,
-            amount: finalAmount,
-            serverSource: originalServer,
-            referenceNumber
-          },
-          paymentCode,
-          user?.email || 'Unknown'
-        );
-      }
+      await markORAsUsed(
+        paymentCode,
+        null,
+        {
+          id: selectedBill.id,
+          billNumber: selectedBill.billNumber,
+          consumerName: selectedBill.consumerName,
+          location: selectedBill.location,
+          month: selectedBill.month,
+          year: selectedBill.year,
+          amount: finalAmount,
+          serverSource: originalServer,
+          referenceNumber
+        },
+        paymentCode,
+        user?.email || 'Unknown'
+      );
 
       toast.success(`✅ Bill ${selectedBill.billNumber} marked as paid!`);
       toast.success(`💰 Amount: ₱${finalAmount.toFixed(2)}`);
@@ -1681,16 +1718,16 @@ const BillDashboard = () => {
       setShowPayModal(false);
 
       setReceiptData({
-        bill: { 
-          ...selectedBill, 
+        bill: {
+          ...selectedBill,
           ...paidBillData,
-          consumption, 
+          consumption,
           amount: finalAmount,
           originalAmount,
           discountAmount,
           discountType,
           hasDiscount,
-          isDefective: isDefectiveReading 
+          isDefective: isDefectiveReading
         },
         paymentCode,
         referenceNumber,
@@ -1707,7 +1744,6 @@ const BillDashboard = () => {
       setPaymentError('');
       setIsSeniorCitizen(false);
       setIsPWD(false);
-      setAvailableOR(null);
       fetchBills(selectedServer);
     } catch (error) {
       console.error('❌ Payment error details:', error);
@@ -1737,18 +1773,18 @@ const BillDashboard = () => {
 
   const handleExportWithLocationFilter = async () => {
     let billsToExport = [];
-    
+
     if (selectedExportLocation === 'all') {
       billsToExport = [...bills];
     } else {
       billsToExport = bills.filter(bill => bill.location === selectedExportLocation);
     }
-    
+
     if (billsToExport.length === 0) {
       toast.error(`No bills found for location: ${selectedExportLocation}`);
       return;
     }
-    
+
     setIsExporting(true);
     closeExportModal();
 
@@ -1776,12 +1812,12 @@ const BillDashboard = () => {
 
       const headerRow = worksheet.getRow(1);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
-      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF194752' } };
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.height = 25;
 
       const sortedForExport = sortByConsumerPeriod(billsToExport);
-      
+
       sortedForExport.forEach((bill) => {
         const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
         const isDefectiveReading = isDefective(bill.presentReading) || isDefective(bill.previousReading);
@@ -1846,7 +1882,7 @@ const BillDashboard = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast.success(`✅ Exported ${billsToExport.length} bills!`);
       toast.success(`🔒 Password: ${EXCEL_PASSWORD}`);
     } catch (error) {
@@ -1940,13 +1976,13 @@ const BillDashboard = () => {
   const getDiscountPreview = () => {
     const hasDiscount = isSeniorCitizen || isPWD;
     if (!hasDiscount) return null;
-    
-    const discountType = isSeniorCitizen && isPWD 
-      ? 'Senior Citizen & PWD' 
-      : isSeniorCitizen 
-        ? 'Senior Citizen' 
+
+    const discountType = isSeniorCitizen && isPWD
+      ? 'Senior Citizen & PWD'
+      : isSeniorCitizen
+        ? 'Senior Citizen'
         : 'PWD';
-    
+
     return {
       type: discountType,
       rate: DISCOUNT_RATE,
@@ -1958,62 +1994,70 @@ const BillDashboard = () => {
 
   return (
     <div className="bill-dashboard">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-left">
-          <h1>WATERBILL DASHBOARD</h1>
+
+      {/* ========== HEADER ========== */}
+      <header className="dashboard-header">
+        <div className="dashboard-header-left">
+          <h1>Water Bill Records</h1>
           <p>Manage and track all water bill records</p>
         </div>
-        <div className="header-actions">
+        <div className="dashboard-header-right">
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            background: '#FFFFFF',
-            border: `2px solid ${currentServerConfig?.color || '#194752'}`,
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            padding: '6px 14px',
+            background: 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
+            border: '1px solid #86EFAC',
             borderRadius: '10px',
-            padding: '6px 5px',
-            boxShadow: `0 2px 8px ${currentServerConfig?.color || '#194752'}22`
+            fontFamily: 'Inter, sans-serif'
           }}>
-            <ServerIcon width={18} height={18} color={currentServerConfig?.color || '#194752'} />
             <span style={{
-              fontSize: '12px',
+              fontSize: '10px',
               fontWeight: '700',
-              color: currentServerConfig?.color || '#194752',
-              textTransform: 'uppercase',
+              color: '#166534',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase'
+            }}>
+              🇵🇭 Philippine Time
+            </span>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: '800',
+              color: '#15803D',
+              fontVariantNumeric: 'tabular-nums',
               letterSpacing: '0.5px'
             }}>
-              Server:
+              {formatPhilippineTime(phNow)}
             </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              color: '#166534'
+            }}>
+              {formatPhilippineDate(phNow)}
+            </span>
+          </div>
+
+          <div className="server-selector">
+            <ServerIcon width={16} height={16} color="#64748B" />
             <select
               value={selectedServer}
               onChange={handleServerChange}
               disabled={loading}
-              style={{
-                padding: '6px 10px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '6px',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: currentServerConfig?.color || '#194752',
-                outline: 'none',
-                cursor: loading ? 'wait' : 'pointer',
-                minWidth: '110px'
-              }}
             >
-              <option value="server1">Server 1</option>
-              <option value="server2">Server 2</option>
-              <option value="server3">Server 3</option>
-              <option value="server4">🗄️ Server 4 (Archive)</option>
-              <option value="server5">Server 5</option>
+              <option value="server1">CADUCAN</option>
+              <option value="server2">LUYO</option>
+              <option value="server3">SAN ISIDRO</option>
+              <option value="server4">MORYO-MORYO</option>
+              <option value="server5">CALIAN</option>
+              <option value="server6">SAN ROQUE/ANILAO</option>
             </select>
           </div>
 
           <div className="table-type-toggle">
             <button
-              className={`table-type-btn ${tableType === 'regular' ? 'active' : ''}`}
+              className={`table-type-btn regular-btn ${tableType === 'regular' ? 'active' : ''}`}
               onClick={() => {
                 setTableType('regular');
                 setSelectedBillIds([]);
@@ -2035,32 +2079,555 @@ const BillDashboard = () => {
           </div>
 
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-  ADD BILL
-</button>
+            ADD BILL
+          </button>
 
-<button
-  className="btn"
-  onClick={() => setShowApplicationForm(true)}
-  style={{
-    background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-    color: '#ffffff',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 24px',
-    border: 'none',
-    borderRadius: '10px',
-    fontFamily: 'Inter, sans-serif',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-  }}
->
-  📋 APPLICATION
-</button>
+          <button
+            className="btn btn-purple"
+            onClick={() => setShowApplicationForm(true)}
+          >
+            APPLICATION
+          </button>
         </div>
+      </header>
+
+      {/* ========== 2-COLUMN LAYOUT ========== */}
+      <div className="dashboard-layout">
+
+        {/* LEFT SIDEBAR - STATS */}
+        <aside className="left-sidebar">
+          <div className="sidebar-title">Statistics</div>
+
+          {tableType === 'regular' ? (
+            <>
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-blue">
+                  <SummationCircleIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Total Bills</span>
+                  <span className="sidebar-stat-value">{stats.total}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-green">
+                  <PhilippinePesoIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Paid</span>
+                  <span className="sidebar-stat-value">{stats.paid}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-amber">
+                  <CalendarClockIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Unpaid</span>
+                  <span className="sidebar-stat-value">{stats.unpaid}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-red">
+                  <SecurityWarningIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Overdue</span>
+                  <span className="sidebar-stat-value">{stats.overdue}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-slate">
+                  <User02Icon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Consumers</span>
+                  <span className="sidebar-stat-value">{stats.totalConsumers}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-teal">
+                  <ApartmentIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Residential</span>
+                  <span className="sidebar-stat-value">{stats.residential}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-indigo">
+                  <DuplexIcon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Commercial</span>
+                  <span className="sidebar-stat-value">{stats.commercial}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-rose">
+                  <Location03Icon width={18} height={18} color="#111827" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Location</span>
+                  <span className="sidebar-stat-value sidebar-stat-location">{stats.location || 'N/A'}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-red">
+                  <SummationCircleIcon width={18} height={18} color="#DC2626" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Cut-off Accounts</span>
+                  <span className="sidebar-stat-value">{filteredBills.length}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-slate">
+                  <User02Icon width={18} height={18} color="#64748B" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Consumers</span>
+                  <span className="sidebar-stat-value">{new Set(filteredBills.map(b => b.consumerName)).size}</span>
+                </div>
+              </div>
+
+              <div className="sidebar-stat-card">
+                <div className="sidebar-stat-icon sidebar-icon-amber">
+                  <PhilippinePesoIcon width={18} height={18} color="#D97706" />
+                </div>
+                <div className="sidebar-stat-content">
+                  <span className="sidebar-stat-label">Total Collectable</span>
+                  <span className="sidebar-stat-value sidebar-stat-location">
+                    {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </aside>
+
+        {/* CENTER CONTENT - FILTERS + TABLE */}
+        <main className="center-content">
+
+          {/* ========== FILTER SECTION ========== */}
+          <div className="filter-section">
+            <div className="filter-section-header">
+              <div className="filter-section-title">
+                <FilterIcon width={16} height={16} color="#64748B" />
+                <span>Filters</span>
+              </div>
+              {(searchTerm || activeFilterCount > 0) && (
+                <button className="btn-clear-filters" onClick={resetFilters}>
+                  ✕ Clear Filters
+                </button>
+              )}
+            </div>
+
+            <div className="filter-grid">
+              <div className="filter-group filter-group-search">
+                <label className="filter-label">Search</label>
+                <div className="search-wrapper">
+                  <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={16} height={16} fill="none">
+                    <circle cx="11" cy="11" r="7" stroke="#94A3B8" strokeWidth="2"/>
+                    <path d="M16.5 16.5L21 21" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search by name or WSIN..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setSelectedBillIds([]);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Type</label>
+                  <select
+                    className="filter-select"
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="RESIDENTIAL">Residential</option>
+                    <option value="COMMERCIAL">Commercial</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="filter-group">
+                <label className="filter-label">Location</label>
+                <select
+                  className="filter-select"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                >
+                  <option value="all">All Locations</option>
+                  {locations.map(location => <option key={location} value={location}>{location}</option>)}
+                </select>
+              </div>
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Month</label>
+                  <select
+                    className="filter-select"
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                  >
+                    <option value="all">All Months</option>
+                    {months.map(month => <option key={month} value={month}>{month}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {tableType === 'regular' && (
+                <div className="filter-group">
+                  <label className="filter-label">Year</label>
+                  <select
+                    className="filter-select"
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                  >
+                    <option value="all">All Years</option>
+                    {years.map(year => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="filter-info-row">
+              <div className="filter-info-item">
+                <span className="filter-info-label">Showing:</span>
+                <span className="filter-info-value">{filteredBills.length}</span>
+              </div>
+              <div className="filter-info-item">
+                <span className="filter-info-label">Server:</span>
+                <span className="filter-info-value">{getServerLabel(selectedServer)}</span>
+              </div>
+              {activeFilterCount > 0 && (
+                <div className="filter-info-item">
+                  <span className="filter-info-label">Active Filters:</span>
+                  <span className="filter-info-value">{activeFilterCount}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ========== SELECTION BAR ========== */}
+          {shouldShowCheckboxes && consumersWithUnpaid.size === 1 && (
+            <div className={`selection-bar ${selectedBillIds.length > 0 ? 'has-selection' : ''}`}>
+              <div className="selection-info">
+                {selectedBillIds.length > 0 ? (
+                  <>
+                    <span className="selection-count">{selectedBillIds.length}</span>
+                    <span>bill{selectedBillIds.length > 1 ? 's' : ''} selected</span>
+                    <span className="selection-amount">({formatCurrency(selectedTotalAmount)})</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="selection-name">{Array.from(consumersWithUnpaid.keys())[0]}</span>
+                    <span>has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills</span>
+                  </>
+                )}
+              </div>
+              <div className="selection-actions">
+                {selectedBillIds.length > 0 && (
+                  <button className="btn-clear-selection" onClick={handleClearSelection}>
+                    Clear
+                  </button>
+                )}
+                <button
+                  className="btn-pay-all"
+                  onClick={selectedBillIds.length > 0
+                    ? handleSelectedPay
+                    : () => handlePayAll(Array.from(consumersWithUnpaid.keys())[0])
+                  }
+                >
+                  <PayAllIcon width={16} height={16} color="#FFFFFF" />
+                  {selectedBillIds.length > 0 ? `Pay Selected (${selectedBillIds.length})` : 'Pay All'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tableType === 'cutoff' && searchTerm.trim() && cutoffConsumersWithUnpaid.size === 1 && (
+            <div className="selection-bar cutoff-selection">
+              <div className="selection-info">
+                <span className="selection-name">{Array.from(cutoffConsumersWithUnpaid.keys())[0]}</span>
+                <span>has {Array.from(cutoffConsumersWithUnpaid.values())[0].length} unpaid cut-off bills</span>
+              </div>
+              <button
+                className="btn-pay-all cutoff"
+                onClick={() => handleCutoffPayAll(Array.from(cutoffConsumersWithUnpaid.keys())[0])}
+              >
+                <PayAllIcon width={16} height={16} color="#FFFFFF" />
+                Pay All
+              </button>
+            </div>
+          )}
+
+          {/* ========== TABLE ========== */}
+          <div className="table-container">
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading {selectedServer === 'all' ? 'all servers' : getServerLabel(selectedServer)}...</p>
+              </div>
+            ) : filteredBills.length === 0 ? (
+              <div className="empty-state">
+                <p>No bills found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p>
+                <p className="empty-subtext">{searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill!'}</p>
+              </div>
+            ) : (
+              <>
+                <table className="bills-table">
+                  <thead>
+                    <tr>
+                      {shouldShowCheckboxes && (
+                        <th className="checkbox-col">
+                          <input
+                            type="checkbox"
+                            checked={(() => {
+                              const currentPageUnpaid = getCurrentPageData().filter(
+                                bill => bill.status !== 'paid' && !isCutoffBill(bill)
+                              );
+                              return currentPageUnpaid.length > 0 &&
+                                currentPageUnpaid.every(b => selectedBillIds.includes(b.id));
+                            })()}
+                            onChange={handleSelectAllOnPage}
+                          />
+                        </th>
+                      )}
+                      <th>WSIN</th>
+                      <th>Consumer</th>
+                      <th>Location</th>
+                      <th>Period</th>
+                      <th>Type</th>
+                      <th>Previous</th>
+                      <th>Present</th>
+                      <th>Consumption</th>
+                      <th className="text-right">Amount</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getCurrentPageData().map((bill) => {
+                      let displayStatus = bill.status === 'paid' ? 'paid' : determineBillStatus(bill);
+                      const status = getStatusBadge(displayStatus);
+                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
+
+                      const isPresentDefective = isDefective(bill.presentReading);
+                      const isPreviousDefective = isDefective(bill.previousReading);
+                      const isDefectiveReading = isPresentDefective || isPreviousDefective;
+
+                      const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
+                      const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
+
+                      const { consumption, amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
+
+                      const displayAmount = bill.status === 'paid' && bill.amount !== undefined && bill.amount !== null
+                        ? bill.amount
+                        : amount;
+
+                      const isSelectable = displayStatus !== 'paid' && !isCutoffBill(bill);
+                      const isChecked = selectedBillIds.includes(bill.id);
+
+                      return (
+                        <tr
+                          key={`${bill.serverSource || 's1'}-${bill.id}`}
+                          className={isChecked ? 'row-selected' : ''}
+                        >
+                          {shouldShowCheckboxes && (
+                            <td className="checkbox-col">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={!isSelectable}
+                                onChange={() => handleToggleBillSelection(bill.id)}
+                              />
+                            </td>
+                          )}
+                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
+                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
+                          <td className="name-cell">{bill.location || 'N/A'}</td>
+                          <td className="name-cell">{period.trim() || 'N/A'}</td>
+                          <td>
+                            <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
+                              {bill.consumerType || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="name-cell">{displayPrevious}</td>
+                          <td className="name-cell">{displayPresent}</td>
+                          <td className="name-cell" style={{ fontWeight: '600' }}>
+                            {consumption} m³
+                            {isDefectiveReading && <span className="defective-badge"> DEF</span>}
+                          </td>
+                          <td className="name-cell text-right" style={{ fontWeight: '600' }}>
+                            {formatCurrency(displayAmount)}
+                            {bill.hasDiscount && (
+                              <div className="discount-note">🎉 {bill.discountType}</div>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`status-badge ${status.class}`}>{status.label}</span>
+                            {displayStatus === 'paid' && (
+                              <PaidDateTimeDisplay paidAt={bill.paidAt} />
+                            )}
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              {displayStatus !== 'paid' ? (
+                                <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
+                              ) : (
+                                <>
+                                  <span className="or-badge">{bill.paymentCode || '—'}</span>
+                                  {/* ✅ PRINT BUTTON for Reprinting Receipt (Now matching PAY button color) */}
+                                  <button
+                                    className="action-btn print"
+                                    onClick={() => handleReprintReceipt(bill)}
+                                    title="Reprint Receipt"
+                                    style={{
+                                      background: '#1E3A8A', // Dark blue matching the PAY button
+                                      color: '#FFFFFF',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      padding: '4px 10px',
+                                      fontSize: '10px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      marginLeft: '6px',
+                                      transition: 'all 0.2s ease',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = '#152C6B'; // Darker blue on hover
+                                      e.currentTarget.style.transform = 'scale(1.05)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = '#1E3A8A';
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  >
+                                    <PrintIcon width={12} height={12} color="#FFFFFF" />
+                                    PRINT
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {filteredBills.length > rowsPerPage && (
+                  <div className="pagination-container">
+                    <div className="pagination-info">
+                      {getPaginationInfo()}
+                    </div>
+
+                    <div className="pagination-controls">
+                      <button
+                        className="pagination-btn"
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeftIcon width={16} height={16} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
+                        Previous
+                      </button>
+
+                      <div className="pagination-pages">
+                        {(() => {
+                          const pages = [];
+                          const total = totalPages;
+                          const current = currentPage;
+
+                          if (total <= 7) {
+                            for (let i = 1; i <= total; i++) pages.push(i);
+                          } else {
+                            pages.push(1);
+                            if (current > 3) pages.push('...');
+                            const start = Math.max(2, current - 1);
+                            const end = Math.min(total - 1, current + 1);
+                            for (let i = start; i <= end; i++) pages.push(i);
+                            if (current < total - 2) pages.push('...');
+                            pages.push(total);
+                          }
+
+                          return pages.map((page, index) => {
+                            if (page === '...') {
+                              return <span key={`ellipsis-${index}`} className="pagination-ellipsis">…</span>;
+                            }
+
+                            const isActive = page === current;
+                            return (
+                              <button
+                                key={page}
+                                className={`pagination-page ${isActive ? 'active' : ''}`}
+                                onClick={() => goToPage(page)}
+                              >
+                                {page}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      <button
+                        className="pagination-btn"
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRightIcon width={16} height={16} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
+                      </button>
+                    </div>
+
+                    <div className="pagination-rows">
+                      <span>Rows per page: <strong>10</strong></span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
       </div>
+
+      {/* ========== FOOTER ========== */}
+      <footer className="dashboard-footer">
+        <div className="footer-left">
+          © {new Date().getFullYear()} Waterbill Management System — Municipality of Liloan
+        </div>
+        <div className="footer-right">
+          <span>v1.0.0</span>
+          <span className="footer-separator">•</span>
+          <span>All rights reserved</span>
+        </div>
+      </footer>
+
+      {/* ==================== ALL MODALS ==================== */}
 
       {/* Export Location Modal */}
       {showExportModal && (
@@ -2070,7 +2637,7 @@ const BillDashboard = () => {
               <h2>📤 Export Bills by Location</h2>
               <button className="close-btn" onClick={closeExportModal}>✕</button>
             </div>
-            
+
             <div style={{ marginBottom: '16px' }}>
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: '600', marginBottom: '6px', color: '#0F172A' }}>
@@ -2103,8 +2670,8 @@ const BillDashboard = () => {
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={closeExportModal} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={handleExportWithLocationFilter}
                 disabled={isExporting}
                 style={{ flex: 1 }}
@@ -2116,7 +2683,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* CUTOFF PAY MODAL - SINGLE */}
+      {/* Cutoff Pay Modal - Single */}
       {showCutoffPayModal && cutoffBillToPay && (
         <div className="modal-overlay" onClick={() => setShowCutoffPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
@@ -2168,78 +2735,34 @@ const BillDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
-                {cutoffLoadingOR ? (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#F1F5F9',
-                    border: '2px solid #E2E8F0',
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    color: '#64748B',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    ⏳ Fetching available OR Number...
-                  </div>
-                ) : cutoffAvailableOR ? (
-                  <>
-                    <input
-                      type="text"
-                      className="payment-input"
-                      value={cutoffPaymentCode}
-                      readOnly
-                      style={{
-                        background: '#F0FDF4',
-                        border: '2px solid #16A34A',
-                        color: '#166534',
-                        cursor: 'not-allowed',
-                        fontWeight: '800'
-                      }}
-                    />
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      background: '#F0FDF4',
-                      border: '1px solid #86EFAC',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '14px' }}>✅</span>
-                      <span style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#166534'
-                      }}>
-                        Auto-assigned from Server 4 → Batch: {cutoffAvailableOR.batchId || 'N/A'}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#FEF2F2',
-                    border: '2px solid #FECACA',
-                    borderRadius: '8px',
-                    color: '#991B1B',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}>
-                    ⚠️ No available OR numbers. Please add OR numbers in Admin Dashboard.
-                  </div>
+                <label>OR Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  placeholder="0000000"
+                  value={cutoffPaymentCode}
+                  onChange={handleCutoffPaymentCodeChange}
+                  maxLength={7}
+                  inputMode="numeric"
+                  autoFocus
+                />
+                {cutoffPaymentError && (
+                  <p style={{ color: '#DC2626', fontSize: '12px', marginTop: '6px', fontWeight: '600' }}>
+                    ⚠️ {cutoffPaymentError}
+                  </p>
                 )}
+                <p style={{ color: '#64748B', fontSize: '11px', marginTop: '6px' }}>
+                  Enter the 7-digit OR number from the receipt booklet.
+                </p>
               </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setShowCutoffPayModal(false)} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmCutoffPay}
-                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR}
+                disabled={!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff}
                 style={{
                   flex: 1,
                   background: '#DC2626',
@@ -2250,7 +2773,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff || !cutoffAvailableOR) ? '0.5' : '1'
+                  opacity: (!cutoffPaymentCode || cutoffPaymentCode.length !== 7 || isPayingCutoff) ? '0.5' : '1'
                 }}
               >
                 {isPayingCutoff ? '⏳ Processing...' : '✅ Confirm Payment'}
@@ -2260,7 +2783,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* CUTOFF PAY ALL MODAL */}
+      {/* Cutoff Pay All Modal */}
       {showCutoffPayAllModal && cutoffPayAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowCutoffPayAllModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
@@ -2277,8 +2800,8 @@ const BillDashboard = () => {
                 You are about to pay <strong>{cutoffPayAllBills.length}</strong> unpaid cut-off accounts for <strong>{cutoffPayAllConsumerName}</strong>.
               </p>
 
-              <div style={{ 
-                border: '2px solid #DC2626', 
+              <div style={{
+                border: '2px solid #DC2626',
                 borderRadius: '12px',
                 overflow: 'hidden',
                 marginBottom: '16px',
@@ -2297,7 +2820,7 @@ const BillDashboard = () => {
                     {cutoffPayAllBills.map((bill, index) => {
                       const amount = bill.amount || bill.collectableAmount || 0;
                       return (
-                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{ 
+                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`} style={{
                           background: index % 2 === 0 ? '#FFF5F5' : '#FFFFFF',
                           borderBottom: '1px solid #FEE2E2'
                         }}>
@@ -2330,78 +2853,34 @@ const BillDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
-                {cutoffPayAllLoadingOR ? (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#F1F5F9',
-                    border: '2px solid #E2E8F0',
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    color: '#64748B',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    ⏳ Fetching available OR Number...
-                  </div>
-                ) : cutoffPayAllAvailableOR ? (
-                  <>
-                    <input
-                      type="text"
-                      className="payment-input"
-                      value={cutoffPayAllPaymentCode}
-                      readOnly
-                      style={{
-                        background: '#F0FDF4',
-                        border: '2px solid #16A34A',
-                        color: '#166534',
-                        cursor: 'not-allowed',
-                        fontWeight: '800'
-                      }}
-                    />
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      background: '#F0FDF4',
-                      border: '1px solid #86EFAC',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '14px' }}>✅</span>
-                      <span style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#166534'
-                      }}>
-                        Auto-assigned from Server 4 → Batch: {cutoffPayAllAvailableOR.batchId || 'N/A'}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#FEF2F2',
-                    border: '2px solid #FECACA',
-                    borderRadius: '8px',
-                    color: '#991B1B',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}>
-                    ⚠️ No available OR numbers.
-                  </div>
+                <label>OR Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  placeholder="0000000"
+                  value={cutoffPayAllPaymentCode}
+                  onChange={handleCutoffPayAllPaymentCodeChange}
+                  maxLength={7}
+                  inputMode="numeric"
+                  autoFocus
+                />
+                {cutoffPayAllPaymentError && (
+                  <p style={{ color: '#DC2626', fontSize: '12px', marginTop: '6px', fontWeight: '600' }}>
+                    ⚠️ {cutoffPayAllPaymentError}
+                  </p>
                 )}
+                <p style={{ color: '#64748B', fontSize: '11px', marginTop: '6px' }}>
+                  Enter the 7-digit OR number from the receipt booklet.
+                </p>
               </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setShowCutoffPayAllModal(false)} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmCutoffPayAll}
-                disabled={!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll || !cutoffPayAllAvailableOR}
+                disabled={!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll}
                 style={{
                   flex: 1,
                   background: '#DC2626',
@@ -2412,7 +2891,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll || !cutoffPayAllAvailableOR) ? '0.5' : '1'
+                  opacity: (!cutoffPayAllPaymentCode || cutoffPayAllPaymentCode.length !== 7 || isPayingCutoffAll) ? '0.5' : '1'
                 }}
               >
                 {isPayingCutoffAll ? '⏳ Processing...' : `✅ Pay All (${cutoffPayAllBills.length} Bills)`}
@@ -2422,7 +2901,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* PAY ALL / PAY SELECTED MODAL - WITH DISCOUNT + AUTO OR */}
+      {/* Pay All / Pay Selected Modal */}
       {showPayAllModal && payAllBills.length > 0 && (
         <div className="modal-overlay" onClick={() => setShowPayAllModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
@@ -2439,8 +2918,8 @@ const BillDashboard = () => {
                 You are about to pay <strong>{payAllBills.length}</strong> {selectedBillIds.length > 0 ? 'selected' : 'unpaid'} bill{payAllBills.length > 1 ? 's' : ''} for <strong>{payAllConsumerName}</strong>.
               </p>
 
-              <div style={{ 
-                border: '1px solid #E2E8F0', 
+              <div style={{
+                border: '1px solid #E2E8F0',
                 borderRadius: '8px',
                 overflow: 'hidden',
                 marginBottom: '16px',
@@ -2484,7 +2963,6 @@ const BillDashboard = () => {
                 </table>
               </div>
 
-              {/* DISCOUNT CHECKBOXES */}
               <div style={{
                 padding: '14px 18px',
                 background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
@@ -2503,7 +2981,7 @@ const BillDashboard = () => {
                 }}>
                   🎉 Discount (5%)
                 </p>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <label style={{
                     display: 'flex',
@@ -2618,14 +3096,13 @@ const BillDashboard = () => {
                 )}
               </div>
 
-              {/* TOTAL SUMMARY */}
               <div style={{
                 padding: '16px 20px',
-                background: (isSeniorCitizen || isPWD) 
-                  ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
+                background: (isSeniorCitizen || isPWD)
+                  ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)'
                   : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
-                border: (isSeniorCitizen || isPWD) 
-                  ? '2px solid #86EFAC' 
+                border: (isSeniorCitizen || isPWD)
+                  ? '2px solid #86EFAC'
                   : '2px solid #E2E8F0',
                 borderRadius: '12px',
                 marginBottom: '16px'
@@ -2654,18 +3131,18 @@ const BillDashboard = () => {
                   </div>
                 )}
 
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   justifyContent: 'space-between',
                   paddingTop: '8px',
                   borderTop: '2px solid #E2E8F0',
                   marginTop: '8px'
                 }}>
                   <span style={{ fontSize: '16px', color: '#0F172A', fontWeight: '800' }}>TOTAL:</span>
-                  <span style={{ 
-                    fontSize: '22px', 
-                    color: (isSeniorCitizen || isPWD) ? '#16A34A' : '#194752', 
-                    fontWeight: '800' 
+                  <span style={{
+                    fontSize: '22px',
+                    color: (isSeniorCitizen || isPWD) ? '#16A34A' : '#194752',
+                    fontWeight: '800'
                   }}>
                     {formatCurrency(payAllBills.reduce((sum, bill) => {
                       const { amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
@@ -2676,80 +3153,35 @@ const BillDashboard = () => {
                 </div>
               </div>
 
-              {/* ✅ AUTO OR DISPLAY */}
               <div className="form-group">
-                <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
-                {payAllLoadingOR ? (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#F1F5F9',
-                    border: '2px solid #E2E8F0',
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    color: '#64748B',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    ⏳ Fetching available OR Number...
-                  </div>
-                ) : payAllAvailableOR ? (
-                  <>
-                    <input
-                      type="text"
-                      className="payment-input"
-                      value={payAllPaymentCode}
-                      readOnly
-                      style={{
-                        background: '#F0FDF4',
-                        border: '2px solid #16A34A',
-                        color: '#166534',
-                        cursor: 'not-allowed',
-                        fontWeight: '800'
-                      }}
-                    />
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      background: '#F0FDF4',
-                      border: '1px solid #86EFAC',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '14px' }}>✅</span>
-                      <span style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#166534'
-                      }}>
-                        Auto-assigned from Server 4 → Batch: {payAllAvailableOR.batchId || 'N/A'}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: '#FEF2F2',
-                    border: '2px solid #FECACA',
-                    borderRadius: '8px',
-                    color: '#991B1B',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}>
-                    ⚠️ No available OR numbers. Please add OR numbers in Admin Dashboard.
-                  </div>
+                <label>OR Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  className="payment-input"
+                  placeholder="0000000"
+                  value={payAllPaymentCode}
+                  onChange={handlePayAllPaymentCodeChange}
+                  maxLength={7}
+                  inputMode="numeric"
+                  autoFocus
+                />
+                {payAllPaymentError && (
+                  <p style={{ color: '#DC2626', fontSize: '12px', marginTop: '6px', fontWeight: '600' }}>
+                    ⚠️ {payAllPaymentError}
+                  </p>
                 )}
+                <p style={{ color: '#64748B', fontSize: '11px', marginTop: '6px' }}>
+                  Enter the 7-digit OR number from the receipt booklet.
+                </p>
               </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setShowPayAllModal(false)} style={{ flex: 1 }}>Cancel</button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={confirmPayAll}
-                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR}
+                disabled={!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll}
                 style={{
                   flex: 1,
                   background: '#16A34A',
@@ -2760,7 +3192,7 @@ const BillDashboard = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll || !payAllAvailableOR) ? '0.5' : '1'
+                  opacity: (!payAllPaymentCode || payAllPaymentCode.length !== 7 || isPayingAll) ? '0.5' : '1'
                 }}
               >
                 {isPayingAll ? '⏳ Processing...' : `✅ Pay (${payAllBills.length} Bill${payAllBills.length > 1 ? 's' : ''})`}
@@ -2770,769 +3202,7 @@ const BillDashboard = () => {
         </div>
       )}
 
-      {/* REGULAR TABLE VIEW */}
-      {tableType === 'regular' && (
-        <>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Total Bills</p><p className="stat-number">{stats.total}</p></div>
-            </div>
-            <div className="stat-card stat-paid">
-              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Paid</p><p className="stat-number">{stats.paid}</p></div>
-            </div>
-            <div className="stat-card stat-unpaid">
-              <span className="stat-icon"><CalendarClockIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Unpaid</p><p className="stat-number">{stats.unpaid}</p></div>
-            </div>
-            <div className="stat-card stat-overdue">
-              <span className="stat-icon"><SecurityWarningIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Overdue</p><p className="stat-number">{stats.overdue}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Consumers</p><p className="stat-number">{stats.totalConsumers}</p></div>
-            </div>
-            <div className="stat-card stat-residential">
-              <span className="stat-icon"><ApartmentIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Residential</p><p className="stat-number">{stats.residential}</p></div>
-            </div>
-            <div className="stat-card stat-commercial">
-              <span className="stat-icon"><DuplexIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Commercial</p><p className="stat-number">{stats.commercial}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><Location03Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Location</p><p className="stat-number stat-location">{stats.location || 'N/A'}</p></div>
-            </div>
-          </div>
-
-          <div className="search-filter-container">
-            <div className="search-wrapper">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search by name or WSIN..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setSelectedBillIds([]);
-                }}
-              />
-              <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                <option value="all">All Types</option>
-                <option value="RESIDENTIAL">Residential</option>
-                <option value="COMMERCIAL">Commercial</option>
-              </select>
-              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
-                <option value="all">All Locations</option>
-                {locations.map(location => <option key={location} value={location}>{location}</option>)}
-              </select>
-              <select className="filter-select" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
-                <option value="all">All Months</option>
-                {months.map(month => <option key={month} value={month}>{month}</option>)}
-              </select>
-              <select className="filter-select" value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
-                <option value="all">All Years</option>
-                {years.map(year => <option key={year} value={year}>{year}</option>)}
-              </select>
-              <div >
-              <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>
-            </div>
-            </div>
-            
-          </div>
-
-          {shouldShowCheckboxes && consumersWithUnpaid.size === 1 && (
-            <div style={{
-              marginBottom: '16px',
-              padding: '8px 20px',
-              background: selectedBillIds.length > 0 
-                ? 'linear-gradient(135deg, #EFF6FF, #DBEAFE)' 
-                : 'linear-gradient(135deg, #F0FDF4, #DCFCE7)',
-              borderRadius: '12px',
-              border: selectedBillIds.length > 0 
-                ? '2px solid #60A5FA' 
-                : '2px solid #86EFAC',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <span style={{ 
-                  fontWeight: '600', 
-                  color: selectedBillIds.length > 0 ? '#1E40AF' : '#166534'
-                }}>
-                  {selectedBillIds.length > 0 ? (
-                    <>
-                      ✅ {selectedBillIds.length} bill{selectedBillIds.length > 1 ? 's' : ''} selected
-                      {' '}({formatCurrency(selectedTotalAmount)})
-                    </>
-                  ) : (
-                    <>
-                      {Array.from(consumersWithUnpaid.keys())[0]} has {Array.from(consumersWithUnpaid.values())[0].length} unpaid bills
-                    </>
-                  )}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                {selectedBillIds.length > 0 && (
-                  <button
-                    onClick={handleClearSelection}
-                    style={{
-                      padding: '6px 16px',
-                      background: '#FFFFFF',
-                      color: '#64748B',
-                      border: '1px solid #CBD5E1',
-                      borderRadius: '8px',
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    ✕ Clear Selection
-                  </button>
-                )}
-                
-                <button
-                  className="btn btn-success"
-                  onClick={selectedBillIds.length > 0 
-                    ? handleSelectedPay 
-                    : () => handlePayAll(Array.from(consumersWithUnpaid.keys())[0])
-                  }
-                  style={{
-                    background: selectedBillIds.length > 0 ? '#2563EB' : '#16A34A',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 24px',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    boxShadow: selectedBillIds.length > 0 
-                      ? '0 4px 12px rgba(37, 99, 235, 0.3)' 
-                      : '0 4px 12px rgba(22, 163, 74, 0.3)'
-                  }}
-                >
-                  <PayAllIcon width={20} height={20} color="#ffffff" />
-                  {selectedBillIds.length > 0 
-                    ? `PAY (${selectedBillIds.length})` 
-                    : 'PAY ALL'
-                  }
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '80px 20px',
-                minHeight: '400px',
-                gap: '20px'
-              }}>
-                <div style={{
-                  width: '50px',
-                  height: '50px',
-                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
-                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite'
-                }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <p style={{
-                    color: currentServerConfig?.color || '#194752',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0,
-                    letterSpacing: '0.5px'
-                  }}>
-                    LOADING SERVER
-                  </p>
-                  <p style={{
-                    color: '#64748B',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    fontFamily: 'Inter, sans-serif',
-                    margin: 0
-                  }}>
-                    Fetching data from{' '}
-                    <span style={{ color: currentServerConfig?.color || '#194752', fontWeight: '700' }}>
-                      {selectedServer === 'all' ? 'All Servers' : getServerLabel(selectedServer)}
-                    </span>
-                    ...
-                  </p>
-                </div>
-              </div>
-            ) : filteredBills.length === 0 ? (
-              <div className="empty-state">
-                <p>No bills found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}. {searchTerm || activeFilterCount > 0 ? 'Try adjusting your filters.' : 'Add your first bill!'}</p>
-              </div>
-            ) : (
-              <>
-                <table className="bills-table">
-                  <thead>
-                    <tr>
-                      {shouldShowCheckboxes && (
-                        <th style={{ width: '40px', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={(() => {
-                              const currentPageUnpaid = getCurrentPageData().filter(
-                                bill => bill.status !== 'paid' && !isCutoffBill(bill)
-                              );
-                              return currentPageUnpaid.length > 0 && 
-                                currentPageUnpaid.every(b => selectedBillIds.includes(b.id));
-                            })()}
-                            onChange={handleSelectAllOnPage}
-                            style={{
-                              width: '18px',
-                              height: '18px',
-                              cursor: 'pointer',
-                              accentColor: '#194752'
-                            }}
-                            title="Select all unpaid on this page"
-                          />
-                        </th>
-                      )}
-                      <th>WSIN</th>
-                      <th>Consumer</th>
-                      <th>Location</th>
-                      <th>Period</th>
-                      <th>Type</th>
-                      <th>Previous</th>
-                      <th>Present</th>
-                      <th>Consumption</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getCurrentPageData().map((bill) => {
-                      let displayStatus = bill.status === 'paid' ? 'paid' : determineBillStatus(bill);
-                      const status = getStatusBadge(displayStatus);
-                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                      
-                      const isPresentDefective = isDefective(bill.presentReading);
-                      const isPreviousDefective = isDefective(bill.previousReading);
-                      const isDefectiveReading = isPresentDefective || isPreviousDefective;
-                      
-                      const displayPresent = isPresentDefective ? 'DEFECTIVE' : (bill.presentReading || '0');
-                      const displayPrevious = isPreviousDefective ? 'DEFECTIVE' : (bill.previousReading || '0');
-                      
-                      const { consumption, amount } = calculateWithDefective(bill.presentReading, bill.previousReading, bill.consumerType);
-                      
-                      const isSelectable = displayStatus !== 'paid' && !isCutoffBill(bill);
-                      const isChecked = selectedBillIds.includes(bill.id);
-                      
-                      return (
-                        <tr 
-                          key={`${bill.serverSource || 's1'}-${bill.id}`}
-                          style={{ 
-                            background: isChecked ? '#EFF6FF' : 'transparent',
-                            transition: 'background 0.2s'
-                          }}
-                        >
-                          {shouldShowCheckboxes && (
-                            <td style={{ textAlign: 'center' }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={!isSelectable}
-                                onChange={() => handleToggleBillSelection(bill.id)}
-                                style={{
-                                  width: '18px',
-                                  height: '18px',
-                                  cursor: isSelectable ? 'pointer' : 'not-allowed',
-                                  opacity: isSelectable ? 1 : 0.3,
-                                  accentColor: '#194752'
-                                }}
-                                title={isSelectable ? 'Select this bill' : 'Already paid or cut-off'}
-                              />
-                            </td>
-                          )}
-                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                          <td className="name-cell">{bill.location || 'N/A'}</td>
-                          <td className="name-cell">{period.trim() || 'N/A'}</td>
-                          <td>
-                            <span className={`type-badge ${bill.consumerType?.toUpperCase() === 'RESIDENTIAL' ? 'residential' : 'commercial'}`}>
-                              {bill.consumerType || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="name-cell">{displayPrevious}</td>
-                          <td className="name-cell">{displayPresent}</td>
-                          <td className="name-cell" style={{ fontWeight: '600' }}>
-                            {consumption} m³
-                            {isDefectiveReading && <span className="defective-badge"> DEFECTIVE</span>}
-                          </td>
-                          <td className="name-cell" style={{ fontWeight: '600' }}>
-                            {formatCurrency(amount)}
-                            {bill.hasDiscount && (
-                              <div style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700' }}>
-                                🎉 {bill.discountType}
-                              </div>
-                            )}
-                          </td>
-                          <td><span className={`status-badge ${status.class}`}>{status.label}</span></td>
-                          <td>
-                            <div className="action-buttons">
-                              {displayStatus !== 'paid' ? (
-                                <button className="action-btn pay" onClick={() => handlePayBill(bill)}>PAY</button>
-                              ) : (
-                                <span style={{
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: '700',
-                                  color: '#194752',
-                                  background: '#F1F5F9',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  letterSpacing: '0.5px',
-                                  whiteSpace: 'nowrap',
-                                  border: '1px solid #E2E8F0'
-                                }}>
-                                  {bill.paymentCode || '—'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {filteredBills.length > rowsPerPage && (
-                  <div className="pagination-container" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 20px',
-                    borderTop: '1px solid #E2E8F0',
-                    background: '#F8FAFC',
-                    borderRadius: '0 0 12px 12px',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
-                      {getPaginationInfo()}
-                    </div>
-
-                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
-                        Previous
-                      </button>
-
-                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {(() => {
-                          const pages = [];
-                          const total = totalPages;
-                          const current = currentPage;
-                          
-                          if (total <= 7) {
-                            for (let i = 1; i <= total; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (current > 3) pages.push('...');
-                            const start = Math.max(2, current - 1);
-                            const end = Math.min(total - 1, current + 1);
-                            for (let i = start; i <= end; i++) pages.push(i);
-                            if (current < total - 2) pages.push('...');
-                            pages.push(total);
-                          }
-                          
-                          return pages.map((page, index) => {
-                            if (page === '...') {
-                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
-                            }
-                            
-                            const isActive = page === current;
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                style={{
-                                  padding: '8px 14px',
-                                  borderRadius: '8px',
-                                  border: isActive ? '2px solid #194752' : '1px solid #E2E8F0',
-                                  background: isActive ? '#194752' : '#FFFFFF',
-                                  color: isActive ? '#FFFFFF' : '#0F172A',
-                                  cursor: 'pointer',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: isActive ? '600' : '500',
-                                  minWidth: '40px'
-                                }}
-                              >
-                                {page}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-
-                      <button
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Next
-                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
-                      </button>
-                    </div>
-
-                    <div className="pagination-rows" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '13px' }}>
-                      <span>Rows:</span>
-                      <div
-                        value={rowsPerPage}
-                        onChange={(e) => toast.info('Rows per page is fixed at 10')}
-                        style={{
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #E2E8F0',
-                          background: '#FFFFFF',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="10">10</option>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* CUT-OFF TABLE VIEW */}
-      {tableType === 'cutoff' && (
-        <>
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div className="stat-card" style={{ borderColor: '#DC2626' }}>
-              <span className="stat-icon"><SummationCircleIcon width={28} height={28} color="#DC2626" /></span>
-              <div><p className="stat-label">Cut-off Accounts</p><p className="stat-number" style={{ color: '#DC2626' }}>{filteredBills.length}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><User02Icon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Consumers</p><p className="stat-number">{new Set(filteredBills.map(b => b.consumerName)).size}</p></div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon"><PhilippinePesoIcon width={28} height={28} color="#194752" /></span>
-              <div><p className="stat-label">Total Collectable</p><p className="stat-number" style={{ color: '#DC2626' }}>
-                {formatCurrency(filteredBills.reduce((sum, b) => sum + (b.amount || b.collectableAmount || 0), 0))}
-              </p></div>
-            </div>
-          </div>
-
-          <div className="search-filter-container">
-            <div className="search-wrapper">
-              <input type="text" className="search-input" placeholder="Search by name or WSIN..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-              <select className="filter-select" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
-                <option value="all">All Locations</option>
-                {locations.map(location => <option key={location} value={location}>{location}</option>)}
-              </select>
-            </div>
-            <div>
-              <button className="btn-clear" onClick={resetFilters}>✕ Clear Filters</button>
-            </div>
-          </div>
-
-          {searchTerm.trim() && cutoffConsumersWithUnpaid.size === 1 && (
-            <div style={{
-              marginBottom: '16px',
-              padding: '5px 20px',
-              background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)',
-              borderRadius: '12px',
-              border: '2px solid #FECACA',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <span style={{ fontWeight: '600', color: '#991B1B' }}>
-                  {Array.from(cutoffConsumersWithUnpaid.keys())[0]} has {Array.from(cutoffConsumersWithUnpaid.values())[0].length} unpaid cut-off bills
-                </span>
-              </div>
-              <button
-                className="btn btn-success"
-                onClick={() => handleCutoffPayAll(Array.from(cutoffConsumersWithUnpaid.keys())[0])}
-                style={{
-                  background: '#DC2626',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '5px 20px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                <PayAllIcon width={20} height={20} color="#ffffff" />
-                PAY ALL
-              </button>
-            </div>
-          )}
-
-          <div className="table-container">
-            {loading ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '80px 20px',
-                minHeight: '400px',
-                gap: '20px'
-              }}>
-                <div style={{
-                  width: '70px',
-                  height: '70px',
-                  border: `6px solid ${currentServerConfig?.color || '#194752'}20`,
-                  borderTop: `6px solid ${currentServerConfig?.color || '#194752'}`,
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite'
-                }} />
-              </div>
-            ) : filteredBills.length === 0 ? (
-              <div className="empty-state"><p>No cut-off accounts found in {selectedServer === 'all' ? 'any server' : getServerLabel(selectedServer)}.</p></div>
-            ) : (
-              <>
-                <table className="bills-table">
-                  <thead>
-                    <tr>
-                      <th>WSIN</th>
-                      <th>Consumer</th>
-                      <th>Location</th>
-                      <th>Period</th>
-                      <th>Type</th>
-                      <th>Collectable Amount</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getCurrentPageData().map((bill) => {
-                      const period = `${bill.month || 'N/A'} ${bill.year || ''}`;
-                      const amount = bill.amount || bill.collectableAmount || 0;
-                      const isPaid = bill.status === 'paid';
-                      
-                      return (
-                        <tr key={`${bill.serverSource || 's1'}-${bill.id}`}>
-                          <td className="wsin-cell">{bill.billNumber || 'N/A'}</td>
-                          <td className="name-cell">{bill.consumerName || 'N/A'}</td>
-                          <td className="name-cell">{bill.location || 'N/A'}</td>
-                          <td className="name-cell">{period.trim() || 'N/A'}</td>
-                          <td>
-                            <span className={`type-badge ${bill.type?.toUpperCase() === 'COMMERCIAL' ? 'commercial' : 'residential'}`}>
-                              {bill.type || bill.consumerType || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="name-cell" style={{ fontWeight: '600', color: '#DC2626' }}>{formatCurrency(amount)}</td>
-                          <td>
-                            <span className={`status-badge ${isPaid ? 'status-paid' : 'status-cutoff'}`}>
-                              {isPaid ? 'PAID' : 'CUT-OFF'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              {!isPaid ? (
-                                <button className="action-btn pay" onClick={() => handleCutoffPay(bill)}>PAY</button>
-                              ) : (
-                                <span style={{
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: '700',
-                                  color: '#194752',
-                                  background: '#F1F5F9',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  letterSpacing: '0.5px',
-                                  whiteSpace: 'nowrap',
-                                  border: '1px solid #E2E8F0'
-                                }}>
-                                  {bill.paymentCode || '—'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                {filteredBills.length > rowsPerPage && (
-                  <div className="pagination-container" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 20px',
-                    borderTop: '1px solid #E2E8F0',
-                    background: '#F8FAFC',
-                    borderRadius: '0 0 12px 12px',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div className="pagination-info" style={{ color: '#64748B', fontSize: '14px', fontWeight: '500' }}>
-                      {getPaginationInfo()}
-                    </div>
-                    <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === 1 ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === 1 ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        <ChevronLeftIcon width={18} height={18} color={currentPage === 1 ? '#94A3B8' : '#0F172A'} />
-                        Previous
-                      </button>
-                      <div className="page-numbers" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {(() => {
-                          const pages = [];
-                          const total = totalPages;
-                          const current = currentPage;
-                          
-                          if (total <= 7) {
-                            for (let i = 1; i <= total; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (current > 3) pages.push('...');
-                            const start = Math.max(2, current - 1);
-                            const end = Math.min(total - 1, current + 1);
-                            for (let i = start; i <= end; i++) pages.push(i);
-                            if (current < total - 2) pages.push('...');
-                            pages.push(total);
-                          }
-                          
-                          return pages.map((page, index) => {
-                            if (page === '...') {
-                              return <span key={`ellipsis-${index}`} style={{ padding: '8px 4px', color: '#94A3B8', fontSize: '14px' }}>…</span>;
-                            }
-                            
-                            const isActive = page === current;
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                style={{
-                                  padding: '8px 14px',
-                                  borderRadius: '8px',
-                                  border: isActive ? '2px solid #DC2626' : '1px solid #E2E8F0',
-                                  background: isActive ? '#DC2626' : '#FFFFFF',
-                                  color: isActive ? '#FFFFFF' : '#0F172A',
-                                  cursor: 'pointer',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '13px',
-                                  fontWeight: isActive ? '600' : '500',
-                                  minWidth: '40px'
-                                }}
-                              >
-                                {page}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-                      <button
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #E2E8F0',
-                          background: currentPage === totalPages ? '#F1F5F9' : '#FFFFFF',
-                          color: currentPage === totalPages ? '#94A3B8' : '#0F172A',
-                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Next
-                        <ChevronRightIcon width={18} height={18} color={currentPage === totalPages ? '#94A3B8' : '#0F172A'} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Pay Modal - Single Bill with AUTO OR */}
+      {/* Single Pay Modal */}
       {showPayModal && selectedBill && (
         <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -3547,7 +3217,6 @@ const BillDashboard = () => {
               <div className="pay-row"><span className="pay-label">Type</span><span className="pay-value">{selectedBill.consumerType || 'RESIDENTIAL'}</span></div>
             </div>
 
-            {/* DISCOUNT CHECKBOXES */}
             <div style={{
               padding: '5px 18px',
               background: 'linear-gradient(135deg, #F8FAFC, #EFF6FF)',
@@ -3566,7 +3235,7 @@ const BillDashboard = () => {
               }}>
                 Discount (5%)
               </p>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <label style={{
                   display: 'flex',
@@ -3679,14 +3348,13 @@ const BillDashboard = () => {
               )}
             </div>
 
-            {/* TOTAL SUMMARY */}
             <div style={{
               padding: '14px 18px',
-              background: (isSeniorCitizen || isPWD) 
-                ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)' 
+              background: (isSeniorCitizen || isPWD)
+                ? 'linear-gradient(135deg, #F0FDF4, #DCFCE7)'
                 : 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
-              border: (isSeniorCitizen || isPWD) 
-                ? '2px solid #86EFAC' 
+              border: (isSeniorCitizen || isPWD)
+                ? '2px solid #86EFAC'
                 : '2px solid #E2E8F0',
               borderRadius: '12px',
               marginBottom: '16px'
@@ -3717,18 +3385,18 @@ const BillDashboard = () => {
                       </div>
                     )}
 
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       justifyContent: 'space-between',
                       paddingTop: '8px',
                       borderTop: '2px solid #E2E8F0',
                       marginTop: '6px'
                     }}>
                       <span style={{ fontSize: '15px', color: '#0F172A', fontWeight: '800' }}>AMOUNT TO PAY:</span>
-                      <span style={{ 
-                        fontSize: '22px', 
-                        color: hasDiscount ? '#16A34A' : '#194752', 
-                        fontWeight: '800' 
+                      <span style={{
+                        fontSize: '22px',
+                        color: hasDiscount ? '#16A34A' : '#194752',
+                        fontWeight: '800'
                       }}>
                         {formatCurrency(finalAmt)}
                       </span>
@@ -3738,91 +3406,34 @@ const BillDashboard = () => {
               })()}
             </div>
 
-            {/* ✅ AUTO OR DISPLAY */}
             <div className="form-group">
-              <label>OR Number (Auto-Assigned) <span className="required">*</span></label>
-              {loadingOR ? (
-                <div style={{
-                  padding: '14px 16px',
-                  background: '#F1F5F9',
-                  border: '2px solid #E2E8F0',
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  color: '#64748B',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  ⏳ Fetching available OR Number...
-                </div>
-              ) : availableOR ? (
-                <>
-                  <input
-                    type="text"
-                    className="payment-input"
-                    value={paymentCode}
-                    readOnly
-                    style={{
-                      background: '#F0FDF4',
-                      border: '2px solid #16A34A',
-                      color: '#166534',
-                      cursor: 'not-allowed',
-                      fontWeight: '800'
-                    }}
-                  />
-                  <div style={{
-                    marginTop: '8px',
-                    padding: '8px 12px',
-                    background: '#F0FDF4',
-                    border: '1px solid #86EFAC',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <span style={{ fontSize: '14px' }}>✅</span>
-                    <span style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#166534'
-                    }}>
-                      Auto-assigned from Server 4 → Batch: {availableOR.batchId || 'N/A'}
-                    </span>
-                  </div>
-                </>
-              ) : orFetchError ? (
-                <div style={{
-                  padding: '14px 16px',
-                  background: '#FEF2F2',
-                  border: '2px solid #FECACA',
-                  borderRadius: '8px',
-                  color: '#991B1B',
-                  fontSize: '13px',
-                  fontWeight: '600'
-                }}>
-                  ⚠️ {orFetchError}
-                </div>
-              ) : (
-                <div style={{
-                  padding: '14px 16px',
-                  background: '#FEF2F2',
-                  border: '2px solid #FECACA',
-                  borderRadius: '8px',
-                  color: '#991B1B',
-                  fontSize: '13px',
-                  fontWeight: '600'
-                }}>
-                  ⚠️ No available OR numbers.
-                </div>
+              <label>OR Number <span className="required">*</span></label>
+              <input
+                type="text"
+                className="payment-input"
+                placeholder="0000000"
+                value={paymentCode}
+                onChange={handlePaymentCodeChange}
+                maxLength={7}
+                inputMode="numeric"
+                autoFocus
+              />
+              {paymentError && (
+                <p style={{ color: '#DC2626', fontSize: '12px', marginTop: '6px', fontWeight: '600' }}>
+                  ⚠️ {paymentError}
+                </p>
               )}
+              <p style={{ color: '#64748B', fontSize: '11px', marginTop: '6px' }}>
+                Enter the 7-digit OR number from the receipt booklet.
+              </p>
             </div>
 
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowPayModal(false)}>Cancel</button>
-              <button 
-                className={`btn btn-primary ${(!paymentCode || paymentCode.length !== 7 || !availableOR) ? 'disabled' : ''}`}
+              <button
+                className="btn btn-primary"
                 onClick={confirmPayBill}
-                disabled={!paymentCode || paymentCode.length !== 7 || isPaying || !availableOR}
+                disabled={!paymentCode || paymentCode.length !== 7 || isPaying}
               >
                 {isPaying ? 'Processing...' : 'Confirm Payment'}
               </button>
@@ -3845,19 +3456,19 @@ const BillDashboard = () => {
       )}
 
       {/* Bill Form */}
-      {/* Bill Form */}
-{showForm && (
-  <BillForm
-    bill={editingBill}
-    onClose={handleFormClose}
-    onSave={() => fetchBills(selectedServer)}
-    serverKey={editingBill?.serverSource || selectedServer}  // ✅ Auto-detect server
-  />
-)}
-{/* ✅ Application Form */}
-{showApplicationForm && (
-  <ApplicationForm onClose={() => setShowApplicationForm(false)} />
-)}
+      {showForm && (
+        <BillForm
+          bill={editingBill}
+          onClose={handleFormClose}
+          onSave={() => fetchBills(selectedServer)}
+          serverKey={editingBill?.serverSource || selectedServer}
+        />
+      )}
+
+      {/* Application Form */}
+      {showApplicationForm && (
+        <ApplicationForm onClose={() => setShowApplicationForm(false)} />
+      )}
     </div>
   );
 };
